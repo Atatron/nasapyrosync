@@ -154,6 +154,14 @@ The repository can also be deployed to Vercel as a **read-only** demo with a fix
 - The demo database is `deploy/pyrosync-demo.duckdb` (about 77 MB), built from a local full-history database with
   `.venv/bin/python deploy/build_demo_db.py --from-db data/pyrosync.duckdb --platforms Terra,Aqua,N21 --slim`.
   The full archive (338 MB with all five satellites; 218 MB with MODIS and S-NPP) does not fit Vercel's 250 MB function limit next to the Python libraries (about 150 MB), so the demo keeps every area but only MODIS and NOAA-21, and `--slim` blanks per-record brightness, scan/track and source-file details (shown only in the source-record table; all counts are unchanged). Days that are data gaps in the full archive are carried over, so coverage states match the local app. VIIRS S-NPP and NOAA-20 are available in the local version.
+- **Full archive from Vercel Blob (since 1.3).** When a Vercel Blob store is connected to the project, the online demo serves the **full archive with all five satellites** (10,917,537 rows) instead of the slim database:
+  - `deploy/blob/db/` holds the full database as xz-compressed parts (199 MB in three files under GitHub's 100 MB limit) and `deploy/blob/manifest.json` their checksums.
+  - The Vercel build (`node deploy/blob/upload.mjs`) uploads any part that is not yet in the store. A normal redeploy uploads nothing.
+  - On a cold start the function downloads the parts, decompresses them into `/tmp` and checks the SHA-256 (`backend/pyrosync/remote_seed.py`). This adds roughly 10–30 s to the first request on a new instance; later requests on that instance are normal.
+  - If no store is connected, or the download fails or takes longer than 40 s, the function uses the bundled slim database above, and the banner says what it contains.
+  - Each cold start reads about 199 MB from Blob, which counts against the Blob data-transfer allowance of the Vercel plan.
+  - To set it up: in the Vercel dashboard open the project, then **Storage → Create → Blob**, connect it to the project (all environments), and redeploy.
+  - To update the full archive: split the new `xz -9` file into parts of at most 70 MB in `deploy/blob/db/`, update `deploy/blob/manifest.json` (a new `prefix` per database checksum), commit and redeploy.
 - You can still build the demo from files instead: `deploy/build_demo_db.py sample_data/indonesia.zip` (the 1.0 demo).
 - **To update the online demo with new data:** import locally as usual, rebuild the demo database, commit it, and push. Then redeploy in the Vercel dashboard (Deployments → Redeploy). Pushes do not deploy by themselves unless you connect the repository under Project Settings → Git. Keep the database under about 80 MB so the function stays under Vercel's 250 MB limit.
 - Custom drawn or uploaded AOIs are kept in the function's temporary storage. After the function restarts, re-draw them.

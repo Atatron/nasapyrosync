@@ -1,6 +1,7 @@
 """DuckDB storage: schema, connection handling, dataset revision."""
 from __future__ import annotations
 
+import logging
 import threading
 from contextlib import contextmanager
 
@@ -72,6 +73,14 @@ def get_conn() -> duckdb.DuckDBPyConnection:
         st = get_settings()
         path = str(st.db_path)
         if _conn is None or _conn_path != path:
+            if not Path(path).exists():
+                from . import remote_seed
+                if remote_seed.configured():  # Vercel demo: full archive from Vercel Blob
+                    try:
+                        remote_seed.fetch(path)
+                    except Exception as e:  # fall back to the bundled slim database below
+                        Path(path + ".part").unlink(missing_ok=True)
+                        logging.getLogger(__name__).warning("pyrosync: Blob archive unavailable (%s); using the bundled demo database", type(e).__name__ + ": " + str(e)[:200])
             if st.seed_db and not Path(path).exists():
                 import shutil
                 Path(path).parent.mkdir(parents=True, exist_ok=True)

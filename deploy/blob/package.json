@@ -1,0 +1,9 @@
+{
+  "name": "pyrosync-blob-upload",
+  "private": true,
+  "type": "module",
+  "description": "Vercel build step that uploads the full PyroSync archive to Vercel Blob",
+  "dependencies": {
+    "@vercel/blob": "2.9.0"
+  }
+}

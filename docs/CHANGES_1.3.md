@@ -38,5 +38,16 @@ Backups: version 1.2.0 (the state of `main` before this work, commit `1ade128`) 
 - **Analog years exclude the focus year**, so the current partial season does not vote in its own analog group.
 - **Online demo now covers all of Indonesia** (Ata's choice): MODIS 2000–2026 and VIIRS NOAA-21 2023–2026, built with the new `--slim` option of `deploy/build_demo_db.py` (77 MB). All five satellites (338 MB) do not fit Vercel's function limit. Should a demo ever again hold one AOI only, Insights refuses other areas there instead of reading them as "no fire".
 
+## Vercel Blob (full archive online)
+| File | Change | Why |
+|---|---|---|
+| `deploy/blob/db/*`, `deploy/blob/manifest.json` | The full database (all five satellites) as three xz parts with SHA-256 checksums | The full archive does not fit the 250 MB function bundle |
+| `deploy/blob/upload.mjs`, `deploy/blob/package.json` | Vercel build step that uploads missing parts to the connected Blob store | Upload without handling the token by hand |
+| `backend/pyrosync/remote_seed.py`, `backend/pyrosync/db.py` | On a cold start: download, decompress and verify the archive into `/tmp`; fall back to the bundled slim database on any failure or after 40 s | Full archive online, and the site keeps working if Blob is missing |
+| `api/index.py`, `vercel.json` | Manifest path; install and build commands; the parts are excluded from the function; memory 2048 MB | Deployment |
+| `backend/tests/test_remote_seed.py` | 3 tests with a local stand-in store and a small synthetic fixture | Rebuild, checksum rejection, store address |
+
+Rollback: `main` before this change is unchanged on the branch `backup-main-2026-11-15` (v1.2), and 1.3 without Blob is on `feature/1.3-aoi-insights`.
+
 ## Not changed
-Ingestion, stored rows, grid rules, the Explore map, calendar, history, Sensor Workbench and Harmonization calculations (apart from the default type filter above), existing exports, start and import scripts, `requirements*.txt`, `vercel.json`, `api/index.py`. The NASA proposal documents were not touched.
+Ingestion, stored rows, grid rules, the Explore map, calendar, history, Sensor Workbench and Harmonization calculations (apart from the default type filter above), existing exports, start and import scripts, `requirements*.txt`. The NASA proposal documents were not touched.

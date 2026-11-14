@@ -1,0 +1,24 @@
+{
+  "about": "Full PyroSync archive (all five satellites) for the Vercel demo, stored in Vercel Blob. Generated from the files in deploy/blob/db; the Vercel build uploads these parts and the function downloads them.",
+  "prefix": "pyrosync-full/53b90f66935f353c/",
+  "db_sha256": "53b90f66935f353c873ed77ec51624da0299d9261137176afdb857a45d69b6a1",
+  "db_bytes": 338964480,
+  "compression": "xz",
+  "parts": [
+    {
+      "name": "pyrosync-full.duckdb.xz.part-00",
+      "bytes": 73400320,
+      "sha256": "7d3b9026afe64556c658ec1895af3370c0f8b728a7725852f3b4d740922d2a47"
+    },
+    {
+      "name": "pyrosync-full.duckdb.xz.part-01",
+      "bytes": 73400320,
+      "sha256": "dfab5dc240472119b80b788c2b1c758e31dc829f5215f34c626c95d1214a6270"
+    },
+    {
+      "name": "pyrosync-full.duckdb.xz.part-02",
+      "bytes": 52596744,
+      "sha256": "dcf10c5eda9bd57afa7f1464cb546ceb06353987f9f41e0444028f17c42ef6e4"
+    }
+  ]
+}

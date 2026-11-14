@@ -1,15 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "",
-  "buildCommand": "",
+  "installCommand": "npm install --prefix deploy/blob --no-audit --no-fund",
+  "buildCommand": "node deploy/blob/upload.mjs",
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/index.py": {
-      "includeFiles": "{backend/pyrosync/**,deploy/pyrosync-demo.duckdb}",
-      "excludeFiles": "{sample_data/**,frontend/**,backend/tests/**,data/**,.venv/**}",
+      "includeFiles": "{backend/pyrosync/**,deploy/pyrosync-demo.duckdb,deploy/blob/manifest.json}",
+      "excludeFiles": "{sample_data/**,frontend/**,backend/tests/**,data/**,.venv/**,deploy/blob/db/**,deploy/blob/node_modules/**,deploy/hf/**}",
       "maxDuration": 60,
-      "memory": 1024
+      "memory": 2048
     }
   },
   "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }]
