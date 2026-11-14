@@ -147,15 +147,15 @@ The browser checks start their own server on port 8765 with a temporary data fol
 - [docs/CHECKLIST_18_SUBTASKS.md](docs/CHECKLIST_18_SUBTASKS.md): implementation evidence per subtask
 
 ## 10. Online read-only demo (Vercel)
-The repository can also be deployed to Vercel as a **read-only** demo with a fixed dataset built in. Since 1.1 the demo carries the full history for **Kalimantan only, MODIS (Terra, Aqua) and VIIRS S-NPP, 2000–2026** (2,234,041 rows); the banner on the site states exactly what it contains. Vercel functions have no permanent disk, so importing and the FIRMS refresh are switched off online. Everything else works as it does locally: map, timeline, calendar, history, AOIs and exports.
+The repository can also be deployed to Vercel as a **read-only** demo with a fixed dataset built in. Since 1.3 the demo carries **all of Indonesia: MODIS (Terra, Aqua) 2000–2026 and VIIRS NOAA-21 2023–2026** (3,393,993 rows; 1.1–1.2 carried Kalimantan only with S-NPP); the banner on the site states exactly what it contains. Vercel functions have no permanent disk, so importing and the FIRMS refresh are switched off online. Everything else works as it does locally: map, timeline, calendar, history, AOIs and exports.
 
 - `vercel.json` serves `frontend/dist` as static files and routes `/api/*` to `api/index.py`, which runs the same FastAPI backend with `PYROSYNC_READONLY=1`.
 - The root `requirements.txt` lists only the packages the demo needs. pyarrow and pyproj are omitted, so the function fits Vercel's size limit.
-- The demo database is `deploy/pyrosync-demo.duckdb` (about 72 MB), built from a local full-history database with
-  `.venv/bin/python deploy/build_demo_db.py --from-db data/pyrosync.duckdb --aoi region:kalimantan --platforms Terra,Aqua,SNPP`.
-  The full archive (about 336 MB even in compact form) does not fit Vercel's 250 MB function limit, so the demo is a subset. Days that are data gaps in the full archive are carried over, so coverage states match the local app. Harmonization "proxy" counts can be lower online, because detections outside Kalimantan are not in the demo.
+- The demo database is `deploy/pyrosync-demo.duckdb` (about 77 MB), built from a local full-history database with
+  `.venv/bin/python deploy/build_demo_db.py --from-db data/pyrosync.duckdb --platforms Terra,Aqua,N21 --slim`.
+  The full archive (338 MB with all five satellites; 218 MB with MODIS and S-NPP) does not fit Vercel's 250 MB function limit next to the Python libraries (about 150 MB), so the demo keeps every area but only MODIS and NOAA-21, and `--slim` blanks per-record brightness, scan/track and source-file details (shown only in the source-record table; all counts are unchanged). Days that are data gaps in the full archive are carried over, so coverage states match the local app. VIIRS S-NPP and NOAA-20 are available in the local version.
 - You can still build the demo from files instead: `deploy/build_demo_db.py sample_data/indonesia.zip` (the 1.0 demo).
-- **To update the online demo with new data:** import locally as usual, rebuild the demo database, commit it, and push. Then redeploy in the Vercel dashboard (Deployments → Redeploy). Pushes do not deploy by themselves unless you connect the repository under Project Settings → Git. Keep the database under about 75 MB so the function stays under Vercel's 250 MB limit.
+- **To update the online demo with new data:** import locally as usual, rebuild the demo database, commit it, and push. Then redeploy in the Vercel dashboard (Deployments → Redeploy). Pushes do not deploy by themselves unless you connect the repository under Project Settings → Git. Keep the database under about 80 MB so the function stays under Vercel's 250 MB limit.
 - Custom drawn or uploaded AOIs are kept in the function's temporary storage. After the function restarts, re-draw them.
 - Deploying makes the demo **public** at its vercel.app address.
 

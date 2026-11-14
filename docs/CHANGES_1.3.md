@@ -27,6 +27,7 @@ Backups: version 1.2.0 (the state of `main` before this work, commit `1ade128`) 
 | `backend/pyrosync/query.py`, `frontend/src/state.ts`, `components/TopBar.tsx` | **Default type filter `0` → `0,unknown`**; the filter label says that FIRMS NRT has no type column | Defect fix chosen by Ata for every tab: FIRMS NRT area files have no `type` column, and with the 1.2 default every NRT row was dropped, so Kalimantan read as zero fire from Aug/Sep 2026 in all tabs. Users can still untick "unknown/missing type". |
 | `backend/pyrosync/config.py`, `frontend/package.json` | Version 1.3.0 | Version |
 | `frontend/src/App.tsx`, `components/ui.tsx`, `index.css` | Navigation entry, icons, briefing print styles | The new tab. No existing page was removed. |
+| `deploy/build_demo_db.py`, `deploy/pyrosync-demo.duckdb`, `backend/pyrosync/api.py` (demo note) | `--slim` option; demo rebuilt for all of Indonesia (Terra, Aqua, NOAA-21); the banner says what is omitted | Ata asked for all of Indonesia online |
 | `backend/tests/test_api_exports.py` | Expected default `types` | Follows the new default |
 | `frontend/e2e/run.mjs` | Flow 17 | Browser check of the tab; flows 1–16 unchanged and passing |
 | `README.md`, `docs/METHODOLOGY.md` (§4, new §17), `DATA_DICTIONARY.md` (§11), `TEST_RESULTS.md`, `CHECKLIST_18_SUBTASKS.md` (I1–I11) | Documentation | Methods, fields, real results and limits |
@@ -35,7 +36,7 @@ Backups: version 1.2.0 (the state of `main` before this work, commit `1ade128`) 
 - **Critical vs unusual.** "Critical" uses an absolute threshold from all other complete years (a seasonal threshold spread "critical" weeks into quiet months); "unusual" is the separate, season-aware robust score.
 - **Anomaly guard rail.** With a near-empty reference season the scale floor alone turned one detection into "well above normal"; a positive band now also needs the value above the reference 75th percentile and at least 3 above its median. A share "higher than X % of reference days" is reported with every score.
 - **Analog years exclude the focus year**, so the current partial season does not vote in its own analog group.
-- **Online demo**: it holds Kalimantan observations only, so Insights refuses other areas there instead of reading them as "no fire".
+- **Online demo now covers all of Indonesia** (Ata's choice): MODIS 2000–2026 and VIIRS NOAA-21 2023–2026, built with the new `--slim` option of `deploy/build_demo_db.py` (77 MB). All five satellites (338 MB) do not fit Vercel's function limit. Should a demo ever again hold one AOI only, Insights refuses other areas there instead of reading them as "no fire".
 
 ## Not changed
-Ingestion, stored rows, grid rules, the Explore map, calendar, history, Sensor Workbench and Harmonization calculations (apart from the default type filter above), existing exports, start and import scripts, `requirements*.txt`, `vercel.json`, `api/index.py`, the online demo database. The NASA proposal documents were not touched.
+Ingestion, stored rows, grid rules, the Explore map, calendar, history, Sensor Workbench and Harmonization calculations (apart from the default type filter above), existing exports, start and import scripts, `requirements*.txt`, `vercel.json`, `api/index.py`. The NASA proposal documents were not touched.

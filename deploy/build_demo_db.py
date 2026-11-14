@@ -30,6 +30,7 @@ ap.add_argument("paths", nargs="*")
 ap.add_argument("--from-db", type=Path, default=None)
 ap.add_argument("--aoi", default=None, help="Keep only observations inside this AOI id (e.g. region:kalimantan)")
 ap.add_argument("--platforms", default=None, help="Comma-separated platforms to keep (Terra,Aqua,N20,N21,SNPP)")
+ap.add_argument("--slim", action="store_true", help="Blank per-record detail columns (brightness, scan/track, source file/row) to fit the Vercel size limit")
 ap.add_argument("--out", type=Path, default=ROOT / "deploy" / "pyrosync-demo.duckdb")
 a = ap.parse_args()
 
@@ -81,7 +82,13 @@ if plats:
     params += plats
 # Large tables are copied without the record_key uniqueness index (only needed for imports, which the
 # demo disables); this keeps the file small. Remaining tables, keys and indexes come from the normal schema.
-c.execute(f"CREATE TABLE observations AS SELECT * REPLACE ('' AS record_key) FROM s.observations WHERE {' AND '.join(where)} ORDER BY acq_date, platform, rid", params)
+rep = "'' AS record_key"
+if a.slim:
+    # Only shown in the source-record table; every count, map, calendar, history, harmonization and insights value is unchanged.
+    rep += (", NULL::DOUBLE AS modis_brightness, NULL::DOUBLE AS modis_bright_t31, NULL::DOUBLE AS viirs_bright_ti4, NULL::DOUBLE AS viirs_bright_ti5,"
+            " NULL::DOUBLE AS scan, NULL::DOUBLE AS track, NULL::INTEGER AS source_row, '' AS source_file, '' AS batch_id, NULL::VARCHAR AS superseded_by")
+    subset["slim"] = True
+c.execute(f"CREATE TABLE observations AS SELECT * REPLACE ({rep}) FROM s.observations WHERE {' AND '.join(where)} ORDER BY acq_date, platform, rid", params)
 c.execute("CREATE TABLE import_batches AS SELECT * FROM s.import_batches")
 c.execute("CREATE TABLE import_intervals AS SELECT * FROM s.import_intervals")
 c.execute("CREATE TABLE provenance AS SELECT * FROM s.provenance WHERE false")

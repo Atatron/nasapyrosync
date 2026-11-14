@@ -102,7 +102,8 @@ def _demo_note() -> str:
     rng = inv.get("date_range") or ["?", "?"]
     plats = ", ".join(sub.get("platforms") or inv.get("available_platforms") or [])
     where = f" for {sub['aoi']} only" if sub.get("aoi") else ""
-    return f"FIRMS data {rng[0]} to {rng[1]}{where} ({plats})."
+    slim = " Per-record brightness, scan/track and source-file details are omitted to fit the hosting limit." if sub.get("slim") else ""
+    return f"FIRMS data {rng[0]} to {rng[1]}{where} ({plats}).{slim}"
 
 
 READONLY_MSG = ("This is a read-only online demo of PyroSync. Importing data and FIRMS refresh "
