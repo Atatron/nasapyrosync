@@ -1,0 +1,78 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --color-bg: var(--c-bg);
+  --color-panel: var(--c-panel);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-line: var(--c-line);
+  --color-soft: var(--c-soft);
+  --color-accent: #ea580c;
+  --color-flag: #b91c1c;
+}
+
+:root {
+  --c-bg: #f6f7f9;
+  --c-panel: #ffffff;
+  --c-ink: #0f1d3a;
+  --c-muted: #5b6577;
+  --c-line: #e2e6ec;
+  --c-soft: #eef1f5;
+  color-scheme: light;
+}
+.dark {
+  --c-bg: #0b1220;
+  --c-panel: #111a2c;
+  --c-ink: #e6ebf4;
+  --c-muted: #9aa6ba;
+  --c-line: #22304a;
+  --c-soft: #18233a;
+  color-scheme: dark;
+}
+
+html, body, #root { height: 100%; }
+body { background: var(--c-bg); color: var(--c-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+:focus-visible { outline: 2px solid #ea580c; outline-offset: 2px; border-radius: 4px; }
+.num { font-variant-numeric: tabular-nums; }
+
+.panel { background: var(--c-panel); border: 1px solid var(--c-line); border-radius: 12px; }
+.btn { display: inline-flex; align-items: center; gap: .375rem; border: 1px solid var(--c-line); background: var(--c-panel); color: var(--c-ink);
+  border-radius: 8px; padding: .375rem .7rem; font-size: .8125rem; font-weight: 500; line-height: 1.2; cursor: pointer; }
+.btn:hover { background: var(--c-soft); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary { background: #0f1d3a; color: #fff; border-color: #0f1d3a; }
+.btn-primary:hover { background: #1d2f55; }
+.dark .btn-primary { background: #ea580c; border-color: #ea580c; }
+.seg { display: inline-flex; border: 1px solid var(--c-line); border-radius: 8px; overflow: hidden; background: var(--c-panel); }
+.seg > button { padding: .3rem .6rem; font-size: .75rem; font-weight: 500; color: var(--c-muted); }
+.seg > button[aria-pressed="true"] { background: #0f1d3a; color: #fff; }
+.dark .seg > button[aria-pressed="true"] { background: #ea580c; }
+.field { border: 1px solid var(--c-line); background: var(--c-panel); color: var(--c-ink); border-radius: 8px; padding: .3rem .5rem; font-size: .8125rem; }
+.label { font-size: .6875rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
+.chip { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; padding: .1rem .5rem; font-size: .6875rem; font-weight: 600; }
+
+.hatch { background-image: repeating-linear-gradient(45deg, rgba(100,116,139,.35) 0 2px, transparent 2px 6px); }
+
+.leaflet-container { background: #dfe6ee; font-family: var(--font-sans); }
+.dark .leaflet-container { background: #0e1626; }
+.leaflet-container:focus-visible { outline: 2px solid #ea580c; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(234,88,12,.25); border-top-color: #ea580c; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.prose-methods h3 { font-weight: 600; font-size: 1rem; margin-top: 1.25rem; margin-bottom: .35rem; }
+.prose-methods p, .prose-methods li { font-size: .875rem; line-height: 1.6; color: var(--c-ink); }
+.prose-methods ul { list-style: disc; padding-left: 1.25rem; margin: .25rem 0 .5rem; }
+.prose-methods code { font-family: var(--font-mono); font-size: .78rem; background: var(--c-soft); padding: 0 .25rem; border-radius: 4px; }
+.prose-methods a { color: #c2410c; text-decoration: underline; }
+table.data { width: 100%; font-size: .78rem; border-collapse: collapse; }
+table.data th { text-align: left; font-weight: 600; color: var(--c-muted); border-bottom: 1px solid var(--c-line); padding: .35rem .5rem; white-space: nowrap; }
+table.data td { border-bottom: 1px solid var(--c-line); padding: .3rem .5rem; }

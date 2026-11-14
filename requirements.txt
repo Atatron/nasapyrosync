@@ -1,0 +1,9 @@
+# Dependencies for the READ-ONLY ONLINE DEMO on Vercel (api/index.py) only.
+# For the full local app, the start scripts use backend/requirements.lock.txt instead.
+duckdb==2.0.0
+fastapi==0.162.7
+pydantic==2.14.3
+python-multipart==0.0.33
+shapely==2.2.0
+numpy==2.5.4
+httpx==0.28.1

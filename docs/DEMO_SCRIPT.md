@@ -1,0 +1,16 @@
+# Two-minute demonstration script
+
+Setup before the demo: start the app (`scripts/start.bat` or `./scripts/start.sh`), import `sample_data/indonesia.zip`, and open http://127.0.0.1:8000. Choose the **VIIRS NOAA-20 Corrected Reflectance** imagery layer if you have internet; otherwise use "None (offline)". Everything below works offline except the imagery.
+
+All numbers quoted come from the real sample (FIRMS MODIS_SP + VIIRS_NOAA20_SP, 2023–2024), with the default filters (MODIS confidence ≥ 30, VIIRS nominal/high, vegetation type 0) and the 0.1° grid. If you change filters, the numbers change too, and the app will show you the new values.
+
+| Time | Do | Say |
+|---|---|---|
+| 0:00–0:15 | Explore page. AOI **Kalimantan (Indonesian Borneo)**. Point at the two map labels. | "PyroSync puts NASA FIRMS fire detections in context: where, when, and how unusual. This is Indonesian Borneo, on an exact provincial boundary. The map always states two times separately: the fire-observation window in UTC and the satellite-imagery date." |
+| 0:15–0:40 | Press **Play** on the timeline, then pause. Type **2023-08-31** in the date box. | "Each step is a real UTC day: the map query, the imagery date and every card move together. On 31 August 2023, VIIRS NOAA-20 recorded 1,820 detections in 626 occupied 0.1° cells, and MODIS recorded 722 detections in 336 cells. We never add the two sensors together, because VIIRS sees smaller fires. The union card counts each cell once instead: 693 cells." |
+| 0:40–1:00 | Click a dense cell to show Selected grid cell, then go to **Burning Calendar** and point at 31 Aug. | "The calendar shares the same date and AOI. Grey hatched days are unknown coverage, for example 19–22 July 2023, when VIIRS has no rows anywhere in the download. Those are a data gap, not 'no fire'." |
+| 1:00–1:25 | **Historical Patterns**: seasonal chart, 2024 vs 2023 panel, Baseline panel. | "The fire season peaks August to October. Over matched days, 2024 had about half of 2023's summed daily occupied cells (15,078 vs 28,595). That is descriptive, not a significance test. And the app refuses to invent a baseline: two years is *insufficient history for a robust multi-year baseline*. The baseline turns on automatically once five prior years are imported." |
+| 1:25–1:45 | Back on Explore: the **Elevated observed activity** list, open **29 Aug – 5 Sep 2023**. | "Elevated periods follow a rule you can read: at least 3 consecutive days above the 90th percentile of this range, which is 190 cells per day. This one lasted 8 days and peaked at 626 cells on 31 August. Unknown days break a run instead of being bridged. It's a descriptive indicator, not a warning." |
+| 1:45–2:00 | **Export → Filtered observations CSV**, then open `manifest.json`. | "Every result is reproducible. The export holds exactly the filtered rows plus a manifest with the dataset revision, filters, AOI geometry and definitions. Re-importing the same data changes nothing, and new FIRMS downloads extend the whole site without code changes." |
+
+Closing line: *"Independent hackathon prototype using NASA FIRMS data and NASA GIBS imagery. Not an official NASA application."*

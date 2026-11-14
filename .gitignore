@@ -1,0 +1,12 @@
+# local data and secrets
+data/
+.env
+# environments / builds
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+frontend/node_modules/
+frontend/e2e/results.json
+# NOTE: frontend/dist is intentionally committed so the app runs without Node.js
+.vercel/
