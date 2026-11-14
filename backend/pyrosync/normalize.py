@@ -208,14 +208,28 @@ def source_product(instrument: str, platform: str, stream: str) -> str:
 
 
 _WINDOW_RE = re.compile(r"(\d{4}-\d{2}-\d{2})_(\d{1,3})d", re.IGNORECASE)
+# Explicit start_end form, e.g. '2018-12-22_2018-12-26.csv' (inclusive), as used by
+# the full-history archive. Added for v1.1; the '_Nd' form above is unchanged.
+_RANGE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})(?!\d)")
+_MAX_WINDOW_DAYS = 999
 
 
 def declared_window(filename: str) -> tuple[date, date] | None:
-    """Download window declared by a file name such as '2024-06-19_5d.csv'.
+    """Download window declared by a file name such as '2024-06-19_5d.csv'
+    or '2024-06-19_2024-06-23.csv' (inclusive start and end).
 
     The window is *declared* metadata about the original request; each row is
     still assigned by its own acq_date/acq_time.
     """
+    r = _RANGE_RE.search(filename)
+    if r:
+        try:
+            a, b = date.fromisoformat(r.group(1)), date.fromisoformat(r.group(2))
+        except ValueError:
+            return None
+        if b < a or (b - a).days + 1 > _MAX_WINDOW_DAYS:
+            return None
+        return a, b
     m = _WINDOW_RE.search(filename)
     if not m:
         return None

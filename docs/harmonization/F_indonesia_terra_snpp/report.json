@@ -1,0 +1,161 @@
+{
+  "dataset_revision": 1,
+  "processing_version": "pyrosync-proc-1.0.0",
+  "method_version": "pyrosync-harmonize-1.0",
+  "effective_filters": {
+    "start": "2012-01-20",
+    "end": "2026-11-14",
+    "platforms": [
+      "Terra",
+      "SNPP"
+    ],
+    "modis_min_conf": 30,
+    "viirs_conf": [
+      "nominal",
+      "high"
+    ],
+    "types": [
+      "0"
+    ],
+    "daynight": [
+      "D",
+      "N"
+    ],
+    "aoi": "none",
+    "grid": 0.1
+  },
+  "filter_disclosure": {
+    "aoi": "All imported observations (no AOI)",
+    "range_utc": "2012-01-20 00:00 \u2013 2026-11-14 23:59 UTC (inclusive days)",
+    "platforms": [
+      "Terra (MODIS)",
+      "Suomi NPP (VIIRS)"
+    ],
+    "modis_quality": "MODIS confidence \u2265 30 (numeric 0\u2013100)",
+    "viirs_quality": "VIIRS confidence in {nominal, high} (categorical)",
+    "types_included": [
+      "presumed vegetation fire"
+    ],
+    "types_excluded": [
+      "active volcano",
+      "other static land source",
+      "offshore",
+      "unknown/missing type"
+    ],
+    "daynight": [
+      "D",
+      "N"
+    ],
+    "grid": "0.1\u00b0 WGS84 cells",
+    "note": "Quality filters are a project filter choice; they do not make MODIS and VIIRS detection performance equivalent."
+  },
+  "config": {
+    "modis_platforms": [
+      "Terra"
+    ],
+    "viirs_series": "VIIRS_SNPP",
+    "unit_grid": 0.1,
+    "tolerance_min": 30,
+    "metric": "detections",
+    "unit_set": "matched",
+    "evidence_radius_deg": 5.0,
+    "test_fraction": 0.2,
+    "split_date": null
+  },
+  "stage1": {
+    "unit": "Observation event of one platform in one 0.1\u00b0 WGS84 grid cell",
+    "grid_deg": 0.1,
+    "grid_rule": "col = floor((lon_e5 + 18,000,000) / R), row = floor((lat_e5 + 9,000,000) / R), R = grid \u00d7 100,000 (same rule as the map grid)",
+    "measurement": "Number of FIRMS detections of that platform in the cell during the event (each sensor its own count).",
+    "filters_applied": "Shared PyroSync filters: dates, AOI (exact polygon, before aggregation), MODIS confidence, VIIRS confidence, fire type, day/night.",
+    "sensor_note": "MODIS (~1 km at nadir) and VIIRS I-band (375 m) pixels differ in size and sensitivity; values are kept per sensor and never added."
+  },
+  "stage2": {
+    "modis_platforms": [
+      "Terra"
+    ],
+    "viirs_series": "VIIRS_SNPP",
+    "viirs_platform": "SNPP",
+    "tolerance_min": 30,
+    "event_gap_min": 20,
+    "evidence_radius_deg": 5.0,
+    "events": {
+      "modis": 148992,
+      "viirs": 1423050
+    },
+    "candidate_pairs": 0,
+    "class_counts": {
+      "matched": 0,
+      "viirs_only_proxy": 0,
+      "viirs_only_no_evidence": 1423050,
+      "modis_only_proxy": 0,
+      "modis_only_no_evidence": 148992
+    },
+    "class_doc": {
+      "matched": "Candidate match: a MODIS event and a VIIRS event in the same cell within the time tolerance. Both sensors reported at least one detection. This is a positive-detection match, not verified joint coverage.",
+      "viirs_only_proxy": "VIIRS event without a MODIS partner, while MODIS reported a detection within the evidence radius and time tolerance (the instrument was imaging nearby). Proxy only: the cell may have been outside the swath or under cloud.",
+      "viirs_only_no_evidence": "VIIRS event without a MODIS partner and with no MODIS detection nearby in time. Whether MODIS observed the cell is unknown; such units are never used as MODIS zeros.",
+      "modis_only_proxy": "MODIS event without a VIIRS partner, while VIIRS reported a detection within the evidence radius and time tolerance. Proxy only, as above.",
+      "modis_only_no_evidence": "MODIS event without a VIIRS partner and no VIIRS detection nearby in time. Coverage unknown."
+    },
+    "dt_minutes": {
+      "histogram": [
+        {
+          "from_min": 0,
+          "to_min": 5,
+          "n": 0
+        },
+        {
+          "from_min": 5,
+          "to_min": 10,
+          "n": 0
+        },
+        {
+          "from_min": 10,
+          "to_min": 15,
+          "n": 0
+        },
+        {
+          "from_min": 15,
+          "to_min": 20,
+          "n": 0
+        },
+        {
+          "from_min": 20,
+          "to_min": 25,
+          "n": 0
+        },
+        {
+          "from_min": 25,
+          "to_min": 30,
+          "n": 0
+        }
+      ],
+      "median": null,
+      "max": null
+    },
+    "matching_rule": "Events: consecutive acquisitions of one platform in one cell \u2264 20 min apart. Candidate pair: MODIS and VIIRS events in the same cell with |\u0394t| \u2264 30 min (event time = first acquisition). One-to-one greedy matching by (|\u0394t|, MODIS time, VIIRS time, cell): deterministic and independent of input order.",
+    "coverage_verification": {
+      "status": "not_verified",
+      "note": "Verified satellite coverage is NOT established. FIRMS active-fire records list detections only; they do not say which cells each overpass imaged, nor which were cloud-free. Verifying coverage would require swath geolocation and fire/cloud masks (MOD03/MOD14 for MODIS, VNP03/VNP14 or VJ103/VJ114 for VIIRS), which PyroSync does not import. 'Proxy' classes only show that the other instrument reported a detection nearby at about the same time."
+    },
+    "platforms_missing": [],
+    "warning": "Terra crosses the equator at about 10:30/22:30 local time and VIIRS at about 13:30/01:30, so few or no Terra\u2013VIIRS events fall within a short tolerance. Aqua is the near-simultaneous partner for VIIRS."
+  },
+  "stage3": {
+    "equation": "ln(1 + M_i) = \u03b1 + \u03b2 ln(1 + V_i) + \u03b5_i",
+    "prediction": "M\u0302_i = max(0, exp(\u03b1\u0302 + \u03b2\u0302 ln(1 + V_i)) \u2212 1)",
+    "estimator": "Ordinary least squares on the training (earlier) period only",
+    "unit_set": "matched",
+    "n_units": 0,
+    "status": "insufficient",
+    "reason": "Only 0 comparison units; at least 40 are needed (30 training + 10 held-out). Widen the dates or AOI, or increase the tolerance."
+  },
+  "interpretation": [
+    "MODIS is used as the reference scale for continuity with the long MODIS record; it is not ground truth. Its own omission and commission errors remain in the target.",
+    "The calibration maps a VIIRS measurement to an expected MODIS-scale measurement for the same cell and overpass. It does not make the sensors equivalent and does not recover fires that neither sensor detected.",
+    "With unit_set = 'matched', the model is conditional on both sensors reporting a detection; it does not describe cells where only one sensor detected fire.",
+    "Coefficients are empirical for this AOI, period, filters and sensor pair. Re-fit before applying them elsewhere.",
+    "Standard errors assume independent units; neighbouring cells and successive days are correlated, so the intervals are optimistic."
+  ]
+}

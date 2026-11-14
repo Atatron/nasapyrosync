@@ -1,11 +1,11 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import * as echarts from 'echarts/core'
-import { BarChart, LineChart } from 'echarts/charts'
+import { BarChart, LineChart, ScatterChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkAreaComponent, DataZoomComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { cls } from '../util'
 
-echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkAreaComponent, DataZoomComponent, CanvasRenderer])
+echarts.use([BarChart, LineChart, ScatterChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkAreaComponent, DataZoomComponent, CanvasRenderer])
 
 export function EChart({ option, height = 220, onClick, ariaLabel, className }: {
   option: echarts.EChartsCoreOption; height?: number | string; onClick?: (p: { dataIndex: number; seriesName?: string; name?: string }) => void

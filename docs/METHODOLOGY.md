@@ -22,7 +22,7 @@ PyroSync is a **descriptive** tool. It does not forecast fires, issue warnings, 
 VIIRS generally detects more small and cooler fires, so raw counts are **not interchangeable**, and adding satellites raises counts even when activity is unchanged. Confidence classes are not equivalent probabilities. `daynight` describes the overpass. It does not identify agricultural clearing, peat burning, crown fire or cause.
 
 ## 3. What PyroSync standardizes ("sensor-aware spatial and daily standardization")
-This is **partial harmonization**: it puts the sensors on common units of organization, but no bias correction, regression calibration or probability surface is applied.
+This is **partial harmonization**: it puts the sensors on common units of organization, but no bias correction, regression calibration or probability surface is applied to the map, calendar, history, elevated-period or export series. Since version 1.1 a separate, optional empirical MODIS–VIIRS calibration is available in the Sensor Workbench (§15). Its output is shown only in that panel and its validation package; it never replaces or alters the per-sensor series described here.
 
 - **Time.** `acq_date` + `acq_time` (HHMM, UTC, zero-padded: `402` → 04:02, `5` → 00:05). A UTC day D is [D 00:00, D+1 00:00). Browser time zones are never applied.
 - **Grid.** WGS84 lon/lat, origin (−180°, −90°). Coordinates are quantized to integer 1e-5 degrees (`lon_e5`, `lat_e5`, round-half-even). Cell index: `col = floor((lon_e5 + 18,000,000) / R)`, `row = floor((lat_e5 + 9,000,000) / R)`, where R = cell size × 100,000 (0.1° → 10,000). Cells are half-open [west, east) × [south, north), so a point on a shared edge belongs to the cell to its east or north. Longitude 180 and latitude 90 go to the last column and row. Because integer floor division is used, negative coordinates index correctly (−2.55° lies in the row starting at −2.6°). Cells are not equal-area.
@@ -65,7 +65,8 @@ inspect → validate → normalize → deduplicate/reconcile → commit (one tra
 This is a conservative **project rule**, not an official NASA standard:
 - At least **5 prior comparable years**, each with **≥80 % known coverage** in a **±15-day seasonal window** around the same month-day, and **≥100 reference days** in total. The evaluation year is excluded. Feb 29 maps to Feb 28 in non-leap years. Windows crossing New Year use actual dates.
 - When eligible, empirical **P95/P5** thresholds flag descriptive above/below exceedances. Low flags are suppressed when P5 = 0 or coverage is unknown. Ratios to a zero median are undefined, never infinite.
-- **With the 2023–2024 sample the baseline is ineligible.** The app says so ("Insufficient history for a robust multi-year baseline …") and offers descriptive comparisons and rankings instead. The algorithm works and is unit-tested, but adequate historical evidence does not yet exist.
+- **With the 2023–2024 sample the baseline is ineligible.** The app says so ("Insufficient history for a robust multi-year baseline …") and offers descriptive comparisons and rankings instead.
+- **With the full-history archive (2000–2026) the rule is met without any code change.** For Kalimantan in 2023 (occupied cells), MODIS and VIIRS S-NPP are eligible on all 365 days; VIIRS NOAA-20 (data from April 2018) is eligible on 266 days, once five prior years exist for that month-day. The thresholds remain descriptive empirical percentiles, not validated danger levels.
 
 ## 9. Elevated observed activity (explainable periods)
 - **Rule:** ≥ N consecutive UTC days (default 3) on which the selected metric for the selected sensor exceeds the threshold and is ≥ a minimum activity (default 1). Unknown-coverage days **break** a run. They are never bridged, and adjacent unknown days are disclosed with each period.
@@ -94,13 +95,32 @@ Area API: `/api/area/csv/[MAP_KEY]/[SOURCE]/[west,south,east,north]/[DAY_RANGE 1
 - NASA GIBS API documentation: https://nasa-gibs.github.io/gibs-api-docs/
 - Natural Earth (public domain): https://www.naturalearthdata.com/
 
-No journal articles are cited, and no cross-sensor calibration factor is claimed.
+No journal articles are cited. The only cross-sensor relationship PyroSync reports is the empirical calibration of §15, fitted on the imported data and published with its held-out errors; it is not a general conversion factor.
 
 ## 14. Known limitations
-1. Two years of data (2023–2024) cannot support baselines, trends or seasonal-shift claims.
+1. The bundled sample (2023–2024) cannot support baselines, trends or seasonal-shift claims. The full-history archive can support baselines; trend or seasonal-shift statements would still need a dedicated statistical analysis, which PyroSync does not perform.
 2. Authenticated live FIRMS retrieval is unverified in this build.
 3. File-name windows are *declared*, not verified, coverage. The original bounding box of archive files is unknown unless supplied with `--bbox`.
 4. Static-source contamination (the VIIRS v1–2 type issue), cloud and smoke obscuration, and overpass timing affect all counts.
 5. The likely-gap rule is a heuristic (median ≥ 20 rows/day per import batch). It is disclosed on each affected day.
 6. Imagery availability for dates outside 2023–2024 relies on the live DescribeDomains check. The behaviour of GIBS for out-of-range dates was not independently verified, so the app never requests such tiles.
 7. The Windows start scripts (`start.bat`/`start.ps1`) were written for Windows but could only be executed on Linux during development (see TEST_RESULTS.md).
+8. The MODIS–VIIRS calibration (§15) relies on detections only; satellite coverage is not verified. See [HARMONIZATION_VALIDATION.md](HARMONIZATION_VALIDATION.md) for its measured performance and limits.
+
+## 15. MODIS–VIIRS harmonization (three stages, added in 1.1)
+Implementation: `backend/pyrosync/harmonize.py`. API: `/api/harmonization` and `/api/export/harmonization.zip`. CLI: `python -m pyrosync.cli harmonize`. UI: Sensor Workbench → MODIS–VIIRS harmonization.
+
+**Stage 1 — Spatial standardization.** The same filtered observations as every other panel (dates, exact AOI before aggregation, MODIS confidence, VIIRS confidence, type, day/night) are indexed with the grid rule of §3 at a comparison grid of 0.1° (default), 0.25°, 0.5° or 1°. One MODIS platform set (Aqua by default, Terra or both) and one VIIRS platform (S-NPP by default, NOAA-20 or NOAA-21) are compared. Each sensor keeps its own measurement: the number of its detections in the cell during one observation event (default), or the sum of their FRP (MW).
+
+**Stage 2 — Temporal matching.** Per cell and platform, acquisitions closer than 20 minutes form one *observation event* (normally one overpass; FIRMS times are granule start times). A MODIS event and a VIIRS event in the same cell form a *candidate pair* when their event times (first acquisition) differ by at most the tolerance (default ±30 min; Aqua and S-NPP cross the equator within minutes of each other, NOAA-20 about 50 minutes apart). Pairs are accepted one-to-one in the order (|Δt|, MODIS time, VIIRS time, cell, ids): the result is deterministic and independent of file order.
+
+Positive-detection matching is kept apart from coverage. Events without a partner are classified as *proxy* when the other instrument reported any detection (any quality, any type, inside or outside the AOI) within the evidence radius (default 5°) and the time tolerance, and *no evidence* otherwise. A proxy only shows that the other instrument was imaging the region; it does not show that the cell was inside its swath or cloud-free. **Verified coverage is not established**: that would need swath geolocation and fire/cloud masks (MOD03/MOD14, VNP03/VNP14, VJ103/VJ114), which FIRMS active-fire CSVs do not contain. One-sided units enter the model only when the user selects "+ proxy one-sided" (they then count as 0 for the missing sensor); "no evidence" units never do.
+
+**Stage 3 — Statistical calibration.** For each comparison unit i (default: candidate matches only),
+
+ln(1 + M_i) = α + β ln(1 + V_i) + ε_i,  M̂_i = max(0, exp(α̂ + β̂ ln(1 + V_i)) − 1),
+
+where M is the MODIS and V the VIIRS measurement. α and β are estimated by ordinary least squares on the training period only. Units are ordered by time and the last 20 % (default; 10 % or 30 % selectable, or an explicit `--split-date`) form the held-out test period; all units of one UTC day fall on the same side. On the test period the calibrated estimate is compared with the unadjusted VIIRS value (M̂ = V) using MAE, RMSE and MBE (mean of prediction − MODIS), and the percentage improvement 100 × (unadjusted − calibrated) / unadjusted (absolute values for MBE). A constant equal to the training-period MODIS mean is reported for context. Coefficients come with classical standard errors and 95 % normal-approximation intervals, which assume independent units and are therefore optimistic. The log-model back-transformation estimates a conditional median; the Duan smearing factor is reported but not applied. At least 30 training and 10 test units are required; otherwise the panel says the model was not fitted and why.
+
+**Interpretation.** MODIS is the reference *scale*, chosen for continuity with its longer record; it is not ground truth. A calibrated value is the expected MODIS-scale measurement for a cell and overpass given the VIIRS measurement; it does not make the sensors equivalent and does not add fires that neither sensor detected. Coefficients depend on AOI, period, filters, grid and sensor pair and must be re-fitted, not transferred.
+

@@ -148,3 +148,31 @@ def test_readonly_demo_blocks_writes_but_serves_analysis(api):
         assert api.get(f"/api/daily?{QS}").status_code == 200
     finally:
         get_settings().readonly = False
+
+
+def test_readonly_demo_note_and_harmonization_allowed(api):
+    get_settings().readonly = True
+    try:
+        h = api.get("/api/health").json()
+        assert h["demo_note"].startswith("FIRMS data ")
+        assert api.get(f"/api/harmonization?{QS}").status_code == 200  # read-only GET works in the demo
+    finally:
+        get_settings().readonly = False
+
+
+def test_gap_days_override_from_dataset_meta(env):
+    """A spatial subset (online demo) uses gap days computed on the full database (SYNTHETIC fixture)."""
+    import json
+    from datetime import date
+    from conftest import VIIRS_HDR, do_import, viirs_row, write_csv
+    from pyrosync import cache, query as Q
+    from pyrosync.db import cursor
+    write_csv(env / "in" / "VIIRS_NOAA20_SP" / "SYNTHETIC_TEST_FIXTURE_2023-09-14_3d.csv", VIIRS_HDR,
+              [viirs_row(date="2023-09-14"), viirs_row(date="2023-09-16")])
+    do_import([env / "in"])
+    f = Q.Filters(start=date(2023, 9, 14), end=date(2023, 9, 16))
+    assert Q.daily(f)["series"]["VIIRS_N20"]["status"][1] == "zero_reported"
+    with cursor() as cur:
+        cur.execute("INSERT INTO dataset_meta VALUES ('gap_days', ?)", [json.dumps({"VIIRS_N20": ["2023-09-15"]})])
+    cache.invalidate()
+    assert Q.daily(f)["series"]["VIIRS_N20"]["status"][1] == "unknown"

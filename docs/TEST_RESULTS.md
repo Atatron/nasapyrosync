@@ -1,18 +1,20 @@
 # Test results
 
-Every result below was produced by actually running the tests on **2026-11-14** in the development container: Linux 6.18, 4 vCPU Intel Xeon @ 2.30 GHz, 15 GB RAM, Python 3.13.18, Node 22.23.4, Chromium via Playwright 1.63. Nothing is reported as passed unless it was executed.
+Every result below was produced by actually running the tests on **2026-11-14** (version 1.1.0, after the harmonization upgrade) in the development container: Linux 6.18, 4 vCPU Intel Xeon @ 2.30 GHz, 15 GB RAM, Python 3.13.18, Node 22.23.4, Chromium via Playwright 1.63. Nothing is reported as passed unless it was executed.
 
 ## Summary
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit/integration (pytest) | `cd backend && ../.venv/bin/python -m pytest -v` | **67 passed, 0 failed** (5.2 s) |
+| Backend unit/integration (pytest) | `cd backend && ../.venv/bin/python -m pytest -v` | **90 passed, 0 failed** (8.6 s): the 68 earlier tests unchanged, plus 19 harmonization tests (`test_harmonize.py`), 1 file-name window test and 2 demo tests |
 | TypeScript type check | `cd frontend && npx tsc -b --noEmit` | **passed** (no errors) |
 | Production build | `cd frontend && npm run build` | **passed** |
-| Browser-level checks (Playwright) | `cd frontend && npm run e2e` | **13 of 13 passed**, 0 uncaught page errors |
+| Browser-level checks (Playwright) | `cd frontend && npm run e2e` | **14 of 14 passed** (the 13 original flows with unchanged results, plus flow 14 for harmonization), 0 uncaught page errors |
 | Fresh-copy start (macOS/Linux script) | `./scripts/start.sh` in a clean copy without `.venv` or `data` | **passed**: created .venv, installed the locked packages, served `/api/health` |
 | CLI import of the sample | `./scripts/import.sh sample_data/indonesia.zip`, twice | **passed**: 566,644 new rows, 0 rejected, revision 1. The second run gave 0 new, 566,644 duplicates, revision unchanged. |
+| CLI import of the full-history archive | `./scripts/import.sh indonesia_full_history.zip` | **passed**: 3,886 files, 10,917,537 rows, 0 rejected, 2000-11-01 → 2026-11-14, 526 s |
+| Harmonization validation runs | `python -m pyrosync.cli harmonize …` (11 configurations) | **completed**: results in [HARMONIZATION_VALIDATION.md](HARMONIZATION_VALIDATION.md) |
 | Windows scripts (`start.bat`, `start.ps1`, `import.ps1`) | — | **Not executed**: no Windows machine was available. Written for Windows and reviewed, but unverified. |
-| Live FIRMS API with a real MAP_KEY | — | **Not executed**: no key available. The connector is tested with simulated HTTP responses only. |
+| Live FIRMS API with a real MAP_KEY | — | **Not executed**: a key was provided and stored in the local `.env`, but the development container's network blocks NASA hosts (`CONNECT tunnel failed, 403`). The connector is tested with simulated HTTP responses only. |
 | Live NASA GIBS tiles | — | **Not executed against NASA**: the container's network blocks NASA hosts. Tile URLs and date handling are verified by intercepting the requests. The DescribeDomains values were read from NASA during development via a separate fetch. |
 
 All test fixtures are synthetic, labelled as such, and created in temporary directories. The browser checks run their own server on port 8765 with a temporary data directory. The only synthetic CSV, used in flow 11, is named `SYNTHETIC_TEST_FIXTURE_…` and never touches the real database.
@@ -53,8 +55,9 @@ PASS  10. Re-importing the same sample leaves counts unchanged — total 566,644
 PASS  11. An additional file extends coverage with no code changes (SYNTHETIC TEST FIXTURE) — range now 2023-01-01 → 2025-01-03; 2025-01-01..03 statuses zero_reported/detections/zero_reported; revision 2
 PASS  12. CSV and GeoJSON downloads contain the filtered data — observations CSV 3180 rows (= API, window 09-09..09-15, type 0 only); grid 683 cells (= frame); AOI MultiPolygon
 PASS  13. Analysis works without external imagery or network — history/baseline/elevated rendered offline (12 elevated periods); explore shows 384 detections with imagery blocked
+PASS  14. Harmonization runs the three stages and matches the API — 5907 matched Aqua–N20 units; beta 0.196; held-out MAE 1.99 → 1.10
 
-13/13 browser checks passed.
+14/14 browser checks passed.
 ```
 During this whole run every non-localhost request is aborted, so the app is exercised offline. GIBS tiles in flows 7–8 are intercepted and answered locally.
 
@@ -64,6 +67,17 @@ During this whole run every non-localhost request is aborted, so the app is exer
 3. The map's cell colour, the grid GeoJSON and the frame "union" summed MODIS and VIIRS detections. Cells are now coloured by the primary sensor's own count, the export has per-sensor counts only, and union detections and FRP are null everywhere.
 4. The export menu stayed open after a download (browser flow 12), and a Leaflet animation error could fire when leaving the map mid-zoom. Both are fixed.
 5. Empty values in `.env` overrode the defaults. They now fall back to the defaults.
+
+6. (1.1) Event numbering in harmonization used a window ordered only by time, so detections with identical timestamps could be assigned to the previous event. Ordering now includes the row id (`test_stage1_keeps_sensor_values_separate` caught it).
+7. (1.1) The scatter chart type was not registered with ECharts, which blanked the harmonization panel (browser flow 14 caught it).
+8. (1.1) The proxy-evidence search was a correlated subquery (52 s for Kalimantan on the full archive). It is now a time-bucketed join (1 s) with identical class counts.
+
+## Harmonization performance (full archive: 10,917,537 rows; same container, cold cache)
+| Run | Time |
+|---|---|
+| Kalimantan, Aqua–NOAA-20, 2023–2024 | 1.0 s |
+| Indonesia, Aqua–S-NPP, 2023–2024 | 1.8 s |
+| Indonesia, Aqua–S-NPP, 2012–2026 (113,567 matches) | 12.5 s |
 
 ## Performance (sample: 566,644 rows; same container)
 | Operation | Cold | Warm (cached) |

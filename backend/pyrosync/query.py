@@ -236,6 +236,12 @@ def _global_gap_days() -> dict[str, set]:
 
     def compute():
         with cursor() as cur:
+            # A spatial subset (the online demo) cannot see "no records anywhere"; its builder stores the gap days
+            # computed on the full database, which are used instead (added in v1.1, absent in normal databases).
+            ov = cur.execute("SELECT value FROM dataset_meta WHERE key = 'gap_days'").fetchone()
+            if ov:
+                import json
+                return {s_: {date.fromisoformat(d) for d in ds} for s_, ds in json.loads(ov[0]).items()}
             rows = cur.execute("SELECT series, acq_date, count(*) FROM observations WHERE NOT superseded GROUP BY ALL").fetchall()
             ivs = cur.execute("SELECT DISTINCT batch_id, series, start_date, end_date FROM import_intervals").fetchall()
         per: dict[str, dict] = {}

@@ -52,6 +52,15 @@ def test_declared_window_from_filename():
     assert N.declared_window("random.csv") is None
 
 
+def test_declared_window_start_end_form():
+    assert N.declared_window("2018-12-22_2018-12-26.csv") == (date(2018, 12, 22), date(2018, 12, 26))
+    assert N.declared_window("2024-02-27_2024-03-02.csv") == (date(2024, 2, 27), date(2024, 3, 2))  # spans leap day
+    assert N.declared_window("2024-03-02_2024-02-27.csv") is None  # reversed
+    assert N.declared_window("2024-02-30_2024-03-02.csv") is None  # invalid date
+    # the '_Nd' form keeps working
+    assert N.declared_window("2024-06-19_5d.csv") == (date(2024, 6, 19), date(2024, 6, 23))
+
+
 def test_stream_and_platform_detection():
     assert N.stream_from_path("MODIS_SP/2023-01-01_1d.csv") == "SP"
     assert N.stream_from_path("fire_nrt_J1V-C2_123.csv") == "NRT"

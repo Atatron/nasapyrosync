@@ -20,7 +20,7 @@ from pydantic import BaseModel, ValidationError
 
 from . import aoi as A
 from . import analysis as AN
-from . import cache, exports, firms, gibs, ingest
+from . import cache, exports, firms, gibs, harmonize, ingest
 from . import query as Q
 from .config import APP_VERSION, PROCESSING_VERSION, PROJECT_ROOT, get_settings
 from .db import get_revision
@@ -86,10 +86,24 @@ def _bbox(p: str | None):
 def health():
     s = get_settings()
     return {"ok": True, "version": APP_VERSION, "processing_version": PROCESSING_VERSION, "dataset_revision": get_revision(),
-            "firms_key_configured": bool(s.firms_map_key), "offline_mode": s.offline, "readonly": s.readonly, "cache": cache.stats}
+            "firms_key_configured": bool(s.firms_map_key), "offline_mode": s.offline, "readonly": s.readonly, "cache": cache.stats,
+            "demo_note": _demo_note() if s.readonly else None}
 
 
-READONLY_MSG = ("This is a read-only online demo of PyroSync with the 2023–2024 sample built in. Importing data and FIRMS refresh "
+def _demo_note() -> str:
+    """Describe what the read-only demo database contains (built from its own metadata, never hard-coded)."""
+    from .db import cursor
+    inv = Q.inventory()
+    with cursor() as cur:
+        row = cur.execute("SELECT value FROM dataset_meta WHERE key = 'demo_subset'").fetchone()
+    sub = json.loads(row[0]) if row else {}
+    rng = inv.get("date_range") or ["?", "?"]
+    plats = ", ".join(sub.get("platforms") or inv.get("available_platforms") or [])
+    where = f" for {sub['aoi']} only" if sub.get("aoi") else ""
+    return f"FIRMS data {rng[0]} to {rng[1]}{where} ({plats})."
+
+
+READONLY_MSG = ("This is a read-only online demo of PyroSync. Importing data and FIRMS refresh "
                 "are available in the local version (run it on your own computer).")
 
 
@@ -184,6 +198,40 @@ def baseline(request: Request, series: str = "VIIRS_N20", metric: Metric = "cell
 def elevated(request: Request, series: str = "VIIRS_N20", metric: Metric = "cells", mode: Literal["fixed", "range_percentile", "baseline"] = "range_percentile",
              percentile: float = 90, threshold: float | None = None, min_days: int = 3, min_activity: float = 1):
     return AN.elevated(F(request), series, metric, mode, percentile, threshold, min_days, min_activity)
+
+
+# ------------------------------------------------------------------ harmonization (v1.1, additive)
+def _hcfg(request: Request) -> harmonize.HarmonizeConfig:
+    p = request.query_params
+    kw: dict = {}
+    if p.get("modis_platforms"):
+        kw["modis_platforms"] = _csv(p["modis_platforms"])
+    for name in ("viirs_series", "metric", "unit_set"):
+        if p.get(name):
+            kw[name] = p[name]
+    try:
+        for name, typ in (("unit_grid", float), ("tolerance_min", int), ("evidence_radius_deg", float), ("test_fraction", float)):
+            if p.get(name):
+                kw[name] = typ(p[name])
+        if p.get("split_date"):
+            kw["split_date"] = date.fromisoformat(p["split_date"])
+        return harmonize.HarmonizeConfig(**kw)
+    except ValidationError as e:
+        raise HTTPException(422, detail="; ".join(f"{'.'.join(map(str, er['loc']))}: {er['msg']}" for er in e.errors())) from None
+    except ValueError as e:
+        raise HTTPException(422, detail=str(e)) from None
+
+
+@app.get("/api/harmonization")
+def harmonization(request: Request):
+    return harmonize.harmonize(F(request), _hcfg(request))
+
+
+@app.get("/api/export/harmonization.zip")
+def export_harmonization(request: Request):
+    f = F(request)
+    cfg = _hcfg(request)
+    return _dl(exports.harmonization_zip(f, cfg), f"pyrosync_harmonization_{f.start}_{f.end}.zip", "application/zip")
 
 
 # ------------------------------------------------------------------ exports

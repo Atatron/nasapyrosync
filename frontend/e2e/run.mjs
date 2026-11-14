@@ -1,4 +1,4 @@
-// PyroSync browser-level checks (13 required flows).
+// PyroSync browser-level checks (13 required flows + 1 harmonization flow added in v1.1).
 //
 // Starts its OWN backend on 127.0.0.1:8765 with a fresh, temporary data directory, so it never
 // touches your real database. The only synthetic rows used (flow 11) are a clearly labelled
@@ -288,6 +288,28 @@ try {
     const det = num(await page.getByTestId('det-VIIRS_N20').innerText())
     assert(det > 0, 'no detections rendered offline')
     return `history/baseline/elevated rendered offline (${el.periods.length} elevated periods); explore shows ${det} detections with imagery blocked`
+  })
+
+  await check('14. Harmonization runs the three stages and matches the API', async () => {
+    // Real sample: MODIS (Terra+Aqua) and VIIRS NOAA-20, 2023-2024, Kalimantan
+    await open(page, 'page=workbench&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31')
+    const ctl = page.getByTestId('harmonization-controls')
+    await ctl.getByRole('button', { name: 'NOAA-20' }).click()
+    await ctl.getByRole('button', { name: '±60 min' }).click()
+    await page.getByTestId('harmonization-run').click()
+    await page.getByTestId('harmonization-result').waitFor({ timeout: 120000 })
+    const q = 'start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&viirs_series=VIIRS_N20&modis_platforms=Aqua&tolerance_min=60&unit_grid=0.1&metric=detections&unit_set=matched&test_fraction=0.2'
+    const h = await api('/api/harmonization?' + q)
+    const matchedUi = num(await page.getByTestId('harmonization-classes').locator('tr').first().locator('td').nth(1).innerText())
+    assert(matchedUi === h.stage2.class_counts.matched, `matched UI ${matchedUi} != API ${h.stage2.class_counts.matched}`)
+    assert(h.stage2.coverage_verification.status === 'not_verified', 'coverage must not be claimed as verified')
+    if (h.stage3.status === 'ok') {
+      await page.getByTestId('harmonization-eval').waitFor()
+      assert(h.stage3.split.train_period[1] < h.stage3.split.test_period[0], 'hold-out is not chronological')
+      return `${h.stage2.class_counts.matched} matched Aqua–N20 units; beta ${h.stage3.fit.beta.toFixed(3)}; held-out MAE ${h.stage3.evaluation.held_out.unadjusted.mae.toFixed(2)} → ${h.stage3.evaluation.held_out.calibrated.mae.toFixed(2)}`
+    }
+    await page.getByTestId('harmonization-insufficient').waitFor()
+    return `${h.stage2.class_counts.matched} matched units; stage 3 honestly reported as insufficient`
   })
 } finally {
   await browser.close()

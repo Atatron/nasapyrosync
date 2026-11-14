@@ -8,11 +8,12 @@ import { ErrorNote, Loading, Panel, Seg, Warnings } from '../components/ui'
 type Tab = 'import' | 'history' | 'firms' | 'exports' | 'methods'
 
 function ReadonlyNotice({ what }: { what: string }) {
+  const health = useApi<{ demo_note?: string | null }>('/api/health')
   return (
     <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
       <Panel title={what}>
         <div className="space-y-2 text-sm" data-testid="readonly-notice">
-          <p><b>This is the read-only online demo.</b> It contains the supplied FIRMS sample (MODIS_SP and VIIRS NOAA-20 SP, 2023-01-01 → 2024-12-31) and cannot store new data.</p>
+          <p><b>This is the read-only online demo.</b> It contains {health.data?.demo_note ?? 'a fixed set of FIRMS data'} It cannot store new data.</p>
           <p className="text-muted">To import new FIRMS downloads or refresh from the FIRMS API, run PyroSync locally (see the README: <code>scripts/start.bat</code> on Windows, <code>./scripts/start.sh</code> on macOS/Linux). Everything else here works the same as the local version.</p>
         </div>
       </Panel>

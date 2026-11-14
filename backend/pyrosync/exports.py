@@ -132,3 +132,19 @@ def grid_geojson(f: Filters, day: date, mode: int) -> dict:
                                     "MODIS and VIIRS. sensors_detecting = number of selected sensors with ≥1 detection in the cell."})
     m["aoi"].pop("geometry", None)
     return {"type": "FeatureCollection", "features": feats, "pyrosync_metadata": m}
+
+
+def harmonization_zip(f: Filters, cfg) -> bytes:
+    """Harmonization validation package: report (JSON + Markdown), per-unit CSV and manifest (added in v1.1)."""
+    from . import harmonize as H
+    res = H.harmonize(f, cfg, include_units=True)
+    body = {k: v for k, v in res.items() if k != "units"}
+    ff = H._sensor_filters(f, cfg)
+    man = manifest(ff, "harmonization", {"harmonization_config": cfg.key(), "method_version": res["method_version"],
+                                         "row_count": len(res.get("units", [])),
+                                         "columns_note": "units.csv lists every comparison unit used by the model; set = train/test (chronological). "
+                                                         "M = MODIS-scale measurement, V = VIIRS measurement, M_hat = calibrated prediction."})
+    return _zip({"manifest.json": json.dumps(man, indent=2, default=str),
+                 "harmonization_report.json": json.dumps(body, indent=2, default=str),
+                 "HARMONIZATION_REPORT.md": H.report_markdown(res),
+                 "units.csv": H.units_csv(res)})

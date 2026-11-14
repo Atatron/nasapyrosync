@@ -4,6 +4,7 @@ import { useDaily, useFilterQS, useInventory } from '../hooks'
 import { frameWindow, useApp } from '../state'
 import { SERIES_COLOR, SERIES_SHORT, fmtNum } from '../util'
 import { EChart, ErrorNote, Loading, Panel, Seg } from '../components/ui'
+import Harmonization from '../components/Harmonization'
 
 export default function Workbench() {
   const daily = useDaily()
@@ -47,6 +48,7 @@ export default function Workbench() {
         {daily.error ? <ErrorNote msg={daily.error} /> : !daily.data ? <Loading /> : <EChart ariaLabel="Per-sensor daily series" option={option} height={300} />}
         {overlap && m === 'cells' && <p className="mt-1 text-xs">Over the range, summing per-sensor occupied cells gives <b className="num">{fmtNum(overlap.sum)}</b> cell-days; the union counts <b className="num">{fmtNum(overlap.uni)}</b> because cells detected by several sensors on the same day count once. The difference ({fmtNum(overlap.sum - overlap.uni)}) is sensor overlap, which is why per-sensor cell counts are never added together.</p>}
       </Panel>
+      <Harmonization />
       <div className="grid gap-3 xl:grid-cols-2">
         <Panel title="Range totals by sensor">
           {!totals ? <Loading /> : (

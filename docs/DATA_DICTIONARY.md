@@ -85,3 +85,24 @@ A FeatureCollection with the AOI geometry and its description (name, source, lic
 
 ## 8. View configuration / shareable URL
 JSON or a URL hash containing only settings: page, AOI id, analysis range, date, frame window, sensor, metric, grid, filters, imagery/basemap choice, elevated-period rules, calendar scale and theme. It holds no observations and no credentials. Custom AOIs are referenced by a local id and resolve only on the machine where they were created.
+
+## 9. Harmonization (`/api/harmonization`, validation package), added in 1.1
+Query parameters: the shared filters (`start`, `end`, `aoi`, `modis_min_conf`, `viirs_conf`, `types`, `daynight`; `platforms` and `grid` are replaced by the settings below) plus
+`modis_platforms` (`Aqua`, `Terra` or `Aqua,Terra`; default `Aqua`), `viirs_series` (`VIIRS_SNPP` default, `VIIRS_N20`, `VIIRS_N21`), `unit_grid` (0.1 default, 0.25, 0.5, 1.0), `tolerance_min` (1–180, default 30), `metric` (`detections` default, `frp_sum`), `unit_set` (`matched` default, `matched_plus_proxy`), `evidence_radius_deg` (default 5), `test_fraction` (0.05–0.5, default 0.2), `split_date` (optional, first held-out UTC day).
+
+Response: `stage1` (unit and measurement definitions), `stage2` (`events`, `candidate_pairs`, `class_counts` for `matched`, `viirs_only_proxy`, `viirs_only_no_evidence`, `modis_only_proxy`, `modis_only_no_evidence`, `dt_minutes`, `coverage_verification.status` = `not_verified`), `stage3` (`status` ok/insufficient, `reason`, `split`, `fit` with `alpha`, `beta`, standard errors, 95 % CIs, `r2_log`, `residual_sd_log`, `duan_smearing_factor`, `evaluation.held_out` with `unadjusted`, `calibrated`, `training_mean_reference` {`mae`, `rmse`, `mbe`, `n`} and `improvement_vs_unadjusted`, `bins`, `daily_test`, a deterministic `scatter` sample of at most 2,500 units, and the fitted `curve`), `interpretation`, `dataset_revision`, `method_version`.
+
+`harmonization.zip` holds `manifest.json`, `harmonization_report.json` (the response above), `HARMONIZATION_REPORT.md` and `units.csv` with one row per comparison unit used by the model:
+
+| Column | Meaning |
+|---|---|
+| `set` | `train` or `test` (chronological hold-out) |
+| `class` | `matched`, `viirs_only_proxy` or `modis_only_proxy` |
+| `date_utc` | UTC day of the unit (MODIS event time when present) |
+| `t_modis_utc`, `t_viirs_utc` | First acquisition time of each event (empty for the missing side) |
+| `dt_min` | \|Δt\| in minutes for matched units |
+| `cell_col`, `cell_row`, `cell_center_lon`, `cell_center_lat` | Comparison cell (grid rule of Methodology §3 at `unit_grid`) |
+| `modis_platform` | Terra or Aqua |
+| `M`, `V` | MODIS and VIIRS measurement (detections or FRP sum in MW) |
+| `M_hat` | Calibrated prediction max(0, exp(α̂ + β̂ ln(1+V)) − 1) |
+| `modis_detections`, `viirs_detections` | Detection counts in each event (also for the FRP metric) |

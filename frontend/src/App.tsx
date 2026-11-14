@@ -23,7 +23,7 @@ export default function App() {
   const s = useApp()
   const inv = useInventory()
   const regions = useApi<{ regions: Region[] }>('/api/regions')
-  const health = useApi<{ readonly?: boolean }>('/api/health')
+  const health = useApi<{ readonly?: boolean; demo_note?: string | null }>('/api/health')
   const [hashPlatforms] = useState(() => new URLSearchParams(window.location.hash.slice(1)).has('platforms'))
 
   useEffect(() => {
@@ -98,7 +98,7 @@ export default function App() {
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar regions={regions.data?.regions ?? []} inventory={inv.data} />
         {health.data?.readonly && <div className="border-b border-line bg-amber-50 px-3 py-1.5 text-[12px] text-amber-900 dark:bg-amber-950 dark:text-amber-100" role="note">
-          Read-only online demo with the FIRMS 2023–2024 sample. Importing new data works in the local version only.</div>}
+          Read-only online demo: {health.data.demo_note ?? 'FIRMS sample data.'} Importing new data works in the local version only.</div>}
         <main id="main" className="min-h-0 flex-1 overflow-auto">
           {inv.error && <div className="p-6"><div role="alert" className="panel p-4 text-sm">Cannot reach the PyroSync backend ({inv.error}). Start it with the start script, then reload.</div></div>}
           {empty && s.page !== 'data' ? (

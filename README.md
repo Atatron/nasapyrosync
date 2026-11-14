@@ -1,6 +1,6 @@
 # PyroSync — Fire history, in context
 
-A local web application for exploring historical NASA FIRMS active-fire detections (MODIS and VIIRS) over Indonesia, with a day-by-day timeline, a burning calendar, area-of-interest (AOI) selection, seasonal and annual patterns, a baseline-eligibility check, and explainable "elevated observed activity" periods.
+A local web application for exploring historical NASA FIRMS active-fire detections (MODIS and VIIRS) over Indonesia, with a day-by-day timeline, a burning calendar, area-of-interest (AOI) selection, seasonal and annual patterns, a baseline-eligibility check, explainable "elevated observed activity" periods, and (since 1.1) a three-stage MODIS–VIIRS harmonization with a chronological hold-out validation.
 
 > Independent hackathon prototype using NASA FIRMS data and, where enabled, NASA GIBS imagery. Not an official NASA application.
 
@@ -43,6 +43,13 @@ Add `--dry-run` to only inspect. Each import writes a JSON validation report and
 
 Importing the same file again is safe. Duplicates are recognised record by record, the counts stay the same, and the dataset revision does not change.
 
+### Full history (2000–2026)
+The full Indonesian FIRMS archive (`indonesia_full_history.zip`, 194 MB, 3,886 CSV files) is too large for GitHub, so it is not in the repository. Import it the same way, preferably from the command line:
+```bash
+./scripts/import.sh path/to/indonesia_full_history.zip        # about 9 minutes on a 4-core machine
+```
+Result on the development machine: 10,917,537 rows, 0 rejected, 2000-11-01 to 2026-11-14, MODIS Terra and Aqua, VIIRS S-NPP, NOAA-20 and NOAA-21. With this history the multi-year baselines unlock by themselves.
+
 ## 3. Adding future data (upgrading the website)
 
 PyroSync adapts to new data without code changes:
@@ -55,22 +62,31 @@ What the importer does with new data:
 - Rows are assigned to days by their own `acq_date` and `acq_time` (UTC), never by the file name.
 - Exact duplicates from overlapping downloads are stored once.
 - **SP (standard/archive) replaces NRT** for the same satellite and UTC day. The NRT rows are kept for audit but excluded from analysis, so nothing is double counted.
-- File names like `2024-06-19_5d.csv` are recorded as *declared download windows*. Days inside a window with no rows become "zero detections reported". Days that no window covers stay "unknown". If your files have no such names, declare the interval yourself: `--declare 2025-01-01 2025-03-31` (optionally `--bbox W S E N`).
+- File names like `2024-06-19_5d.csv` or `2024-06-19_2024-06-23.csv` are recorded as *declared download windows*. Days inside a window with no rows become "zero detections reported". Days that no window covers stay "unknown". If your files have no such names, declare the interval yourself: `--declare 2025-01-01 2025-03-31` (optionally `--bbox W S E N`).
 - **Baselines unlock by themselves.** When at least five comparable prior years are loaded (see Methods), "unusual above/below" flags and the baseline threshold mode become available. With the 2023–2024 sample they are honestly shown as *insufficient history*.
 
 Large archives can be several GB. The CLI is faster for those, and the upload limits are configurable in `.env`.
 
 ### Optional: FIRMS API refresh
 Copy `.env.example` to `.env` and set `FIRMS_MAP_KEY=` to your key ([request one](https://firms.modaps.eosdis.nasa.gov/api/map_key/)), then restart. **Data & Methods → FIRMS API** downloads a source, bounding box and date range in documented ≤5-day windows, caches each window on disk, and imports it with verified request intervals. The key stays on the backend. It never reaches the browser, the exports, or the logs.
-**Status: the connector is tested with simulated responses (invalid key, rate limit, empty result, cancel, network failure), but authenticated live retrieval has not been verified, because no key was available during development.**
+**Status: the connector is tested with simulated responses (invalid key, rate limit, empty result, cancel, network failure). Authenticated live retrieval has not been verified: the development machine could not reach NASA servers. Test it once on your own computer with your key.**
 
 ## 4. Using the app (where things are)
 - **Explore**: the map with grid cells or individual detections, the timeline (prev/next, play, speed, date picker, scrubber, daily/7-day/30-day window, histogram), summary cards and the details panel. The map always shows two separate labels, "Fire observations: [window] UTC" and "Satellite imagery: [date], [product]".
 - **Burning Calendar**: a month grid with keyboard navigation, month/year navigation, a year overview and ISO-week heatmaps. Clicking a day selects it everywhere.
 - **Historical Patterns**: monthly, seasonal and annual summaries; a 2023-vs-2024 comparison; baseline eligibility; rankings; elevated periods with editable rules.
-- **Sensor Workbench**: per-sensor series, union versus sum of cells, confidence and type breakdowns, and paged source records.
+- **Sensor Workbench**: per-sensor series, union versus sum of cells, the **MODIS–VIIRS harmonization** panel (choose the sensor pair, time tolerance, grid and measurement, press *Run harmonization*, download the validation package), confidence and type breakdowns, and paged source records.
 - **Data & Methods**: import, current data, import history, the FIRMS API, exports and view-config restore, and the full methodology.
 - **Export** (top bar): daily summary CSV, filtered observations CSV, aggregated grid GeoJSON and AOI GeoJSON, each with a `manifest.json` that records the filters, revision and definitions. You can also export a view configuration or copy a local view URL. These contain settings only, never data or credentials.
+
+### Harmonization from the command line
+```bash
+cd backend
+../.venv/bin/python -m pyrosync.cli harmonize --start 2012-01-20 --end 2026-11-14 --out ../harmonization_run
+# options: --aoi region:kalimantan --viirs VIIRS_N20 --modis Aqua,Terra --tolerance 60 --grid 0.25 --metric frp_sum
+#          --unit-set matched_plus_proxy --test-fraction 0.3 --split-date 2022-01-01 --no-units
+```
+It writes `report.md`, `report.json` and `units.csv`. See Methodology §15 for the method and what the results do and do not mean.
 
 ## 5. Troubleshooting
 | Symptom | Fix |
@@ -86,6 +102,8 @@ Copy `.env.example` to `.env` and set `FIRMS_MAP_KEY=` to your key ([request one
 | Windows blocks `start.bat` | Right-click → Properties → Unblock, or run `powershell -ExecutionPolicy Bypass -File scripts\start.ps1`. |
 
 ## 6. Upgrading PyroSync itself
+The previous version (1.0.0) is kept on the GitHub branch **`legacy-v1`**. To go back to it: `git checkout legacy-v1` (your `data/` folder and `.env` are not affected). Version 1.1 only adds code, endpoints and a panel; it does not change stored data.
+
 1. Stop the server. Back up the `data/` folder, which holds your database, reports and raw copies.
 2. Replace the program files with the new version, but keep `data/` and `.env`.
 3. Run the start script. It notices changed requirement files and reinstalls the packages. The database schema is created with `IF NOT EXISTS`, so existing data stays. If a release changes `PROCESSING_VERSION`, re-import your raw files (kept under `data/raw/`) to apply the new processing.
@@ -96,7 +114,7 @@ backend/pyrosync/    FastAPI app, DuckDB storage, ingestion, queries, analysis, 
 backend/tests/       pytest suite (synthetic, clearly labelled fixtures in temporary folders)
 frontend/src/        React + TypeScript + Vite + Tailwind; Leaflet (+ Geoman drawing), ECharts
 frontend/dist/       Pre-built interface served by the backend
-frontend/e2e/run.mjs 13 browser-level checks (Playwright)
+frontend/e2e/run.mjs 14 browser-level checks (Playwright)
 scripts/             start/import scripts for Windows, macOS, Linux; boundary builder
 sample_data/         indonesia.zip (the supplied FIRMS sample)
 docs/                data dictionary, methodology, test results, demo script, 18-subtask checklist
@@ -105,25 +123,29 @@ data/                created on first run: database, reports, raw copies, caches
 
 ## 8. Running the tests
 ```bash
-cd backend && ../.venv/bin/python -m pytest -q          # backend: 67 tests
-cd frontend && npm ci && npm run build && npm run e2e    # browser: 13 flows (needs Node + Playwright Chromium)
+cd backend && ../.venv/bin/python -m pytest -q          # backend: 90 tests
+cd frontend && npm ci && npm run build && npm run e2e    # browser: 14 flows (needs Node + Playwright Chromium)
 ```
 The browser checks start their own server on port 8765 with a temporary data folder, so they never touch your database. See [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
 
 ## 9. Documentation
-- [docs/METHODOLOGY.md](docs/METHODOLOGY.md): methods, definitions, sources and limitations
+- [docs/METHODOLOGY.md](docs/METHODOLOGY.md): methods, definitions, sources and limitations (§15: harmonization)
+- [docs/HARMONIZATION_VALIDATION.md](docs/HARMONIZATION_VALIDATION.md): harmonization results on the full archive, with per-run reports in `docs/harmonization/`
 - [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md): stored fields, export columns and API metrics
 - [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md): what was run and the actual results
 - [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md): a two-minute demonstration
 - [docs/CHECKLIST_18_SUBTASKS.md](docs/CHECKLIST_18_SUBTASKS.md): implementation evidence per subtask
 
 ## 10. Online read-only demo (Vercel)
-The repository can also be deployed to Vercel as a **read-only** demo with the sample data built in. Vercel functions have no permanent disk, so importing and the FIRMS refresh are switched off online. Everything else works as it does locally: map, timeline, calendar, history, AOIs and exports.
+The repository can also be deployed to Vercel as a **read-only** demo with a fixed dataset built in. Since 1.1 the demo carries the full history for **Kalimantan only, MODIS (Terra, Aqua) and VIIRS S-NPP, 2000–2026** (2,234,041 rows); the banner on the site states exactly what it contains. Vercel functions have no permanent disk, so importing and the FIRMS refresh are switched off online. Everything else works as it does locally: map, timeline, calendar, history, AOIs and exports.
 
 - `vercel.json` serves `frontend/dist` as static files and routes `/api/*` to `api/index.py`, which runs the same FastAPI backend with `PYROSYNC_READONLY=1`.
 - The root `requirements.txt` lists only the packages the demo needs. pyarrow and pyproj are omitted, so the function fits Vercel's size limit.
-- The demo database is `deploy/pyrosync-demo.duckdb` (about 32 MB), built with `.venv/bin/python deploy/build_demo_db.py sample_data/indonesia.zip`.
-- **To update the online demo with new data:** import locally as usual to check the data, rebuild the demo database with all your files (`deploy/build_demo_db.py file1.zip folder2 …`), commit it, and push. Vercel redeploys automatically. Keep the database under about 60 MB so the function stays under Vercel's 250 MB limit.
+- The demo database is `deploy/pyrosync-demo.duckdb` (about 72 MB), built from a local full-history database with
+  `.venv/bin/python deploy/build_demo_db.py --from-db data/pyrosync.duckdb --aoi region:kalimantan --platforms Terra,Aqua,SNPP`.
+  The full archive (about 336 MB even in compact form) does not fit Vercel's 250 MB function limit, so the demo is a subset. Days that are data gaps in the full archive are carried over, so coverage states match the local app. Harmonization "proxy" counts can be lower online, because detections outside Kalimantan are not in the demo.
+- You can still build the demo from files instead: `deploy/build_demo_db.py sample_data/indonesia.zip` (the 1.0 demo).
+- **To update the online demo with new data:** import locally as usual, rebuild the demo database, commit it, and push. Vercel redeploys automatically. Keep the database under about 75 MB so the function stays under Vercel's 250 MB limit.
 - Custom drawn or uploaded AOIs are kept in the function's temporary storage. After the function restarts, re-draw them.
 - Deploying makes the demo **public** at its vercel.app address.
 
