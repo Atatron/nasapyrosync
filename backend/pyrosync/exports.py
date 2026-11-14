@@ -148,3 +148,73 @@ def harmonization_zip(f: Filters, cfg) -> bytes:
                  "harmonization_report.json": json.dumps(body, indent=2, default=str),
                  "HARMONIZATION_REPORT.md": H.report_markdown(res),
                  "units.csv": H.units_csv(res)})
+
+
+# ------------------------------------------------------------------ AOI Insights exports (1.3)
+HOTSPOT_FIELDS = ["rank", "lat", "lon", "fire_years", "years_in_record", "share", "longest_run", "first_year", "last_year", "detections", "chronic"]
+
+
+def hotspots(rows: list[dict], fmt: str, f: Filters, series: str) -> tuple[str, str]:
+    """Recurrent cells (cell centres) as CSV, GeoJSON or KML. A cell is a grid square, not an exact fire location."""
+    from xml.sax.saxutils import escape
+    note = (f"PyroSync {APP_VERSION} recurrent fire cells, {N.SERIES_LABEL[series]}, history to {f.end.isoformat()}, grid {f.grid} deg. "
+            "Points are grid-cell centres, not exact fire locations. Historical description, not a forecast or warning.")
+    if fmt == "csv":
+        buf = io.StringIO()
+        buf.write(f"# {note}\n")
+        w = csv.DictWriter(buf, fieldnames=HOTSPOT_FIELDS)
+        w.writeheader()
+        w.writerows(rows)
+        return buf.getvalue(), "text/csv"
+    if fmt == "geojson":
+        fc = {"type": "FeatureCollection", "properties": {"note": note, "series": series, "grid_deg": f.grid, "attribution": ATTRIBUTION},
+              "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [r["lon"], r["lat"]]},
+                            "properties": {k: r[k] for k in HOTSPOT_FIELDS if k not in ("lat", "lon")}} for r in rows]}
+        return json.dumps(fc), "application/geo+json"
+    if fmt == "kml":
+        pm = []
+        for r in rows:
+            desc = (f"Fire in {r['fire_years']} of {r['years_in_record']} complete years; last {r['last_year']}; "
+                    f"longest run {r['longest_run']} years; {r['detections']} detections.")
+            pm.append(f"<Placemark><name>#{r['rank']}</name><description>{escape(desc)}</description>"
+                      f"<Point><coordinates>{r['lon']},{r['lat']},0</coordinates></Point></Placemark>")
+        kml = ('<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+               f"<name>PyroSync recurrent fire cells</name><description>{escape(note)}</description>{''.join(pm)}</Document></kml>")
+        return kml, "application/vnd.google-earth.kml+xml"
+    raise ValueError("format must be csv, geojson or kml")
+
+
+def insights_zip(f: Filters, series: str, metric: str) -> bytes:
+    from . import insights as INS
+    reg = INS.regime(f, series, metric)
+    cri = INS.critical(f, series, metric, top=100)
+    yrs = INS.years_report(f, series, metric)
+    rec = INS.recurrence(f, series)
+    files: dict[str, str | bytes] = {}
+    files["manifest.json"] = json.dumps(manifest(f, "aoi_insights", {"series": series, "metric": metric,
+                                                                      "method_version": INS.INSIGHTS_VERSION,
+                                                                      "reproduce": f"python -m pyrosync.cli insights --aoi {f.aoi} --series {series} "
+                                                                                   f"--metric {metric} --as-of {f.end.isoformat()} --out DIR"}), indent=2)
+    for name, obj in (("regime.json", reg), ("critical_periods.json", cri), ("years.json", yrs), ("recurrence.json", rec)):
+        files[name] = json.dumps(obj, indent=1, default=str)
+    if reg.get("available"):
+        buf = io.StringIO(); w = csv.writer(buf)
+        w.writerow(["week", "label", "n_years", "median", "p10", "p90", "focus_year_value"])
+        for x, fv in zip(reg["weeks"], reg["focus_weeks"]):
+            w.writerow([x["week"], x["label"], x["n_years"], x["median"], x["p10"], x["p90"], fv])
+        files["weekly_climatology.csv"] = buf.getvalue()
+    buf = io.StringIO(); w = csv.writer(buf)
+    cols = ["year", "eligible", "known_share", "total", "rank", "vs_median_of_other_years", "peak_season_total", "critical_days", "enso", "oni", "iod", "dmi"]
+    w.writerow(cols)
+    for r in yrs["years"]:
+        w.writerow([r.get(c) for c in cols])
+    files["years.csv"] = buf.getvalue()
+    if cri.get("available"):
+        buf = io.StringIO(); w = csv.writer(buf)
+        w.writerow(["rank", "start", "end", "duration_days", "peak", "peak_date", "total", "excess"])
+        for p in cri["periods"]:
+            w.writerow([p["rank"], p["start"], p["end"], p["duration_days"], p["peak"], p["peak_date"], p["total"], p["excess"]])
+        files["critical_periods.csv"] = buf.getvalue()
+    files["README.txt"] = ("PyroSync AOI Insights package. Historical description of satellite fire detections; not a forecast, "
+                           "not a fire-danger rating and not an official warning. Definitions are in each JSON file and in docs/METHODOLOGY.md §17.\n")
+    return _zip(files)

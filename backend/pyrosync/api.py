@@ -21,6 +21,8 @@ from pydantic import BaseModel, ValidationError
 from . import aoi as A
 from . import analysis as AN
 from . import cache, exports, firms, gibs, harmonize, ingest
+from . import insights as INS
+from . import live as LIVE
 from . import query as Q
 from .config import APP_VERSION, PROCESSING_VERSION, PROJECT_ROOT, get_settings
 from .db import get_revision
@@ -275,6 +277,77 @@ def export_harmonization(request: Request):
     f = F(request)
     cfg = _hcfg(request)
     return _dl(exports.harmonization_zip(f, cfg), f"pyrosync_harmonization_{f.start}_{f.end}.zip", "application/zip")
+
+
+# ------------------------------------------------------------------ AOI Insights (1.3)
+Series = Literal["MODIS", "VIIRS_SNPP", "VIIRS_N20", "VIIRS_N21"]
+InsMetric = Literal["detections", "cells"]
+
+
+@app.get("/api/insights/regime")
+def insights_regime(request: Request, series: Series = "MODIS", metric: InsMetric = "detections"):
+    return INS.regime(F(request), series, metric)
+
+
+@app.get("/api/insights/anomaly")
+def insights_anomaly(request: Request, series: Series = "MODIS", metric: InsMetric = "detections"):
+    return INS.anomaly(F(request), series, metric)
+
+
+@app.get("/api/insights/anomaly_cells")
+def insights_anomaly_cells(request: Request, series: Series = "MODIS"):
+    return INS.cell_anomaly(F(request), series)
+
+
+@app.get("/api/insights/recurrence")
+def insights_recurrence(request: Request, series: Series = "MODIS", chronic_share: float = 0.4):
+    return INS.recurrence(F(request), series, chronic_share)
+
+
+@app.get("/api/insights/critical")
+def insights_critical(request: Request, series: Series = "MODIS", metric: InsMetric = "detections", percentile: float = 90,
+                      min_days: int = 3, min_activity: float = 1, top: int = 20):
+    return INS.critical(F(request), series, metric, percentile, min_days, min_activity, max(1, min(top, 100)))
+
+
+@app.get("/api/insights/years")
+def insights_years(request: Request, series: Series = "MODIS", metric: InsMetric = "detections"):
+    return INS.years_report(F(request), series, metric)
+
+
+@app.get("/api/insights/compare")
+def insights_compare(request: Request, aois: str, series: Series = "MODIS", metric: InsMetric = "detections"):
+    return INS.compare_aois(F(request), _csv(aois) or [], series, metric)
+
+
+@app.get("/api/insights/now")
+def insights_now(request: Request, series: Series = "VIIRS_SNPP", days: int = 10):
+    try:
+        return LIVE.now_vs_history(F(request), series, days)
+    except firms.FirmsError as e:
+        return JSONResponse(status_code=503, content={"available": False, "detail": str(e)})
+
+
+@app.get("/api/insights/climate")
+def insights_climate():
+    from . import climate
+    return {"latest": climate.latest(), "phase_rules": climate.PHASE_RULES, "sources": climate.SOURCES,
+            "years": [climate.season_phase(y) for y in range(2000, climate.latest()["oni"]["year"] + 1)]}
+
+
+@app.get("/api/export/hotspots.{fmt}")
+def export_hotspots(request: Request, fmt: Literal["csv", "geojson", "kml"], series: Series = "MODIS", top: int = 200):
+    f = F(request)
+    rows = INS.hotspot_rows(f, series, max(1, min(top, 2000)))
+    name = f"pyrosync_hotspots_{series}_{f.end}"
+    content, media = exports.hotspots(rows, fmt, f, series)
+    return _dl(content, f"{name}.{fmt}", media)
+
+
+@app.get("/api/export/insights.zip")
+def export_insights(request: Request, series: Series = "MODIS", metric: InsMetric = "detections"):
+    f = F(request)
+    return _dl(exports.insights_zip(f, series, metric), f"pyrosync_insights_{series}_{f.end}.zip", "application/zip")
 
 
 # ------------------------------------------------------------------ exports

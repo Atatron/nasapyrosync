@@ -79,6 +79,12 @@ def main(argv: list[str] | None = None) -> int:
     au = sub.add_parser("harmonize-audit", help="Audit matching, leakage, metrics, alternatives and application on the imported archive")
     au.add_argument("--out", type=Path, required=True, help="Output folder for AUDIT.md and audit.json")
     au.add_argument("--runs", default=None, help="Comma-separated subset of runs (A,B,C,D,E)")
+    ins = sub.add_parser("insights", help="Write the AOI Insights package (regime, critical periods, years, recurrence) for one AOI and sensor")
+    ins.add_argument("--aoi", required=True, help="AOI id, e.g. region:kalimantan")
+    ins.add_argument("--series", default="MODIS", choices=["MODIS", "VIIRS_SNPP", "VIIRS_N20", "VIIRS_N21"])
+    ins.add_argument("--metric", default="detections", choices=["detections", "cells"])
+    ins.add_argument("--as-of", required=True, help="Last day of the history (YYYY-MM-DD); its year is the focus year")
+    ins.add_argument("--out", type=Path, required=True, help="Output folder")
     a = ap.parse_args(argv)
     s = get_settings()
 
@@ -130,6 +136,16 @@ def main(argv: list[str] | None = None) -> int:
             ho = s3["evaluation"]["held_out"]
             print(f"alpha={s3['fit']['alpha']:.4f} beta={s3['fit']['beta']:.4f}  held-out MAE {ho['unadjusted']['mae']:.3f} -> {ho['calibrated']['mae']:.3f}")
         print(f"Wrote {a.out}/report.md, report.json" + ("" if a.no_units else ", units.csv"))
+        return 0
+    if a.cmd == "insights":
+        from . import exports
+        import io, zipfile
+        end = date.fromisoformat(a.as_of)
+        f = query.Filters(start=date(end.year, 1, 1), end=end, aoi=a.aoi)
+        a.out.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(io.BytesIO(exports.insights_zip(f, a.series, a.metric))) as z:
+            z.extractall(a.out)
+        print(f"Wrote the AOI Insights package to {a.out}")
         return 0
     if a.cmd == "harmonize-audit":
         from . import audit
