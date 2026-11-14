@@ -193,19 +193,26 @@ def ensure_members(aoi_id: str) -> int:
             if st and st[0] == rev:
                 return st[1]
             minx, miny, maxx, maxy = g.bounds
-            cand = cur.execute("SELECT rid, lon, lat FROM observations WHERE lon BETWEEN ? AND ? AND lat BETWEEN ? AND ?",
-                               [minx, maxx, miny, maxy]).fetchnumpy()
-            rids = cand["rid"]
-            if len(rids):
-                shapely.prepare(g)
-                inside = shapely.intersects_xy(g, np.asarray(cand["lon"]), np.asarray(cand["lat"]))
-                sel = np.asarray(rids)[inside]
-            else:
-                sel = np.array([], dtype=np.int64)
+            shapely.prepare(g)
             cur.execute("BEGIN TRANSACTION")
             cur.execute("DELETE FROM aoi_members WHERE aoi_id = ?", [aoi_id])
-            if len(sel):
-                cur.execute("INSERT INTO aoi_members SELECT ?, ?, unnest(?::BIGINT[])", [aoi_id, rev, sel.astype(np.int64).tolist()])
-            cur.execute("INSERT OR REPLACE INTO aoi_cache_state VALUES (?, ?, ?)", [aoi_id, rev, len(sel)])
+            # Work in longitude strips so memory stays bounded for country-sized AOIs (the online demo
+            # runs on small serverless instances). Strips are half-open, the last one closed.
+            n_strips = 16
+            edges = np.linspace(minx, maxx, n_strips + 1)
+            total = 0
+            for i in range(n_strips):
+                hi_op = "<=" if i == n_strips - 1 else "<"
+                cand = cur.execute(f"SELECT rid, lon, lat FROM observations WHERE lon >= ? AND lon {hi_op} ? AND lat BETWEEN ? AND ?",
+                                   [float(edges[i]), float(edges[i + 1]), miny, maxy]).fetchnumpy()
+                if not len(cand["rid"]):
+                    continue
+                inside = shapely.intersects_xy(g, np.asarray(cand["lon"]), np.asarray(cand["lat"]))
+                sel = np.asarray(cand["rid"])[inside].astype(np.int64)
+                del cand, inside
+                for j in range(0, len(sel), 200_000):
+                    cur.execute("INSERT INTO aoi_members SELECT ?, ?, unnest(?::BIGINT[])", [aoi_id, rev, sel[j:j + 200_000].tolist()])
+                total += len(sel)
+            cur.execute("INSERT OR REPLACE INTO aoi_cache_state VALUES (?, ?, ?)", [aoi_id, rev, total])
             cur.execute("COMMIT")
-            return int(len(sel))
+            return int(total)

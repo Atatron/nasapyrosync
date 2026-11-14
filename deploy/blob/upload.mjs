@@ -1,11 +1,11 @@
-// Vercel build step (see vercel.json): upload the full-archive parts in deploy/blob/db to Vercel Blob.
+// Vercel build step (see vercel.json): upload the archive parts in deploy/blob/db to Vercel Blob.
 // Runs only when the project has a Blob store connected (BLOB_READ_WRITE_TOKEN set by Vercel).
 // Parts already in the store with the right size are skipped, so a normal redeploy uploads nothing.
 // The token is never printed.
 import { readFileSync, statSync, createReadStream } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { list, put } from '@vercel/blob'
+import { del, list, put } from '@vercel/blob'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const manifest = JSON.parse(readFileSync(join(here, 'manifest.json'), 'utf8'))
@@ -30,4 +30,10 @@ for (const p of manifest.parts) {
   })
   console.log(`[pyrosync blob] uploaded ${pathname} (${(p.bytes / 1e6).toFixed(1)} MB) in ${((Date.now() - t) / 1000).toFixed(1)} s`)
 }
-console.log('[pyrosync blob] full archive is in the Blob store')
+// Remove earlier archive versions so the store holds only the current one.
+const old = (await list({ prefix: 'pyrosync-full/', token, limit: 1000 })).blobs.filter((b) => !b.pathname.startsWith(manifest.prefix))
+if (old.length) {
+  await del(old.map((b) => b.url), { token })
+  console.log(`[pyrosync blob] removed ${old.length} part(s) of earlier archive versions`)
+}
+console.log('[pyrosync blob] archive is in the Blob store')
