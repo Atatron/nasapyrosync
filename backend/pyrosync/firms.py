@@ -18,7 +18,12 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
 
+import logging
 import httpx
+
+# httpx logs full request URLs at INFO level; FIRMS URLs contain the MAP_KEY, so keep those logs off.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 from . import ingest
 from .config import get_settings

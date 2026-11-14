@@ -45,6 +45,10 @@ export default function App() {
         if (s.date < a || s.date > b) patch.date = b
         if (!hashPlatforms && d.available_platforms.length) patch.platforms = d.available_platforms
       }
+      // primary sensor must exist in the data (e.g. the online demo has no NOAA-20)
+      if (s.series !== 'UNION' && d.available_series.length && !d.available_series.includes(s.series)) {
+        patch.series = ['VIIRS_N20', 'VIIRS_SNPP', 'VIIRS_N21', 'MODIS'].find((x) => d.available_series.includes(x)) ?? d.available_series[0]
+      }
       s.set(patch)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

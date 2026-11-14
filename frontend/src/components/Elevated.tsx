@@ -38,6 +38,7 @@ export function ElevatedSettings() {
 export function ElevatedList({ q, compact = false }: { q: { data: El | null; loading: boolean; error: string | null }; compact?: boolean }) {
   const s = useApp()
   if (q.error) return <ErrorNote msg={q.error} />
+  if (!q.data && !q.loading) return <Empty title="No sensor selected">The selected primary sensor is not among the selected or imported platforms. Choose another sensor at the top.</Empty>
   if (!q.data) return <Loading label="Evaluating elevated-period rule…" />
   const d = q.data
   return (
