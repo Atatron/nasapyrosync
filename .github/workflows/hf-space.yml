@@ -1,0 +1,38 @@
+# Builds the PyroSync read-only demo on a Hugging Face Docker Space whenever the hf-space branch is pushed.
+# One-time setup in GitHub → Settings → Secrets and variables → Actions:
+#   secret   HF_TOKEN       a Hugging Face access token with WRITE permission
+#   variable HF_SPACE       optional, e.g. "your-hf-username/pyrosync" (default: <token owner>/pyrosync)
+#   secret   FIRMS_MAP_KEY  optional; copied into the Space as a secret so "Status now" works (never printed)
+name: Deploy to Hugging Face Space
+on:
+  push:
+    branches: [hf-space]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install "huggingface_hub>=0.30"
+      - run: bash deploy/hf/build_space.sh "$RUNNER_TEMP/space"
+      - name: Create or update the Space and upload
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          repo = os.environ.get("HF_SPACE") or f"{api.whoami()['name']}/pyrosync"
+          api.create_repo(repo, repo_type="space", space_sdk="docker", exist_ok=True)
+          if os.environ.get("FIRMS_MAP_KEY"):
+              api.add_space_secret(repo, "FIRMS_MAP_KEY", os.environ["FIRMS_MAP_KEY"])
+          api.upload_folder(repo_id=repo, repo_type="space", folder_path=os.path.join(os.environ["RUNNER_TEMP"], "space"),
+                            commit_message="Deploy PyroSync from GitHub branch hf-space", delete_patterns=["*"])
+          print(f"Space: https://huggingface.co/spaces/{repo}")
+          PY
