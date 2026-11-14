@@ -76,3 +76,17 @@ body { background: var(--c-bg); color: var(--c-ink); font-family: var(--font-san
 table.data { width: 100%; font-size: .78rem; border-collapse: collapse; }
 table.data th { text-align: left; font-weight: 600; color: var(--c-muted); border-bottom: 1px solid var(--c-line); padding: .35rem .5rem; white-space: nowrap; }
 table.data td { border-bottom: 1px solid var(--c-line); padding: .3rem .5rem; }
+table.data th.text-right { text-align: right; }
+
+/* AOI Insights briefing (v1.3): printed alone, on white, A4 friendly */
+.briefing-sheet { background: #fff; color: #0f172a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.briefing-sheet h2 { font-size: .95rem; font-weight: 700; margin: .9rem 0 .3rem; }
+.briefing-sheet table.data th, .briefing-sheet table.data td { color: #0f172a; border-color: #cbd5e1; }
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body.printing-briefing #root { display: none !important; }
+  body.printing-briefing .briefing-overlay { display: block !important; position: static !important; inset: auto !important; background: #fff !important; overflow: visible !important; }
+  body.printing-briefing .briefing-overlay .no-print { display: none !important; }
+  body.printing-briefing .briefing-sheet { box-shadow: none !important; border: 0 !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+  body.printing-briefing .briefing-sheet section { break-inside: avoid; }
+}

@@ -223,3 +223,34 @@ def test_now_vs_history_uses_nrt_without_storing(env, monkeypatch):
     with cursor() as cur:
         assert cur.execute("SELECT count(*) FROM observations").fetchone()[0] == n_before
     assert get_revision() == rev
+
+
+def test_anomaly_guard_rail_against_count_noise():
+    # A usually empty season (median 0, MAD 0): the floor alone would turn 1-2 detections into a high z.
+    refs = [0] * 200 + [1] * 20 + [2] * 5
+    one = I._finish(I.robust_score(1, refs), I.ANOMALY_FLOOR["day"], 1, refs)
+    assert one["z"] > 2 and one["band"] == "normal"
+    many = I._finish(I.robust_score(17, refs), I.ANOMALY_FLOOR["day"], 17, refs)
+    assert many["band"] == "exceptional"
+    # below normal needs a positive reference median and a value under the 25th percentile
+    busy = [40, 50, 60, 55, 45, 52, 48]
+    low = I._finish(I.robust_score(5, busy), I.ANOMALY_FLOOR["week"], 5, busy)
+    assert low["band"] == "below normal"
+
+
+def test_insight_types_keep_rows_without_type():
+    assert I.insight_types(["0"]) == ["0", "unknown"]
+    assert I.insight_types(["0", "unknown"]) == ["0", "unknown"]
+    assert I.insight_types(["1"]) == ["1"]
+
+
+def test_nrt_rows_without_type_are_not_read_as_zero(env):
+    """FIRMS NRT area files have no 'type' column. With the default vegetation-fire filter they must still count in Insights."""
+    _load(env)
+    rows = [modis_row(lat=round(LAT + 0.001 * j, 5), lon=A_LON, date=f"2023-01-{d:02d}", time="0300", sat="Aqua", version="6.1NRT")[:-1] for d in range(1, 11) for j in range(4)]
+    write_csv(env / "nrt" / "MODIS_NRT" / "SYNTHETIC_TEST_FIXTURE_nrt_no_type.csv", MODIS_HDR[:-1], rows)
+    do_import([env / "nrt"], declared=[ingest.Declared(date(2023, 1, 1), date(2023, 1, 10), "cli-declared", "MODIS", "NRT")])
+    r = I.regime(F(end=date(2023, 1, 10)), "MODIS")
+    assert r["tracker"]["status"]["cumulative"] == 40
+    assert "unknown/missing type" in r["filter_disclosure"]["types_included"][-1] or any("missing" in x for x in r["filter_disclosure"]["types_included"])
+    assert "no fire-type column" in r["rules"]["missing_type"]

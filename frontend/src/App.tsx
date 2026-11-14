@@ -11,9 +11,11 @@ import HistoryPage from './pages/HistoryPage'
 import Workbench from './pages/Workbench'
 import DataMethods from './pages/DataMethods'
 import HarmonizationPage from './pages/HarmonizationPage'
+import InsightsPage from './pages/InsightsPage'
 
 const NAV: { id: Page; label: string; icon: string; hint: string }[] = [
   { id: 'explore', label: 'Explore', icon: 'map', hint: 'Map, timeline and frame details' },
+  { id: 'insights', label: 'AOI Insights', icon: 'insights', hint: 'Fire regime, unusual conditions, critical periods and a briefing for one area' },
   { id: 'calendar', label: 'Burning Calendar', icon: 'cal', hint: 'Daily heatmap and ISO weeks' },
   { id: 'history', label: 'Historical Patterns', icon: 'chart', hint: 'Monthly, seasonal, annual, baselines, elevated periods' },
   { id: 'workbench', label: 'Sensor Workbench', icon: 'sensor', hint: 'Sensor-by-sensor comparison and source records' },
@@ -116,7 +118,8 @@ export default function App() {
               </div>
             </div>
           ) : s.page === 'data' ? <DataMethods /> : !inv.data ? null : s.page === 'explore' ? <Explore regions={regions.data?.regions ?? []} />
-            : s.page === 'calendar' ? <CalendarPage /> : s.page === 'history' ? <HistoryPage /> : s.page === 'harmonization' ? <HarmonizationPage regions={regions.data?.regions ?? []} /> : <Workbench />}
+            : s.page === 'calendar' ? <CalendarPage /> : s.page === 'history' ? <HistoryPage /> : s.page === 'harmonization' ? <HarmonizationPage regions={regions.data?.regions ?? []} />
+            : s.page === 'insights' ? <InsightsPage regions={regions.data?.regions ?? []} /> : <Workbench />}
         </main>
       </div>
     </div>

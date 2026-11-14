@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { addDays, clampDate, type ISODate } from './util'
 
-export type Page = 'explore' | 'calendar' | 'history' | 'workbench' | 'harmonization' | 'data'
+export type Page = 'explore' | 'insights' | 'calendar' | 'history' | 'workbench' | 'harmonization' | 'data'
 export type Metric = 'cells' | 'detections' | 'frp_sum' | 'frp_max' | 'frp_mean'
 export type FrameMode = 1 | 7 | 30
 export type ElevatedMode = 'range_percentile' | 'fixed' | 'baseline'

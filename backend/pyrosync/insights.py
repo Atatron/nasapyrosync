@@ -62,6 +62,17 @@ def _md(doy: float | None) -> str | None:
     return (date(2001, 1, 1) + timedelta(days=int(round(doy)) - 1)).strftime("%d %b")
 
 
+TYPE_NOTE = ("FIRMS near-real-time (NRT) rows carry no fire-type column. When presumed vegetation fire is selected, Insights keeps rows "
+             "without a type, so NRT periods are not read as zero fire; static sources and volcanoes cannot be removed from those rows.")
+
+
+def insight_types(types: list[str]) -> list[str]:
+    """FIRMS near-real-time area files carry no fire-type column, so their rows have a missing type. When presumed vegetation
+    fire (type 0) is selected, Insights also keeps rows WITHOUT a type, the same rule as the near-real-time view; otherwise the
+    whole NRT period would read as zero fire. Rows that HAVE a type are filtered exactly as selected."""
+    return sorted(set(types) | {"unknown"}) if "0" in types else list(types)
+
+
 def _history_filters(f: Filters, series: str) -> Filters:
     inv = inventory()
     if not inv["date_range"]:
@@ -70,7 +81,7 @@ def _history_filters(f: Filters, series: str) -> Filters:
     plats = [p for p in f.platforms if N.PLATFORM_SERIES[p] == series]
     if not plats:
         raise ValueError(f"series '{series}' is not selected by the current platform filter")
-    return f.model_copy(update={"start": min(lo, f.end), "end": f.end, "platforms": plats})
+    return f.model_copy(update={"start": min(lo, f.end), "end": f.end, "platforms": plats, "types": insight_types(f.types)})
 
 
 def _history(f: Filters, series: str, metric: str):
@@ -149,7 +160,8 @@ def _regime(f: Filters, series: str, metric: str) -> dict:
                 rules={"year_min_known": YEAR_MIN_KNOWN, "week_min_known_days": WEEK_MIN_KNOWN, "min_years": MIN_YEARS,
                        "season_fractions": list(SEASON_FRACTIONS), "season_min_total": SEASON_MIN_TOTAL,
                        "week_bins": "Week k covers days 7k+1 … 7k+7 of the year; the last bin (k = 51) runs to 31 Dec.",
-                       "reference": "Eligible calendar years other than the focus year (at least 80 % of days with known coverage)."})
+                       "reference": "Eligible calendar years other than the focus year (at least 80 % of days with known coverage).",
+                       "missing_type": TYPE_NOTE})
     mdef = {"metric": metric, "label": label, "unit": unit}
     if len(ref_years) < MIN_YEARS:
         return envelope(h, mdef, available=False,
@@ -382,6 +394,7 @@ def _critical(f: Filters, series: str, metric: str, percentile: float, min_days:
 
 # ------------------------------------------------------------------ B2: robust anomaly score
 ANOMALY_FLOOR = {"day": 0.25, "week": 0.25, "cell": 0.5}  # minimum robust scale in log(1 + x) units (documented project setting)
+MIN_EXCESS = 3  # a positive band needs at least 3 more (detections, cells, or per-day mean) than the reference median
 ANOMALY_BANDS = [(3.0, "exceptional"), (2.0, "well above normal"), (1.0, "above normal"), (-1.0, "normal")]
 
 
@@ -396,9 +409,18 @@ def robust_score(x: float, refs) -> dict:
 def _finish(parts: dict, floor: float, x: float, refs) -> dict:
     scale = max(parts["scale_raw"], floor)
     z = (parts["log_value"] - parts["log_median"]) / scale
-    band = "below normal" if z <= -1.0 and np.median(refs) > 0 else next((b for t, b in ANOMALY_BANDS if z >= t), "normal")
-    return {"value": x, "z": round(float(z), 3), "band": band, "reference_median": float(np.median(refs)), "n_reference": len(refs),
-            "scale": scale, "floor_applied": parts["scale_raw"] < floor}
+    med = float(np.median(refs))
+    p25, p75 = float(np.percentile(refs, 25)), float(np.percentile(refs, 75))
+    band = next((b for t, b in ANOMALY_BANDS if z >= t), "normal")
+    # Guard rail against count noise: a positive band also needs the value to be above the reference 75th percentile and at
+    # least MIN_EXCESS above the reference median, so one or two detections in a usually empty season stay "normal".
+    if band != "normal" and not (x > p75 and x - med >= MIN_EXCESS):
+        band = "normal"
+    if z <= -1.0 and med > 0 and x < p25:
+        band = "below normal"
+    return {"value": x, "z": round(float(z), 3), "band": band, "reference_median": med, "reference_p25": p25, "reference_p75": p75,
+            "n_reference": len(refs), "scale": scale, "floor_applied": parts["scale_raw"] < floor,
+            "higher_than_pct": round(100.0 * float(np.mean(np.asarray(refs, dtype=float) < x)), 1)}
 
 
 def anomaly(f: Filters, series: str, metric: str = "detections") -> dict:
@@ -475,7 +497,10 @@ def _anomaly(f: Filters, series: str, metric: str) -> dict:
                             "reference": f"Daily: known days within ±{w} days of the same date in every EARLIER complete year (≥ 80 % known days in that window); "
                                          f"at least {MIN_YEARS} such years. Weekly: the same week bin in earlier complete years.",
                             "floor": ANOMALY_FLOOR, "bands": "below 1 normal · 1–2 above normal · 2–3 well above normal · 3 or more exceptional · "
-                                                             "−1 or less below normal (only when the reference median is above 0)",
+                                                             "−1 or less below normal (only when the reference median is above 0). "
+                                                             "A positive band also needs the value above the reference 75th percentile and at "
+                                                             f"least {MIN_EXCESS} above the reference median; a negative band needs it below "
+                                                             "the 25th percentile.",
                             "why": "Median and MAD are not pulled up by a few extreme years; the log scale keeps quiet and busy seasons comparable. "
                                    "The floor stops near-constant quiet seasons from turning one detection into an extreme score."})
 
@@ -509,7 +534,7 @@ def _cell_anomaly(f: Filters, series: str, limit: int) -> dict:
         return envelope(f, {"metric": "detections"}, available=False, cells=[],
                         reason=f"Insufficient history: {len(ref_years)} earlier year(s) with ≥ 80 % known days in this window; {MIN_YEARS} are needed.", **base)
     plats = [p for p in f.platforms if N.PLATFORM_SERIES[p] == series]
-    hs = f.model_copy(update={"platforms": plats})
+    hs = f.model_copy(update={"platforms": plats, "types": insight_types(f.types)})
     ci, cj, _ = cell_sql(f.grid)
     parts, params = [], []
     for y in ref_years + [f.end.year]:

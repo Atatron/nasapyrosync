@@ -103,7 +103,7 @@ def now_vs_history(f: Filters, series: str, days: int = NOW_DAYS, client: httpx.
         if o.daynight is not None and o.daynight not in f.daynight:
             filtered += 1
             continue
-        if o.type_code is not None and str(o.type_code) not in f.types:
+        if (str(o.type_code) not in f.types) if o.type_code is not None else not ("0" in f.types or "unknown" in f.types):
             filtered += 1
             continue
         if o.acq_date in counts:
