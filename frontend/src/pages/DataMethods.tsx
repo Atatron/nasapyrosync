@@ -310,7 +310,7 @@ export function Methods() {
         <ul>
           <li>Dated imagery: NASA GIBS WMTS corrected-reflectance true-color layers ({(img.data?.layers ?? []).map((l) => l.id).join(', ')}), EPSG:3857, tile matrix set GoogleMapsCompatible_Level9. Every tile URL includes the selected date explicitly; availability is read from DescribeDomains ({img.data ? `${img.data.domain_source}, checked ${img.data.domain_checked}` : 'loading'}).</li>
           <li>A daily image is assembled from that day's overpasses and is not captured at the instant of each hotspot. With 7- or 30-day fire windows, the fire window and imagery date are labeled separately. Cloud, smoke or blank imagery does not prove absence of fire.</li>
-          <li>Unavailable dates show "Imagery unavailable for this date"; a nearest-date substitution happens only on request and is labeled. Static basemaps (CARTO/OpenStreetMap) do not represent historical conditions. Imagery and basemaps need internet; analysis does not.</li>
+          <li>Unavailable dates show "Imagery unavailable for this date"; a nearest-date substitution happens only on request and is labeled. Static basemaps (Esri Canvas, built on OpenStreetMap and other sources) do not represent historical conditions. Imagery and basemaps need internet; analysis does not.</li>
           <li>{img.data?.acknowledgement}</li>
         </ul>
         <h3>Boundaries</h3>
@@ -323,7 +323,7 @@ export function Methods() {
           <li>NASA FIRMS Area API: <a href="https://firms.modaps.eosdis.nasa.gov/api/area/" target="_blank" rel="noreferrer">firms.modaps.eosdis.nasa.gov/api/area</a>; archive download: <a href="https://firms.modaps.eosdis.nasa.gov/download/" target="_blank" rel="noreferrer">/download</a>; FAQ: <a href="https://www.earthdata.nasa.gov/data/tools/firms/faq" target="_blank" rel="noreferrer">earthdata.nasa.gov FIRMS FAQ</a>.</li>
           <li>MODIS Collection 6 Active Fire Product User's Guide, Revision B: <a href="https://www.earthdata.nasa.gov/sites/default/files/imported/MODIS_C6_Fire_User_Guide_B.pdf" target="_blank" rel="noreferrer">PDF</a>. VIIRS 375 m Active Fire User Guide v1.2: <a href="https://www.earthdata.nasa.gov/s3fs-public/2025-06/VIIRS_C2_AF-375m_User_Guide_1.2.pdf" target="_blank" rel="noreferrer">PDF</a>.</li>
           <li>NASA GIBS API documentation: <a href="https://nasa-gibs.github.io/gibs-api-docs/" target="_blank" rel="noreferrer">nasa-gibs.github.io/gibs-api-docs</a>.</li>
-          <li>Boundaries: <a href="https://www.naturalearthdata.com/" target="_blank" rel="noreferrer">Natural Earth</a> (public domain). Basemap: © OpenStreetMap contributors, © CARTO.</li>
+          <li>Boundaries: <a href="https://www.naturalearthdata.com/" target="_blank" rel="noreferrer">Natural Earth</a> (public domain). Basemap: Esri Canvas (© Esri, HERE, Garmin, © OpenStreetMap contributors).</li>
         </ul>
         <h3>Known limitations</h3>
         <ul>

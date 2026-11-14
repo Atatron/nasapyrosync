@@ -8,9 +8,11 @@ import { useFilterQS } from '../hooks'
 import { frameWindow, useApp } from '../state'
 import { RAMP, SERIES_COLOR, SERIES_SHORT, fmtDate, fmtNum, rampColor } from '../util'
 
+// Keyless static basemaps (Esri Canvas). CARTO's tiles now show an "API KEY REQUIRED" watermark without a key.
+const ESRI_ATTR = 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'
 const BASEMAPS = {
-  light: { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attr: '&copy; OpenStreetMap contributors &copy; CARTO' },
-  dark: { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attr: '&copy; OpenStreetMap contributors &copy; CARTO' },
+  light: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', attr: ESRI_ATTR, maxNativeZoom: 16 },
+  dark: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', attr: ESRI_ATTR, maxNativeZoom: 16 },
 }
 
 export function imageryAvailable(img: Imagery | null, layerId: string, date: string): boolean {
@@ -87,7 +89,7 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
     layers.current.base = undefined
     if (s.basemap !== 'none') {
       const b = BASEMAPS[s.basemap]
-      layers.current.base = L.tileLayer(b.url, { attribution: b.attr + ' · static basemap, not historical conditions', subdomains: 'abcd', maxZoom: 19 }).addTo(m)
+      layers.current.base = L.tileLayer(b.url, { attribution: b.attr + ' · static basemap, not historical conditions', maxNativeZoom: b.maxNativeZoom, maxZoom: 19 }).addTo(m)
       layers.current.base.bringToBack()
     }
   }, [s.basemap])

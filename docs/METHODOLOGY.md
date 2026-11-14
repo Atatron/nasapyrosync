@@ -78,7 +78,7 @@ This is a conservative **project rule**, not an official NASA standard:
 - Availability comes from the GIBS DescribeDomains endpoint (cached 24 h), with a bundled snapshot verified on 2026-11-14 as fallback. Terra and NOAA-20 were verified for 2023–2024 only.
 - For dates outside a layer's domain the map shows **"Imagery unavailable for this date"**. A nearest-date image appears only after an explicit click and is labelled **SUBSTITUTED**.
 - A daily image is assembled from that day's overpasses and is not captured at the instant of each hotspot. With 7- or 30-day fire windows, the fire window and the imagery date are labelled separately. Clouds, smoke or blank imagery do not prove that no fire was present.
-- Static basemaps (CARTO / OpenStreetMap) are labelled "not historical conditions". Imagery and basemaps need internet access, and analysis does not.
+- Static basemaps (Esri Canvas, keyless) are labelled "not historical conditions". Imagery and basemaps need internet access, and analysis does not.
 
 ## 11. AOIs and boundaries
 - Named regions use Natural Earth 1:10m admin-0/admin-1 boundaries (public domain), simplified at 0.002°. Sumatra is 8 provinces (Aceh, North Sumatra, West Sumatra, Riau, Jambi, South Sumatra, Bengkulu, Lampung). Kalimantan is the Indonesian Borneo provinces as delineated by Natural Earth, whose East Kalimantan polygon includes North Kalimantan. Riau Islands and Bangka-Belitung are not part of the "Sumatra" region.

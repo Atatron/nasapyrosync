@@ -4,7 +4,7 @@ A local web application for exploring historical NASA FIRMS active-fire detectio
 
 > Independent hackathon prototype using NASA FIRMS data and, where enabled, NASA GIBS imagery. Not an official NASA application.
 
-Everything runs on your own computer at **http://127.0.0.1:8000**. Nothing is published to the internet. The only outside requests are optional ones: NASA GIBS satellite-imagery tiles and the CARTO basemap, which your browser fetches when you pick them, and the FIRMS API, which runs only if you add a key.
+Everything runs on your own computer at **http://127.0.0.1:8000**. Nothing is published to the internet. The only outside requests are optional ones: NASA GIBS satellite-imagery tiles and the Esri basemap, which your browser fetches when you pick them, and the FIRMS API, which runs only if you add a key.
 
 ---
 
@@ -150,4 +150,4 @@ The repository can also be deployed to Vercel as a **read-only** demo with a fix
 - Deploying makes the demo **public** at its vercel.app address.
 
 ## Attribution
-Fire data: NASA FIRMS (MODIS Collection 6.1 and VIIRS 375 m active-fire products). Imagery: NASA GIBS. *We acknowledge the use of imagery provided by services from NASA's Global Imagery Browse Services (GIBS), part of NASA's Earth Science Data and Information System (ESDIS).* Boundaries: Natural Earth (public domain). Basemap: © OpenStreetMap contributors, © CARTO.
+Fire data: NASA FIRMS (MODIS Collection 6.1 and VIIRS 375 m active-fire products). Imagery: NASA GIBS. *We acknowledge the use of imagery provided by services from NASA's Global Imagery Browse Services (GIBS), part of NASA's Earth Science Data and Information System (ESDIS).* Boundaries: Natural Earth (public domain). Basemap: Esri Canvas (© Esri, HERE, Garmin, © OpenStreetMap contributors).
