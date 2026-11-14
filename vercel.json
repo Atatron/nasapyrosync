@@ -8,8 +8,7 @@
     "api/index.py": {
       "includeFiles": "{backend/pyrosync/**,deploy/pyrosync-demo.duckdb,deploy/blob/manifest.json}",
       "excludeFiles": "{sample_data/**,frontend/**,backend/tests/**,data/**,.venv/**,deploy/blob/db/**,deploy/blob/node_modules/**,deploy/hf/**}",
-      "maxDuration": 60,
-      "memory": 2048
+      "maxDuration": 60
     }
   },
   "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }]

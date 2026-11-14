@@ -44,7 +44,7 @@ Backups: version 1.2.0 (the state of `main` before this work, commit `1ade128`) 
 | `deploy/blob/db/*`, `deploy/blob/manifest.json` | The full database (all five satellites) as three xz parts with SHA-256 checksums | The full archive does not fit the 250 MB function bundle |
 | `deploy/blob/upload.mjs`, `deploy/blob/package.json` | Vercel build step that uploads missing parts to the connected Blob store | Upload without handling the token by hand |
 | `backend/pyrosync/remote_seed.py`, `backend/pyrosync/db.py` | On a cold start: download, decompress and verify the archive into `/tmp`; fall back to the bundled slim database on any failure or after 40 s | Full archive online, and the site keeps working if Blob is missing |
-| `api/index.py`, `vercel.json` | Manifest path; install and build commands; the parts are excluded from the function; memory 2048 MB | Deployment |
+| `api/index.py`, `vercel.json` | Manifest path; install and build commands; the parts are excluded from the function; the `memory` setting is removed (Vercel ignores it under Active CPU billing) | Deployment |
 | `backend/tests/test_remote_seed.py` | 3 tests with a local stand-in store and a small synthetic fixture | Rebuild, checksum rejection, store address |
 
 Rollback: `main` before this change is unchanged on the branch `backup-main-2026-11-15` (v1.2), and 1.3 without Blob is on `feature/1.3-aoi-insights`.
