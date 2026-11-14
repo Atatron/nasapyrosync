@@ -13,6 +13,8 @@ sys.path.insert(0, os.path.join(ROOT, "backend"))
 os.environ.setdefault("PYROSYNC_READONLY", "1")
 os.environ.setdefault("PYROSYNC_DATA_DIR", "/tmp/pyrosync")
 os.environ.setdefault("PYROSYNC_REMOTE_MANIFEST", os.path.join(ROOT, "deploy", "blob", "manifest.json"))
+os.environ.setdefault("PYROSYNC_DUCKDB_MEMORY", "512MB")  # DuckDB would otherwise size itself from the host, not the instance; /tmp also counts
+os.environ.setdefault("PYROSYNC_DUCKDB_THREADS", "2")
 os.environ.setdefault("PYROSYNC_SEED_DB", os.path.join(ROOT, "deploy", "pyrosync-demo.duckdb"))
 
 from pyrosync.api import app  # noqa: E402,F401

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 from contextlib import contextmanager
 
@@ -90,6 +91,12 @@ def get_conn() -> duckdb.DuckDBPyConnection:
                 _conn.close()
             _conn = duckdb.connect(path)
             _conn.execute("SET TimeZone = 'UTC'")
+            # Serverless instances have little memory (and /tmp may count against it): cap DuckDB there.
+            if os.environ.get("PYROSYNC_DUCKDB_MEMORY"):
+                _conn.execute(f"SET memory_limit = '{os.environ['PYROSYNC_DUCKDB_MEMORY']}'")
+                _conn.execute("SET preserve_insertion_order = false")
+            if os.environ.get("PYROSYNC_DUCKDB_THREADS"):
+                _conn.execute(f"SET threads = {int(os.environ['PYROSYNC_DUCKDB_THREADS'])}")
             _init(_conn)
             _conn_path = path
         return _conn
