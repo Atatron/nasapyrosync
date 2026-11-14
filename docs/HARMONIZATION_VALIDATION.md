@@ -25,8 +25,9 @@ The NRT files start the day after the SP files end, so no NRT rows were supersed
 # from backend/, server stopped, with the archive imported
 ../.venv/bin/python -m pyrosync.cli harmonize --start 2012-01-20 --end 2026-11-14 --out ../docs/harmonization/A_indonesia_aqua_snpp
 # add --viirs VIIRS_N20, --modis Terra, --tolerance 60, --grid 0.25, --metric frp_sum, --unit-set matched_plus_proxy, --aoi region:kalimantan
+../.venv/bin/python -m pyrosync.cli harmonize-audit --out ../docs/harmonization/AUDIT   # audit of runs A–E (about 5 minutes)
 ```
-The same analysis is available in the app (Sensor Workbench → MODIS–VIIRS harmonization → Validation package), which also exports every comparison unit as `units.csv`. Shared defaults: MODIS confidence ≥ 30, VIIRS nominal/high, type 0 (vegetation fire), day and night, chronological hold-out of the last 20 % of units.
+The same analysis is available in the app (the **Harmonization** tab, or Sensor Workbench → MODIS–VIIRS harmonization; both offer the validation package, which also exports every comparison unit as `units.csv`). Since 1.2 every report also contains the validity checks and the training-median constant; the reports in `docs/harmonization/` were regenerated with the same commands and their earlier numbers are unchanged. Shared defaults: MODIS confidence ≥ 30, VIIRS nominal/high, type 0 (vegetation fire), day and night, chronological hold-out of the last 20 % of units.
 
 ## Results
 
@@ -63,12 +64,38 @@ Sensitivity of run A to its settings (same data, same rules):
 ## Interpretation
 
 1. **For detection counts, the calibration removes most of the scale difference between the sensors.** In every detection-count run the raw VIIRS count overestimates the MODIS count of the same cell and overpass (MBE +1.6 to +6.8 detections), because VIIRS 375 m pixels resolve one fire into several detections and see smaller fires. The calibrated values cut MAE by 71–77 %, RMSE by 72–82 % and the absolute bias by 88–93 % on the later, held-out period. The improvement is stable across time tolerances (10–60 min), grid sizes and the NOAA-20 pair.
-2. **The model explains only a small part of the unit-to-unit variation.** R² on the log scale is 0.16–0.38 for matched-unit runs (0.23 for run A), and a constant equal to the training-period MODIS mean is only slightly worse than the calibrated model (run A: MAE 1.006 vs 0.842, RMSE 1.595 vs 1.423). Most of the gain over "unadjusted" therefore comes from correcting the overall level; the VIIRS value adds modest information about how many MODIS detections a matched cell will have. β ≈ 0.24 means a 10 % larger VIIRS count goes with roughly a 2.4 % larger (1 + MODIS) count.
+2. **The model explains only a small part of the unit-to-unit variation.** R² on the log scale is 0.16–0.38 for matched-unit runs (0.23 for run A), and a constant equal to the training-period MODIS mean is only slightly worse than the calibrated model (run A: MAE 1.006 vs 0.842, RMSE 1.595 vs 1.423). The training-period MODIS *median* (1 detection), the best constant for MAE, comes even closer on MAE (0.894) but is worse on RMSE (1.827); added in 1.2, see "Application" below. Most of the gain over "unadjusted" therefore comes from correcting the overall level; the VIIRS value adds modest information about how many MODIS detections a matched cell will have. β ≈ 0.24 means a 10 % larger VIIRS count goes with roughly a 2.4 % larger (1 + MODIS) count.
 3. **The calibrated estimate is slightly low** (MBE −0.19 to −0.69). This is the expected back-transformation effect of a log model (it predicts a conditional median). The Duan smearing factors (1.07–1.16) are reported in each report but deliberately not applied, so the prediction follows the stated equation.
 4. **FRP does not calibrate with this model (run E).** MAE is unchanged (+0.1 %), RMSE gets worse (−21 %) and the bias triples. Per-event FRP sums are heavy-tailed and depend on pixel size and view geometry; the log-log model is not adequate for them. The app reports these numbers as they are; no FRP harmonization claim is made.
 5. **Terra is correctly not matched (run F, 0 units).** Terra overpasses about three hours before S-NPP, so a ±30 min tolerance finds no pairs. This is a negative control for the matching rule, not a failure.
 6. **Including proxy one-sided units (run B) changes the question.** The model then also learns from VIIRS-only events with M = 0 (and MODIS-only with V = 0). Proxy units are *not* verified coverage: a nearby MODIS detection shows the instrument was imaging the region, not that this cell was inside the swath and cloud-free. Run B's coefficients describe "all events with nearby evidence", A's describe "events both sensors detected". Neither is a coverage-corrected relationship.
 7. **Coefficients are local.** Kalimantan (D) and all of Indonesia (A) differ (β 0.205 vs 0.239), and coefficients depend on the grid size. Re-fit for another AOI, period, filter set or sensor pair before using the values.
+
+## Application (added in 1.2): validity rules, error map and daily totals
+
+PyroSync 1.2 applies a run to a map and a time series only when it passes explicit rules (Methodology §16). The table summarizes the generated audit, [`docs/harmonization/AUDIT/AUDIT.md`](harmonization/AUDIT/AUDIT.md) (`python -m pyrosync.cli harmonize-audit`), which re-runs each configuration on the full archive.
+
+| Run | Unit-level validity | Rule not met | Error map: validated 0.5° regions (n ≥ 20), share of held-out units | Held-out daily totals Σ calibrated / Σ MODIS (raw VIIRS) | Daily-total gate |
+|---|---|---|---|---|---|
+| **A** Indonesia, Aqua–S-NPP | **passes** | — | 305 regions, 83.5 % | 0.24 model-domain events; 3.79 all events (6.30) | not validated |
+| B as A + proxy units | not validated | constant model: MAE 0.531 vs training median 0.411 | 834 regions, 98.4 % | not computed (unit level not valid) | — |
+| C Indonesia, Aqua–NOAA-20, ±60 min | **passes** | — | 188 regions, 73.3 % | 0.23 model-domain; 3.32 all (5.13) | not validated |
+| D Kalimantan, Aqua–S-NPP (online demo) | **passes** | — | 114 regions, 91.2 % | 0.22 model-domain; 2.69 all (4.93) | not validated |
+| E as A, FRP sum | not validated | FRP never applied; RMSE and \|MBE\| worse than unadjusted | 305 regions; calibrated worse than unadjusted in 97 | — | — |
+
+What this means:
+
+1. **Unit-level calibration works for detection counts and adds information beyond a constant** (runs A, C, D). It beats unadjusted VIIRS, both training constants (mean and median) and a simple ratio model M̂ = c·V on the held-out units (run A: MAE 0.842 vs 0.894 best constant and 1.232 ratio model).
+2. **Adding proxy one-sided units (run B) fails the constant test.** Most proxy units have M = 0, so the training median is 0 and that constant has a lower MAE (0.411) than the model (0.531). B is therefore not applied.
+3. **Calibrated values do not reproduce MODIS-scale daily totals.** This is the most important new result. Summing the matched-only model over the VIIRS events it was fitted on (matched events) gives about a quarter of the MODIS total (0.22–0.24×), because MODIS-only events are left out. Summing over all VIIRS events gives 2.7–3.8× the MODIS total, because the matched-only model predicts a MODIS detection for VIIRS-only fires that MODIS mostly does not record. Both are much closer to MODIS than raw VIIRS (4.9–6.3×), and their daily MAE is lower than raw VIIRS, but neither passes the 0.8–1.25× level rule. **The calibrated time series is therefore not drawn**, and the calendar and history pages keep using original observations. Turning the per-event model into a total-activity model would need an explicit detection-probability component (for example a two-part model for P(MODIS detects | VIIRS event) and the count given detection) and verified coverage. That is future work and is not claimed.
+4. **The error map shows where the unit-level model was actually tested.** In run A, 305 of the 1,302 0.5° regions with VIIRS activity hold at least 20 held-out units (83.5 % of all held-out units). 408 regions have VIIRS activity but no held-out unit and are marked as not validated. In 3 validated regions the calibrated MAE is worse than unadjusted VIIRS.
+
+### Audit of the method (all runs, details in AUDIT.md)
+- **Temporal matching.** Every event is used at most once and every accepted |Δt| is within the tolerance. Ambiguity is rare: in A and D every candidate pair became a match; in C (±60 min) 641 of 60,204 candidates were resolved by the one-to-one rule. |Δt| is spread across the whole tolerance window (run A: median 13 min, 32 % of matches at ≥ 20 min), so the tolerance is a real modelling choice; the sensitivity table above shows coefficients and errors change little between ±10 and ±60 min.
+- **Coverage.** Only 8–10 % of VIIRS events and 36–45 % of MODIS events have a partner. Of all VIIRS events, 39–53 % are unmatched with proxy evidence and 38–53 % with no MODIS evidence at all. Status: not verified.
+- **Data leakage.** Training units are strictly earlier than held-out units, no day is on both sides, and refitting after deleting every record from the split date onward reproduces α and β exactly (difference 0) in every run. Constants use training units only, and the smearing factor is not applied. Dropping the first 30, 90 or 365 days after the split leaves the calibrated MAE almost unchanged (run A: 0.842, 0.824, 0.811, 0.810), so the result is not driven by fire episodes that straddle the split.
+- **Metrics.** MAE, RMSE and MBE recomputed in plain Python from the units differ from the report by at most 7 × 10⁻¹⁵.
+- **FRP.** Not calibrated: MAE unchanged, RMSE and |MBE| worse than unadjusted (run E). FRP is never applied.
 
 ## Stage 2 coverage statement (applies to every run)
 

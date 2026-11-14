@@ -1,6 +1,6 @@
 # PyroSync — Fire history, in context
 
-A local web application for exploring historical NASA FIRMS active-fire detections (MODIS and VIIRS) over Indonesia, with a day-by-day timeline, a burning calendar, area-of-interest (AOI) selection, seasonal and annual patterns, a baseline-eligibility check, explainable "elevated observed activity" periods, and (since 1.1) a three-stage MODIS–VIIRS harmonization with a chronological hold-out validation.
+A local web application for exploring historical NASA FIRMS active-fire detections (MODIS and VIIRS) over Indonesia, with a day-by-day timeline, a burning calendar, area-of-interest (AOI) selection, seasonal and annual patterns, a baseline-eligibility check, explainable "elevated observed activity" periods, a three-stage MODIS–VIIRS harmonization with a chronological hold-out validation (since 1.1), and (since 1.2) a **Harmonization** tab that applies a validated calibration to a map, a per-region error map and an original-vs-calibrated time series.
 
 > Independent hackathon prototype using NASA FIRMS data and, where enabled, NASA GIBS imagery. Not an official NASA application.
 
@@ -75,6 +75,7 @@ Copy `.env.example` to `.env` and set `FIRMS_MAP_KEY=` to your key ([request one
 - **Explore**: the map with grid cells or individual detections, the timeline (prev/next, play, speed, date picker, scrubber, daily/7-day/30-day window, histogram), summary cards and the details panel. The map always shows two separate labels, "Fire observations: [window] UTC" and "Satellite imagery: [date], [product]".
 - **Burning Calendar**: a month grid with keyboard navigation, month/year navigation, a year overview and ISO-week heatmaps. Clicking a day selects it everywhere.
 - **Historical Patterns**: monthly, seasonal and annual summaries; a 2023-vs-2024 comparison; baseline eligibility; rankings; elevated periods with editable rules.
+- **Harmonization** (since 1.2): one page that follows *choose region → compare sensors → harmonize → evaluate errors → view on map → historical patterns*. Pick the VIIRS sensor, MODIS platform, tolerance, grid and measurement, press *Run harmonization*, then read the three stages, the validation checks (against unadjusted VIIRS and against constant models), and the map with five layers: Original MODIS, Original VIIRS, **Experimental calibrated** (MODIS-scale estimates on the grid, only for runs that pass the rules), Matching (pairs and |Δt|) and **Calibration error** (held-out MAE per region, with a minimum sample size and unvalidated regions marked). The original-vs-calibrated series draws the calibrated line only if it also passes a held-out daily-total check. The other pages always show original observations.
 - **Sensor Workbench**: per-sensor series, union versus sum of cells, the **MODIS–VIIRS harmonization** panel (choose the sensor pair, time tolerance, grid and measurement, press *Run harmonization*, download the validation package), confidence and type breakdowns, and paged source records.
 - **Data & Methods**: import, current data, import history, the FIRMS API, exports and view-config restore, and the full methodology.
 - **Export** (top bar): daily summary CSV, filtered observations CSV, aggregated grid GeoJSON and AOI GeoJSON, each with a `manifest.json` that records the filters, revision and definitions. You can also export a view configuration or copy a local view URL. These contain settings only, never data or credentials.
@@ -85,6 +86,7 @@ cd backend
 ../.venv/bin/python -m pyrosync.cli harmonize --start 2012-01-20 --end 2026-11-14 --out ../harmonization_run
 # options: --aoi region:kalimantan --viirs VIIRS_N20 --modis Aqua,Terra --tolerance 60 --grid 0.25 --metric frp_sum
 #          --unit-set matched_plus_proxy --test-fraction 0.3 --split-date 2022-01-01 --no-units
+../.venv/bin/python -m pyrosync.cli harmonize-audit --out ../harmonization_audit   # audit of runs A–E on the full archive
 ```
 It writes `report.md`, `report.json` and `units.csv`. See Methodology §15 for the method and what the results do and do not mean.
 
@@ -102,7 +104,7 @@ It writes `report.md`, `report.json` and `units.csv`. See Methodology §15 for t
 | Windows blocks `start.bat` | Right-click → Properties → Unblock, or run `powershell -ExecutionPolicy Bypass -File scripts\start.ps1`. |
 
 ## 6. Upgrading PyroSync itself
-The previous version (1.0.0) is kept on the GitHub branch **`legacy-v1`**. To go back to it: `git checkout legacy-v1` (your `data/` folder and `.env` are not affected). Version 1.1 only adds code, endpoints and a panel; it does not change stored data.
+Earlier versions are kept on GitHub branches: **`legacy-v1`** (1.0.0) and **`legacy-v1.1`** (1.1.0, before the Harmonization tab). To go back: `git checkout legacy-v1.1` (or `legacy-v1`); your `data/` folder and `.env` are not affected. Versions 1.1 and 1.2 only add code, endpoints, a panel and a tab; they do not change stored data. Changes are listed in [docs/CHANGES_1.1.md](docs/CHANGES_1.1.md) and [docs/CHANGES_1.2.md](docs/CHANGES_1.2.md).
 
 1. Stop the server. Back up the `data/` folder, which holds your database, reports and raw copies.
 2. Replace the program files with the new version, but keep `data/` and `.env`.
@@ -114,7 +116,7 @@ backend/pyrosync/    FastAPI app, DuckDB storage, ingestion, queries, analysis, 
 backend/tests/       pytest suite (synthetic, clearly labelled fixtures in temporary folders)
 frontend/src/        React + TypeScript + Vite + Tailwind; Leaflet (+ Geoman drawing), ECharts
 frontend/dist/       Pre-built interface served by the backend
-frontend/e2e/run.mjs 14 browser-level checks (Playwright)
+frontend/e2e/run.mjs 16 browser-level checks (Playwright)
 scripts/             start/import scripts for Windows, macOS, Linux; boundary builder
 sample_data/         indonesia.zip (the supplied FIRMS sample)
 docs/                data dictionary, methodology, test results, demo script, 18-subtask checklist
@@ -123,14 +125,14 @@ data/                created on first run: database, reports, raw copies, caches
 
 ## 8. Running the tests
 ```bash
-cd backend && ../.venv/bin/python -m pytest -q          # backend: 90 tests
-cd frontend && npm ci && npm run build && npm run e2e    # browser: 14 flows (needs Node + Playwright Chromium)
+cd backend && ../.venv/bin/python -m pytest -q          # backend: 98 tests
+cd frontend && npm ci && npm run build && npm run e2e    # browser: 16 flows (needs Node + Playwright Chromium)
 ```
 The browser checks start their own server on port 8765 with a temporary data folder, so they never touch your database. See [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
 
 ## 9. Documentation
-- [docs/METHODOLOGY.md](docs/METHODOLOGY.md): methods, definitions, sources and limitations (§15: harmonization)
-- [docs/HARMONIZATION_VALIDATION.md](docs/HARMONIZATION_VALIDATION.md): harmonization results on the full archive, with per-run reports in `docs/harmonization/`
+- [docs/METHODOLOGY.md](docs/METHODOLOGY.md): methods, definitions, sources and limitations (§15: harmonization, §16: Harmonization tab and validity rules)
+- [docs/HARMONIZATION_VALIDATION.md](docs/HARMONIZATION_VALIDATION.md): harmonization results on the full archive, with per-run reports in `docs/harmonization/` and the generated audit in `docs/harmonization/AUDIT/`
 - [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md): stored fields, export columns and API metrics
 - [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md): what was run and the actual results
 - [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md): a two-minute demonstration

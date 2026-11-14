@@ -5,6 +5,7 @@
     python -m pyrosync.cli history
     python -m pyrosync.cli serve
     python -m pyrosync.cli harmonize --start 2012-01-20 --end 2026-11-10 [--aoi region:kalimantan] [--viirs VIIRS_SNPP] --out DIR
+    python -m pyrosync.cli harmonize-audit --out DIR [--runs A,B,C,D,E]
 """
 from __future__ import annotations
 
@@ -75,6 +76,9 @@ def main(argv: list[str] | None = None) -> int:
     hz.add_argument("--title", default="Harmonization validation report")
     hz.add_argument("--out", type=Path, required=True, help="Output folder for report.md, report.json and units.csv")
     hz.add_argument("--no-units", action="store_true", help="Do not write units.csv (it can be large)")
+    au = sub.add_parser("harmonize-audit", help="Audit matching, leakage, metrics, alternatives and application on the imported archive")
+    au.add_argument("--out", type=Path, required=True, help="Output folder for AUDIT.md and audit.json")
+    au.add_argument("--runs", default=None, help="Comma-separated subset of runs (A,B,C,D,E)")
     a = ap.parse_args(argv)
     s = get_settings()
 
@@ -126,6 +130,11 @@ def main(argv: list[str] | None = None) -> int:
             ho = s3["evaluation"]["held_out"]
             print(f"alpha={s3['fit']['alpha']:.4f} beta={s3['fit']['beta']:.4f}  held-out MAE {ho['unadjusted']['mae']:.3f} -> {ho['calibrated']['mae']:.3f}")
         print(f"Wrote {a.out}/report.md, report.json" + ("" if a.no_units else ", units.csv"))
+        return 0
+    if a.cmd == "harmonize-audit":
+        from . import audit
+        audit.run_audit(a.out, [x.strip() for x in a.runs.split(",")] if a.runs else None)
+        print(f"Wrote {a.out}/AUDIT.md, audit.json")
         return 0
     if a.cmd == "serve":
         import uvicorn

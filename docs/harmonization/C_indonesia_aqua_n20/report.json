@@ -232,6 +232,12 @@
           "mbe": 0.0686808113022733,
           "n": 11971
         },
+        "training_median_reference": {
+          "mae": 0.9440314092389942,
+          "rmse": 1.8510439520186268,
+          "mbe": -0.9440314092389942,
+          "n": 11971
+        },
         "improvement_vs_unadjusted": {
           "mae_pct": 71.48327535874968,
           "rmse_pct": 76.56197920288648,
@@ -258,7 +264,8 @@
         "rmse": "sqrt(mean (prediction \u2212 MODIS)\u00b2)",
         "mbe": "mean (prediction \u2212 MODIS); positive = overestimates the MODIS-scale value",
         "unadjusted": "the raw VIIRS value used directly as the MODIS-scale estimate (M\u0302 = V)",
-        "training_mean_reference": "a constant equal to the training-period MODIS mean; context only"
+        "training_mean_reference": "a constant equal to the training-period MODIS mean; context only",
+        "training_median_reference": "a constant equal to the training-period MODIS median (the best constant for MAE); context only"
       },
       "observed_means": {
         "train_M": 2.0127122205412675,
@@ -21923,5 +21930,56 @@
     "With unit_set = 'matched', the model is conditional on both sensors reporting a detection; it does not describe cells where only one sensor detected fire.",
     "Coefficients are empirical for this AOI, period, filters and sensor pair. Re-fit before applying them elsewhere.",
     "Standard errors assume independent units; neighbouring cells and successive days are correlated, so the intervals are optimistic."
-  ]
+  ],
+  "validity": {
+    "status": "passes",
+    "label": "Passes PyroSync's validation rules for this configuration",
+    "rules_version": "pyrosync-validity-1.0",
+    "checks": [
+      {
+        "id": "fitted",
+        "label": "Model fitted",
+        "passed": true,
+        "value": "fitted",
+        "rule": "At least 30 training and 10 held-out units, and a non-constant VIIRS value."
+      },
+      {
+        "id": "measurement",
+        "label": "Measurement eligible for application",
+        "passed": true,
+        "value": "detection counts",
+        "rule": "Only detection counts may be applied. FRP sums are evaluated but never applied: on the full Indonesia archive the log-log model did not reduce held-out FRP errors (docs/HARMONIZATION_VALIDATION.md, run E)."
+      },
+      {
+        "id": "held_out_size",
+        "label": "Enough held-out units",
+        "passed": true,
+        "value": "11,971 units",
+        "rule": "At least 100 held-out units."
+      },
+      {
+        "id": "beats_unadjusted",
+        "label": "Better than unadjusted VIIRS",
+        "passed": true,
+        "value": "MAE 0.888 vs 3.113; RMSE 1.466 vs 6.253; |MBE| 0.254 vs 2.670",
+        "rule": "Held-out MAE, RMSE and |MBE| all lower than using the raw VIIRS value (M\u0302 = V)."
+      },
+      {
+        "id": "beats_constant",
+        "label": "Better than a constant model",
+        "passed": true,
+        "value": "MAE 0.888 vs best constant 0.944; RMSE 1.466 vs best constant 1.594",
+        "rule": "Held-out MAE and RMSE both lower than the better of two constants fitted on the training period (MODIS mean, MODIS median), i.e. the VIIRS value adds information beyond the overall level."
+      },
+      {
+        "id": "slope",
+        "label": "VIIRS slope clearly positive",
+        "passed": true,
+        "value": "\u03b2 95 % CI lower bound 0.2562",
+        "rule": "Lower bound of the 95 % interval of \u03b2 above 0 (intervals are optimistic because units are correlated)."
+      }
+    ],
+    "scope": "Valid only for the AOI, dates, filters, sensor pair, grid, tolerance and unit set of this run. Calibrated values before the held-out period are in-sample. Satellite coverage is not verified, and MODIS is a reference scale, not ground truth.",
+    "applies_to": "Map estimates and time series in the Harmonization tab. The calendar, history, Explore map and Sensor Workbench always show original observations."
+  }
 }

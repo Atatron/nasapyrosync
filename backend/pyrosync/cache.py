@@ -10,6 +10,7 @@ _MAX = 256
 _lock = threading.Lock()
 _store: "OrderedDict[str, Any]" = OrderedDict()
 stats = {"hits": 0, "misses": 0, "invalidations": 0}
+_listeners: list[Callable[[], None]] = []  # other in-process caches cleared together with this one (v1.2)
 
 
 def make_key(name: str, revision: int, params: dict) -> str:
@@ -35,3 +36,5 @@ def invalidate() -> None:
     with _lock:
         _store.clear()
         stats["invalidations"] += 1
+    for fn in list(_listeners):
+        fn()

@@ -157,5 +157,28 @@
     "With unit_set = 'matched', the model is conditional on both sensors reporting a detection; it does not describe cells where only one sensor detected fire.",
     "Coefficients are empirical for this AOI, period, filters and sensor pair. Re-fit before applying them elsewhere.",
     "Standard errors assume independent units; neighbouring cells and successive days are correlated, so the intervals are optimistic."
-  ]
+  ],
+  "validity": {
+    "status": "not_validated",
+    "label": "Not validated for application with this configuration",
+    "rules_version": "pyrosync-validity-1.0",
+    "checks": [
+      {
+        "id": "fitted",
+        "label": "Model fitted",
+        "passed": false,
+        "value": "Only 0 comparison units; at least 40 are needed (30 training + 10 held-out). Widen the dates or AOI, or increase the tolerance.",
+        "rule": "At least 30 training and 10 held-out units, and a non-constant VIIRS value."
+      },
+      {
+        "id": "measurement",
+        "label": "Measurement eligible for application",
+        "passed": true,
+        "value": "detection counts",
+        "rule": "Only detection counts may be applied. FRP sums are evaluated but never applied: on the full Indonesia archive the log-log model did not reduce held-out FRP errors (docs/HARMONIZATION_VALIDATION.md, run E)."
+      }
+    ],
+    "scope": "Valid only for the AOI, dates, filters, sensor pair, grid, tolerance and unit set of this run. Calibrated values before the held-out period are in-sample. Satellite coverage is not verified, and MODIS is a reference scale, not ground truth.",
+    "applies_to": "Map estimates and time series in the Harmonization tab. The calendar, history, Explore map and Sensor Workbench always show original observations."
+  }
 }

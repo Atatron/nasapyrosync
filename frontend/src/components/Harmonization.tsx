@@ -6,8 +6,8 @@ import { SERIES_COLOR, SERIES_SHORT, fmtNum } from '../util'
 import { EChart, ErrorNote, Loading, Panel, Seg } from './ui'
 
 // ---- contract of /api/harmonization (added in v1.1) ----
-interface Err { mae: number; rmse: number; mbe: number; n: number }
-interface Harmonization {
+export interface Err { mae: number; rmse: number; mbe: number; n: number }
+export interface Harmonization {
   dataset_revision: number
   method_version: string
   config: Record<string, unknown>
@@ -35,7 +35,7 @@ interface Harmonization {
   interpretation: string[]
 }
 
-const CLASS_LABEL: Record<string, string> = {
+export const CLASS_LABEL: Record<string, string> = {
   matched: 'Candidate matches (both detected)',
   viirs_only_proxy: 'VIIRS only · MODIS imaging nearby (proxy)',
   viirs_only_no_evidence: 'VIIRS only · no MODIS evidence',
@@ -119,7 +119,7 @@ export default function Harmonization() {
   )
 }
 
-function Stage3({ r, unit }: { r: Harmonization; unit: string }) {
+export function Stage3({ r, unit }: { r: Harmonization; unit: string }) {
   const s3 = r.stage3
   const fit = s3.fit!, sp = s3.split!, ev = s3.evaluation!
   const ho = ev.held_out

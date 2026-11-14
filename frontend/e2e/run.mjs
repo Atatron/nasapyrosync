@@ -311,6 +311,75 @@ try {
     await page.getByTestId('harmonization-insufficient').waitFor()
     return `${h.stage2.class_counts.matched} matched units; stage 3 honestly reported as insufficient`
   })
+  await check('15. Harmonization tab: stages, validation, map layers and error map match the API', async () => {
+    await open(page, 'page=harmonization&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31&date=2024-09-15&frameMode=1')
+    await page.getByTestId('h-notrun').waitFor()
+    const ctl = page.getByTestId('h-controls')
+    await ctl.getByRole('button', { name: /^NOAA-20/ }).click()
+    await ctl.getByRole('button', { name: '±60 min' }).click()
+    await page.getByTestId('h-run').click()
+    await page.getByTestId('hpipeline').waitFor({ timeout: 180000 })
+    const q = 'start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&viirs_series=VIIRS_N20&modis_platforms=Aqua&tolerance_min=60&unit_grid=0.1&metric=detections&unit_set=matched&test_fraction=0.2'
+    const h = await api('/api/harmonization?' + q)
+    const matchedUi = num(await page.getByTestId('hpipe-matched').innerText())
+    assert(matchedUi === h.stage2.class_counts.matched, `matched UI ${matchedUi} != API ${h.stage2.class_counts.matched}`)
+    const badge = await page.getByTestId('hvalidity-badge').first().getAttribute('data-status')
+    assert(badge === h.validity.status, `badge ${badge} != API ${h.validity.status}`)
+    const rows = page.getByTestId('hvalidity-checks').locator('tbody tr')
+    assert(await rows.count() === h.validity.checks.length, 'validity check rows differ from API')
+    for (let i = 0; i < h.validity.checks.length; i++) {
+      const p = await rows.nth(i).getAttribute('data-passed')
+      assert(p === (h.validity.checks[i].passed ? 'yes' : 'no'), `check ${h.validity.checks[i].id} differs`)
+    }
+    // map: original MODIS and VIIRS totals for the selected day equal the API and the app's daily series
+    const m = await api(`/api/harmonization/map?${q}&date=2024-09-15&mode=1&scope=domain&err_grid=0.5&min_n=20`)
+    await page.getByTestId('hmap-total-modis').waitFor({ timeout: 60000 })
+    const um = num(await page.getByTestId('hmap-total-modis').innerText()), uv = num(await page.getByTestId('hmap-total-viirs').innerText())
+    assert(um === m.totals.modis && uv === m.totals.viirs, `map totals UI ${um}/${uv} != API ${m.totals.modis}/${m.totals.viirs}`)
+    const d = await api('/api/daily?start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&platforms=Aqua,N20')
+    const i = d.dates.indexOf('2024-09-15')
+    assert(d.series.MODIS.detections[i] === m.totals.modis && d.series.VIIRS_N20.detections[i] === m.totals.viirs, 'map totals differ from the daily series')
+    const ctl2 = page.getByTestId('hmap-controls')
+    await ctl2.getByRole('button', { name: 'Experimental calibrated' }).click()
+    await page.waitForTimeout(500)
+    const unavailable = await page.getByTestId('hmap-cal-unavailable').count()
+    assert((unavailable === 0) === (h.validity.status === 'passes'), 'calibrated layer availability does not follow the validity status')
+    await ctl2.getByRole('button', { name: 'Calibration error' }).click()
+    let errNote = 'not fitted'
+    if (h.stage3.status === 'ok') {
+      await page.getByTestId('herr-validated').waitFor({ timeout: 60000 })
+      const e = await api(`/api/harmonization/errors?${q}&err_grid=0.5&min_n=20`)
+      const v = num(await page.getByTestId('herr-validated').innerText())
+      assert(v === e.summary.cells_validated, `validated regions UI ${v} != API ${e.summary.cells_validated}`)
+      errNote = `${v} validated 0.5° regions`
+    }
+    await page.getByTestId('hseries-status').waitFor({ timeout: 60000 })
+    const sr = await api(`/api/harmonization/series?${q}&agg=month&scope=domain`)
+    const st = await page.getByTestId('hseries-status').innerText()
+    assert(st.includes(sr.totals_validity.label), 'series status text differs from the API')
+    assert((sr.calibrated !== null) === (sr.totals_validity.status === 'passes'), 'calibrated series drawn without passing the totals rules')
+    return `${matchedUi} matches; validity ${h.validity.status}; map day 2024-09-15 MODIS ${um} / VIIRS ${uv} (= daily series); ${errNote}; series totals ${sr.totals_validity.status}`
+  })
+
+  await check('16. Original-data pages are unchanged by the Harmonization tab', async () => {
+    const qs = 'start=2023-01-01&end=2024-12-31&aoi=region:kalimantan'
+    const before = await api(`/api/daily?${qs}`)
+    const elb = await api(`/api/elevated?${qs}&series=VIIRS_N20&metric=cells`)
+    await api('/api/harmonization/series?' + qs + '&viirs_series=VIIRS_N20&modis_platforms=Aqua&tolerance_min=60&agg=day')
+    const after = await api(`/api/daily?${qs}`)
+    const ela = await api(`/api/elevated?${qs}&series=VIIRS_N20&metric=cells`)
+    assert(JSON.stringify(before.series) === JSON.stringify(after.series), 'daily series changed')
+    assert(ela.periods.length === elb.periods.length, 'elevated periods changed')
+    await open(page, 'page=calendar&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31')
+    await page.getByTestId('calendar-grid').waitFor({ timeout: 30000 })
+    await open(page, 'page=workbench&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31')
+    await page.getByTestId('harmonization-controls').waitFor({ timeout: 30000 })
+    await open(page, 'page=explore&aoi=region:kalimantan&date=2023-09-15')
+    await waitMapIdle(page)
+    const det = num(await page.getByTestId('det-VIIRS_N20').innerText())
+    assert(det > 0, 'explore lost its detections')
+    return `daily series and ${ela.periods.length} elevated periods identical after harmonization requests; calendar, workbench panel and explore (${det} N20 detections) still render`
+  })
 } finally {
   await browser.close()
   server.kill()

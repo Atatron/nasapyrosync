@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 PROCESSING_VERSION = "pyrosync-proc-1.0.0"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 

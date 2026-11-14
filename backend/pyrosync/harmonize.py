@@ -238,6 +238,59 @@ def improvement(unadj: dict, cal: dict) -> dict:
             "definition": "100 × (unadjusted − calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."}
 
 
+VALID_MIN_TEST_UNITS = 100
+VALIDITY_RULES_VERSION = "pyrosync-validity-1.0"
+
+
+def assess_validity(stage3: dict, cfg: HarmonizeConfig) -> dict:
+    """Project rule (added in v1.2) deciding whether a fitted calibration may be APPLIED to maps and time series.
+
+    Every check uses only the held-out (later) period. Passing means "the calibrated estimate beat the simple alternatives
+    on later data for this exact configuration"; it is not an independent scientific validation."""
+    checks: list[dict] = []
+
+    def add(cid: str, label: str, passed: bool, value: str, rule: str) -> None:
+        checks.append({"id": cid, "label": label, "passed": bool(passed), "value": value, "rule": rule})
+
+    ok = stage3.get("status") == "ok"
+    add("fitted", "Model fitted", ok, "fitted" if ok else (stage3.get("reason") or "not fitted"),
+        f"At least {MIN_TRAIN_UNITS} training and {MIN_TEST_UNITS} held-out units, and a non-constant VIIRS value.")
+    add("measurement", "Measurement eligible for application", cfg.metric == "detections",
+        "detection counts" if cfg.metric == "detections" else "FRP sum",
+        "Only detection counts may be applied. FRP sums are evaluated but never applied: on the full Indonesia archive the "
+        "log-log model did not reduce held-out FRP errors (docs/HARMONIZATION_VALIDATION.md, run E).")
+    if ok:
+        ho = stage3["evaluation"]["held_out"]
+        u, c = ho["unadjusted"], ho["calibrated"]
+        mref, dref = ho["training_mean_reference"], ho["training_median_reference"]
+        n_test = stage3["split"]["n_test"]
+        lo = stage3["fit"]["ci95_beta"][0]
+        add("held_out_size", "Enough held-out units", n_test >= VALID_MIN_TEST_UNITS, f"{n_test:,} units",
+            f"At least {VALID_MIN_TEST_UNITS} held-out units.")
+        add("beats_unadjusted", "Better than unadjusted VIIRS", c["mae"] < u["mae"] and c["rmse"] < u["rmse"] and abs(c["mbe"]) < abs(u["mbe"]),
+            f"MAE {c['mae']:.3f} vs {u['mae']:.3f}; RMSE {c['rmse']:.3f} vs {u['rmse']:.3f}; |MBE| {abs(c['mbe']):.3f} vs {abs(u['mbe']):.3f}",
+            "Held-out MAE, RMSE and |MBE| all lower than using the raw VIIRS value (M̂ = V).")
+        best_mae, best_rmse = min(mref["mae"], dref["mae"]), min(mref["rmse"], dref["rmse"])
+        add("beats_constant", "Better than a constant model", c["mae"] < best_mae and c["rmse"] < best_rmse,
+            f"MAE {c['mae']:.3f} vs best constant {best_mae:.3f}; RMSE {c['rmse']:.3f} vs best constant {best_rmse:.3f}",
+            "Held-out MAE and RMSE both lower than the better of two constants fitted on the training period (MODIS mean, MODIS median), "
+            "i.e. the VIIRS value adds information beyond the overall level.")
+        add("slope", "VIIRS slope clearly positive", lo > 0, f"β 95 % CI lower bound {lo:.4f}",
+            "Lower bound of the 95 % interval of β above 0 (intervals are optimistic because units are correlated).")
+    passed = bool(checks) and all(ch["passed"] for ch in checks) and len(checks) == 6
+    return {
+        "status": "passes" if passed else "not_validated",
+        "label": ("Passes PyroSync's validation rules for this configuration" if passed
+                  else "Not validated for application with this configuration"),
+        "rules_version": VALIDITY_RULES_VERSION,
+        "checks": checks,
+        "scope": "Valid only for the AOI, dates, filters, sensor pair, grid, tolerance and unit set of this run. Calibrated values before the "
+                 "held-out period are in-sample. Satellite coverage is not verified, and MODIS is a reference scale, not ground truth.",
+        "applies_to": "Map estimates and time series in the Harmonization tab. The calendar, history, Explore map and Sensor Workbench "
+                      "always show original observations.",
+    }
+
+
 def chronological_split(dates: list[date], test_fraction: float, split_date: date | None) -> date:
     """First UTC day of the held-out (test) period. All units of one day fall on the same side."""
     if split_date is not None:
@@ -250,12 +303,25 @@ def chronological_split(dates: list[date], test_fraction: float, split_date: dat
 
 # ------------------------------------------------------------------ orchestration
 def harmonize(f: Filters, cfg: HarmonizeConfig, include_units: bool = False) -> dict:
+    if not include_units:
+        # v1.2: the report is taken from the shared calibration core, so the report, the map, the error map and the
+        # time series of one configuration always come from the same single run (identical numbers, computed once).
+        from . import calibration
+        return calibration.core(f, cfg).report
     rev = get_revision()
     key = cache.make_key("harmonize", rev, {"f": f.key(), "c": cfg.key(), "u": include_units})
     return cache.get_or_compute(key, lambda: _harmonize(f, cfg, include_units))
 
 
 def _harmonize(f: Filters, cfg: HarmonizeConfig, include_units: bool) -> dict:
+    out, ex = _run(f, cfg)
+    if include_units:
+        out["units"] = ex["model_units"]
+    return out
+
+
+def _run(f: Filters, cfg: HarmonizeConfig) -> tuple[dict, dict]:
+    """One complete three-stage run. Returns (report, extras); extras holds the events, matches and units for applications."""
     tag = uuid.uuid4().hex[:10]
     rev = get_revision()
     vplat = VIIRS_SERIES_PLATFORM[cfg.viirs_series]
@@ -336,6 +402,7 @@ def _harmonize(f: Filters, cfg: HarmonizeConfig, include_units: bool) -> dict:
                              "events fall within a short tolerance. Aqua is the near-simultaneous partner for VIIRS.")
 
     stage3 = _calibrate(model_units, cfg)
+    validity = assess_validity(stage3, cfg)
 
     out = {
         "dataset_revision": rev, "processing_version": PROCESSING_VERSION, "method_version": METHOD_VERSION,
@@ -352,9 +419,8 @@ def _harmonize(f: Filters, cfg: HarmonizeConfig, include_units: bool) -> dict:
             "Standard errors assume independent units; neighbouring cells and successive days are correlated, so the intervals are optimistic.",
         ],
     }
-    if include_units:
-        out["units"] = model_units
-    return out
+    out["validity"] = validity
+    return out, {"events": events, "matched": matched, "units": units, "model_units": model_units}
 
 
 def _calibrate(units: list[dict], cfg: HarmonizeConfig) -> dict:
@@ -395,14 +461,17 @@ def _calibrate(units: list[dict], cfg: HarmonizeConfig) -> dict:
     unadj = error_metrics(vte, mte)
     cal = error_metrics(pte, mte)
     mean_baseline = error_metrics(np.full(len(mte), float(mtr.mean())), mte)
+    median_baseline = error_metrics(np.full(len(mte), float(np.median(mtr))), mte)
     res["evaluation"] = {
         "held_out": {"unadjusted": unadj, "calibrated": cal, "training_mean_reference": mean_baseline,
+                     "training_median_reference": median_baseline,
                      "improvement_vs_unadjusted": improvement(unadj, cal)},
         "training": {"unadjusted": error_metrics(vtr, mtr), "calibrated": error_metrics(ptr, mtr)},
         "definitions": {"mae": "mean |prediction − MODIS|", "rmse": "sqrt(mean (prediction − MODIS)²)",
                         "mbe": "mean (prediction − MODIS); positive = overestimates the MODIS-scale value",
                         "unadjusted": "the raw VIIRS value used directly as the MODIS-scale estimate (M̂ = V)",
-                        "training_mean_reference": "a constant equal to the training-period MODIS mean; context only"},
+                        "training_mean_reference": "a constant equal to the training-period MODIS mean; context only",
+                        "training_median_reference": "a constant equal to the training-period MODIS median (the best constant for MAE); context only"},
         "observed_means": {"train_M": float(mtr.mean()), "train_V": float(vtr.mean()), "test_M": float(mte.mean()), "test_V": float(vte.mean())},
         "retransformation_note": "Back-transforming a log-scale fit estimates a conditional median rather than a mean, which typically biases "
                                  f"M̂ low. The Duan smearing factor on the training residuals is {fit['duan_smearing_factor']:.3f}; it is reported "
@@ -547,7 +616,8 @@ def report_markdown(res: dict, title: str = "Harmonization validation report") -
               "| Estimate | MAE | RMSE | MBE |", "|---|---|---|---|",
               f"| Unadjusted VIIRS (M̂ = V) | {_f(ev['unadjusted']['mae'])} | {_f(ev['unadjusted']['rmse'])} | {_f(ev['unadjusted']['mbe'])} |",
               f"| Calibrated | {_f(ev['calibrated']['mae'])} | {_f(ev['calibrated']['rmse'])} | {_f(ev['calibrated']['mbe'])} |",
-              f"| Training-mean constant (context) | {_f(ev['training_mean_reference']['mae'])} | {_f(ev['training_mean_reference']['rmse'])} | {_f(ev['training_mean_reference']['mbe'])} |", "",
+              f"| Training-mean constant (context) | {_f(ev['training_mean_reference']['mae'])} | {_f(ev['training_mean_reference']['rmse'])} | {_f(ev['training_mean_reference']['mbe'])} |",
+              f"| Training-median constant (context) | {_f(ev['training_median_reference']['mae'])} | {_f(ev['training_median_reference']['rmse'])} | {_f(ev['training_median_reference']['mbe'])} |", "",
               f"Improvement over unadjusted: MAE {_f(ev['improvement_vs_unadjusted']['mae_pct'], 1)} %, RMSE {_f(ev['improvement_vs_unadjusted']['rmse_pct'], 1)} %, "
               f"|MBE| {_f(ev['improvement_vs_unadjusted']['abs_mbe_pct'], 1)} %.", "",
               s3["evaluation"]["retransformation_note"], "",
@@ -555,6 +625,13 @@ def report_markdown(res: dict, title: str = "Harmonization validation report") -
         for bn in s3["bins"]:
             L.append(f"| {bn['V_range']} | {bn['n']:,} | {_f(bn['mean_V'], 2)} | {_f(bn['mean_M'], 2)} | {_f(bn['mean_M_hat'], 2)} |")
         L.append("")
+    va = res.get("validity")
+    if va:
+        L += ["## Validity for application (project rule)", "", f"**{va['label']}** (`{va['status']}`, {va['rules_version']}).", "",
+              "| Check | Passed | Value | Rule |", "|---|---|---|---|"]
+        for ch in va["checks"]:
+            L.append(f"| {ch['label']} | {'yes' if ch['passed'] else 'no'} | {ch['value']} | {ch['rule']} |")
+        L += ["", va["scope"], ""]
     L += ["## Interpretation and limits", ""] + [f"- {x}" for x in res["interpretation"]] + [
         "- These are results of an implemented method on the imported data. They are not an independent scientific validation; "
         "that would need comparison with coverage-aware reference data and peer review.", ""]

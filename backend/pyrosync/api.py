@@ -227,6 +227,49 @@ def harmonization(request: Request):
     return harmonize.harmonize(F(request), _hcfg(request))
 
 
+# ------------------------------------------------------------------ calibration application (v1.2, additive, read-only)
+def _ccore(request: Request):
+    from . import calibration
+    return calibration, calibration.core(F(request), _hcfg(request))
+
+
+def _num(request: Request, name: str, typ, default):
+    v = request.query_params.get(name)
+    if v in (None, ""):
+        return default
+    try:
+        return typ(v)
+    except ValueError:
+        raise HTTPException(422, detail=f"{name}: invalid value {v!r}") from None
+
+
+@app.get("/api/harmonization/map")
+def harmonization_map(request: Request, date_: date = Query(..., alias="date"), mode: int = 1):
+    C, c = _ccore(request)
+    try:
+        out = C.map_window(c, date_, mode, request.query_params.get("scope", "domain"),
+                           _num(request, "err_grid", float, max(0.5, c.cfg.unit_grid)), _num(request, "min_n", int, 20))
+    except ValueError as e:
+        raise HTTPException(422, detail=str(e)) from None
+    out["suggested_days"] = C.suggested_days(c)
+    return out
+
+
+@app.get("/api/harmonization/errors")
+def harmonization_errors(request: Request):
+    C, c = _ccore(request)
+    try:
+        return C.error_cells(c, _num(request, "err_grid", float, max(0.5, c.cfg.unit_grid)), _num(request, "min_n", int, 20))
+    except ValueError as e:
+        raise HTTPException(422, detail=str(e)) from None
+
+
+@app.get("/api/harmonization/series")
+def harmonization_series(request: Request, agg: Literal["day", "month"] = "month", scope: Literal["all", "domain"] = "domain"):
+    C, c = _ccore(request)
+    return C.series(c, agg, scope)
+
+
 @app.get("/api/export/harmonization.zip")
 def export_harmonization(request: Request):
     f = F(request)

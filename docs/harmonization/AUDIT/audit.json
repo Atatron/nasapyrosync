@@ -1,0 +1,1980 @@
+{
+  "generated_utc": "2026-11-14 18:34",
+  "method_version": "pyrosync-harmonize-1.0",
+  "validity_rules": "pyrosync-validity-1.0",
+  "apply_version": "pyrosync-calibration-apply-1.0",
+  "runs": {
+    "A": {
+      "config": {
+        "modis_platforms": [
+          "Aqua"
+        ],
+        "viirs_series": "VIIRS_SNPP",
+        "unit_grid": 0.1,
+        "tolerance_min": 30,
+        "metric": "detections",
+        "unit_set": "matched",
+        "evidence_radius_deg": 5.0,
+        "test_fraction": 0.2,
+        "split_date": null
+      },
+      "filters": {
+        "start": "2012-01-20",
+        "end": "2026-11-14",
+        "platforms": [
+          "Terra",
+          "Aqua",
+          "N20",
+          "N21",
+          "SNPP"
+        ],
+        "modis_min_conf": 30,
+        "viirs_conf": [
+          "nominal",
+          "high"
+        ],
+        "types": [
+          "0"
+        ],
+        "daynight": [
+          "D",
+          "N"
+        ],
+        "aoi": "none",
+        "grid": 0.1
+      },
+      "seconds": 45.5,
+      "matching": {
+        "matched": 113567,
+        "candidate_pairs": 113567,
+        "ambiguous_candidates": 0,
+        "one_to_one": true,
+        "max_dt_within_tolerance": true,
+        "dt_percentiles_min": {
+          "10": 2.0,
+          "25": 6.0,
+          "50": 13.0,
+          "75": 23.0,
+          "90": 27.0,
+          "99": 30.0
+        },
+        "share_dt_at_least_two_thirds_tolerance": 0.32102635448677874
+      },
+      "coverage": {
+        "viirs_events": 1423050,
+        "modis_events": 306121,
+        "viirs_matched_share": 0.07980534766873967,
+        "modis_matched_share": 0.3709872893398362,
+        "viirs_unmatched_proxy_share": 0.38856259442746216,
+        "viirs_unmatched_no_evidence_share": 0.5316320579037982,
+        "status": "not_verified"
+      },
+      "validity": {
+        "status": "passes",
+        "label": "Passes PyroSync's validation rules for this configuration",
+        "rules_version": "pyrosync-validity-1.0",
+        "checks": [
+          {
+            "id": "fitted",
+            "label": "Model fitted",
+            "passed": true,
+            "value": "fitted",
+            "rule": "At least 30 training and 10 held-out units, and a non-constant VIIRS value."
+          },
+          {
+            "id": "measurement",
+            "label": "Measurement eligible for application",
+            "passed": true,
+            "value": "detection counts",
+            "rule": "Only detection counts may be applied. FRP sums are evaluated but never applied: on the full Indonesia archive the log-log model did not reduce held-out FRP errors (docs/HARMONIZATION_VALIDATION.md, run E)."
+          },
+          {
+            "id": "held_out_size",
+            "label": "Enough held-out units",
+            "passed": true,
+            "value": "22,795 units",
+            "rule": "At least 100 held-out units."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Better than unadjusted VIIRS",
+            "passed": true,
+            "value": "MAE 0.842 vs 3.562; RMSE 1.423 vs 7.539; |MBE| 0.228 vs 3.262",
+            "rule": "Held-out MAE, RMSE and |MBE| all lower than using the raw VIIRS value (M\u0302 = V)."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Better than a constant model",
+            "passed": true,
+            "value": "MAE 0.842 vs best constant 0.894; RMSE 1.423 vs best constant 1.595",
+            "rule": "Held-out MAE and RMSE both lower than the better of two constants fitted on the training period (MODIS mean, MODIS median), i.e. the VIIRS value adds information beyond the overall level."
+          },
+          {
+            "id": "slope",
+            "label": "VIIRS slope clearly positive",
+            "passed": true,
+            "value": "\u03b2 95 % CI lower bound 0.2360",
+            "rule": "Lower bound of the 95 % interval of \u03b2 above 0 (intervals are optimistic because units are correlated)."
+          }
+        ],
+        "scope": "Valid only for the AOI, dates, filters, sensor pair, grid, tolerance and unit set of this run. Calibrated values before the held-out period are in-sample. Satellite coverage is not verified, and MODIS is a reference scale, not ground truth.",
+        "applies_to": "Map estimates and time series in the Harmonization tab. The calendar, history, Explore map and Sensor Workbench always show original observations."
+      },
+      "leakage": {
+        "train_before_test": true,
+        "days_on_both_sides": 0,
+        "split": "2019-09-22",
+        "refit_without_later_data": {
+          "n_units": 90772,
+          "n_train_in_full_run": 90772,
+          "alpha": 0.6131382431199086,
+          "beta": 0.2388491367359141,
+          "alpha_full": 0.6131382431199086,
+          "beta_full": 0.2388491367359141,
+          "max_abs_coefficient_difference": 0.0
+        },
+        "embargo_after_split": {
+          "0": {
+            "n": 22795,
+            "calibrated": {
+              "mae": 0.8418999948350573,
+              "rmse": 1.4233915521186002,
+              "mbe": -0.22785066482891111
+            },
+            "unadjusted": {
+              "mae": 3.5623601667032245,
+              "rmse": 7.539283680874881,
+              "mbe": 3.261680193024786
+            }
+          },
+          "30": {
+            "n": 20156,
+            "calibrated": {
+              "mae": 0.8238293862308551,
+              "rmse": 1.3987537823253444,
+              "mbe": -0.22855959861785685
+            },
+            "unadjusted": {
+              "mae": 3.231940861282,
+              "rmse": 6.5556867811431365,
+              "mbe": 2.916798968049216
+            }
+          },
+          "90": {
+            "n": 18186,
+            "calibrated": {
+              "mae": 0.8108463860853136,
+              "rmse": 1.3544039066701161,
+              "mbe": -0.22306628245909282
+            },
+            "unadjusted": {
+              "mae": 3.120037391399978,
+              "rmse": 6.386687979683174,
+              "mbe": 2.7979214780600463
+            }
+          },
+          "365": {
+            "n": 16137,
+            "calibrated": {
+              "mae": 0.8099503254557736,
+              "rmse": 1.3498103613449204,
+              "mbe": -0.22426528663284284
+            },
+            "unadjusted": {
+              "mae": 3.1157588151453184,
+              "rmse": 6.39500893722458,
+              "mbe": 2.7897998388795933
+            }
+          }
+        },
+        "constants_fitted_on": "training units only (see harmonize._calibrate)",
+        "smearing_applied": false
+      },
+      "metrics": {
+        "report": {
+          "calibrated": {
+            "mae": 0.8418999948350573,
+            "rmse": 1.4233915521186002,
+            "mbe": -0.22785066482891114,
+            "n": 22795
+          },
+          "unadjusted": {
+            "mae": 3.5623601667032245,
+            "rmse": 7.539283680874881,
+            "mbe": 3.261680193024786,
+            "n": 22795
+          }
+        },
+        "recomputed": {
+          "calibrated": {
+            "mae": 0.8418999948350573,
+            "rmse": 1.4233915521186002,
+            "mbe": -0.22785066482891111
+          },
+          "unadjusted": {
+            "mae": 3.5623601667032245,
+            "rmse": 7.539283680874881,
+            "mbe": 3.261680193024786
+          }
+        },
+        "max_abs_difference": 2.7755575615628914e-17
+      },
+      "alternatives": {
+        "calibrated": {
+          "mae": 0.8418999948350573,
+          "rmse": 1.4233915521186002,
+          "mbe": -0.22785066482891111
+        },
+        "unadjusted": {
+          "mae": 3.5623601667032245,
+          "rmse": 7.539283680874881,
+          "mbe": 3.261680193024786
+        },
+        "training_mean": {
+          "mae": 1.0061902974603447,
+          "rmse": 1.5948272395451715,
+          "mbe": 0.07580224116814394
+        },
+        "training_median": {
+          "mae": 0.8939241061636324,
+          "rmse": 1.8266987304450637,
+          "mbe": -0.8939241061636324
+        },
+        "ratio_model": {
+          "mae": 1.2317444169238385,
+          "rmse": 2.0372260301873566,
+          "mbe": -0.2892199762456562,
+          "ratio": 0.3112543237987804
+        }
+      },
+      "error_map_0.5deg_n20": {
+        "cells_validated": 305,
+        "cells_too_few": 589,
+        "cells_no_held_out": 408,
+        "held_out_units": 22795,
+        "held_out_units_in_validated_cells": 19027,
+        "share_in_validated_cells": 0.8347005922351393,
+        "overall_mae_cal": 0.8418999948350573,
+        "overall_mae_unadj": 3.5623601667032245,
+        "validated_cells_mae_cal_range": [
+          0.32387694425877334,
+          2.4675366902367903
+        ],
+        "validated_cells_worse_than_unadjusted": 3
+      },
+      "daily_totals": {
+        "domain": {
+          "check": {
+            "held_out": {
+              "days": 2536,
+              "first": "2019-09-22",
+              "last": "2026-11-02",
+              "sum_modis": 156852.0,
+              "sum_viirs": 988517.0,
+              "sum_calibrated": 37978.14409522497,
+              "ratio_viirs_to_modis": 6.302227577589065,
+              "ratio_calibrated_to_modis": 0.24212725432398036,
+              "unadjusted": {
+                "mae": 345.4238958990536,
+                "rmse": 675.0508431021109,
+                "mbe": 327.9436119873817,
+                "n": 2536
+              },
+              "calibrated": {
+                "mae": 46.92023446947025,
+                "rmse": 133.15727269464813,
+                "mbe": -46.87454885834977,
+                "n": 2536
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 86.41662171421338,
+                "rmse_pct": 80.2744824252436,
+                "abs_mbe_pct": 85.70652174796642,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              },
+              "constant_reference": {
+                "mae": 118.21319362861708,
+                "rmse": 157.7240244021481,
+                "mbe": 72.85391661010678,
+                "n": 2536,
+                "value": 134.70407433881343
+              }
+            },
+            "training": {
+              "days": 2798,
+              "first": "2012-01-20",
+              "last": "2019-09-21",
+              "sum_modis": 376902.0,
+              "sum_viirs": 2882165.0,
+              "sum_calibrated": 158458.76632417866,
+              "ratio_viirs_to_modis": 7.646987811155155,
+              "ratio_calibrated_to_modis": 0.42042431805662656,
+              "unadjusted": {
+                "mae": 895.4599714081487,
+                "rmse": 1994.8669889070354,
+                "mbe": 895.3763402430308,
+                "n": 2798
+              },
+              "calibrated": {
+                "mae": 78.1916370461565,
+                "rmse": 190.38574950564268,
+                "mbe": -78.07120574546867,
+                "n": 2798
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 91.26799192115791,
+                "rmse_pct": 90.45621835619463,
+                "abs_mbe_pct": 91.28062667768529,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              }
+            },
+            "definition": "Daily totals over the AOI on days where both sensors have a known coverage state. Unlike the unit-level evaluation, these totals include VIIRS-only and MODIS-only events, so they show whether the estimate reproduces MODIS-scale activity levels, not only matched pairs."
+          },
+          "totals_validity": {
+            "status": "not_validated",
+            "scope": "domain",
+            "checks": [
+              {
+                "id": "unit_level",
+                "label": "Unit-level validation passed",
+                "passed": true,
+                "value": "passes",
+                "rule": "The run passes the unit-level validity rules (see validation status)."
+              },
+              {
+                "id": "days",
+                "label": "Enough held-out days",
+                "passed": true,
+                "value": "2,536 days",
+                "rule": "At least 30 held-out days on which both sensors have a known coverage state."
+              },
+              {
+                "id": "level",
+                "label": "Total level close to MODIS",
+                "passed": false,
+                "value": "\u03a3 calibrated / \u03a3 MODIS = 0.24",
+                "rule": "Over the held-out days the summed estimate is between 0.8\u00d7 and 1.25\u00d7 the summed MODIS detections."
+              },
+              {
+                "id": "beats_unadjusted",
+                "label": "Daily totals better than unadjusted VIIRS",
+                "passed": true,
+                "value": "MAE 46.9 vs 345.4",
+                "rule": "Held-out daily-total MAE and RMSE below the raw VIIRS totals."
+              },
+              {
+                "id": "beats_constant",
+                "label": "Daily totals better than a constant",
+                "passed": true,
+                "value": "MAE 46.9 vs 118.2",
+                "rule": "Held-out daily-total MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+              }
+            ],
+            "label": "Calibrated totals are not validated for this configuration: the calibrated line is not drawn",
+            "note": "Unit-level results describe matched comparison units; a time series sums estimates over all events in the AOI, including events the model was not fitted on, so it needs its own check."
+          }
+        },
+        "all": {
+          "check": {
+            "held_out": {
+              "days": 2536,
+              "first": "2019-09-22",
+              "last": "2026-11-02",
+              "sum_modis": 156852.0,
+              "sum_viirs": 988517.0,
+              "sum_calibrated": 594308.5674648326,
+              "ratio_viirs_to_modis": 6.302227577589065,
+              "ratio_calibrated_to_modis": 3.7889766624896883,
+              "unadjusted": {
+                "mae": 345.4238958990536,
+                "rmse": 675.0508431021109,
+                "mbe": 327.9436119873817,
+                "n": 2536
+              },
+              "calibrated": {
+                "mae": 190.06328552392756,
+                "rmse": 311.5945703227057,
+                "mbe": 172.49864647666902,
+                "n": 2536
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 44.97679871589675,
+                "rmse_pct": 53.84131824933183,
+                "abs_mbe_pct": 47.39990651706725,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              },
+              "constant_reference": {
+                "mae": 118.21319362861708,
+                "rmse": 157.7240244021481,
+                "mbe": 72.85391661010678,
+                "n": 2536,
+                "value": 134.70407433881343
+              }
+            },
+            "training": {
+              "days": 2798,
+              "first": "2012-01-20",
+              "last": "2019-09-21",
+              "sum_modis": 376902.0,
+              "sum_viirs": 2882165.0,
+              "sum_calibrated": 1406102.3192119314,
+              "ratio_viirs_to_modis": 7.646987811155155,
+              "ratio_calibrated_to_modis": 3.7306841545333573,
+              "unadjusted": {
+                "mae": 895.4599714081487,
+                "rmse": 1994.8669889070354,
+                "mbe": 895.3763402430308,
+                "n": 2798
+              },
+              "calibrated": {
+                "mae": 368.0326899056739,
+                "rmse": 626.2727351982012,
+                "mbe": 367.8342813480813,
+                "n": 2798
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 58.900151692216134,
+                "rmse_pct": 68.60578982554979,
+                "abs_mbe_pct": 58.91847206413333,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              }
+            },
+            "definition": "Daily totals over the AOI on days where both sensors have a known coverage state. Unlike the unit-level evaluation, these totals include VIIRS-only and MODIS-only events, so they show whether the estimate reproduces MODIS-scale activity levels, not only matched pairs."
+          },
+          "totals_validity": {
+            "status": "not_validated",
+            "scope": "all",
+            "checks": [
+              {
+                "id": "unit_level",
+                "label": "Unit-level validation passed",
+                "passed": true,
+                "value": "passes",
+                "rule": "The run passes the unit-level validity rules (see validation status)."
+              },
+              {
+                "id": "days",
+                "label": "Enough held-out days",
+                "passed": true,
+                "value": "2,536 days",
+                "rule": "At least 30 held-out days on which both sensors have a known coverage state."
+              },
+              {
+                "id": "level",
+                "label": "Total level close to MODIS",
+                "passed": false,
+                "value": "\u03a3 calibrated / \u03a3 MODIS = 3.79",
+                "rule": "Over the held-out days the summed estimate is between 0.8\u00d7 and 1.25\u00d7 the summed MODIS detections."
+              },
+              {
+                "id": "beats_unadjusted",
+                "label": "Daily totals better than unadjusted VIIRS",
+                "passed": true,
+                "value": "MAE 190.1 vs 345.4",
+                "rule": "Held-out daily-total MAE and RMSE below the raw VIIRS totals."
+              },
+              {
+                "id": "beats_constant",
+                "label": "Daily totals better than a constant",
+                "passed": false,
+                "value": "MAE 190.1 vs 118.2",
+                "rule": "Held-out daily-total MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+              }
+            ],
+            "label": "Calibrated totals are not validated for this configuration: the calibrated line is not drawn",
+            "note": "Unit-level results describe matched comparison units; a time series sums estimates over all events in the AOI, including events the model was not fitted on, so it needs its own check."
+          }
+        }
+      },
+      "label": "Indonesia, Aqua\u2013S-NPP, \u00b130 min, 0.1\u00b0, detections"
+    },
+    "B": {
+      "config": {
+        "modis_platforms": [
+          "Aqua"
+        ],
+        "viirs_series": "VIIRS_SNPP",
+        "unit_grid": 0.1,
+        "tolerance_min": 30,
+        "metric": "detections",
+        "unit_set": "matched_plus_proxy",
+        "evidence_radius_deg": 5.0,
+        "test_fraction": 0.2,
+        "split_date": null
+      },
+      "filters": {
+        "start": "2012-01-20",
+        "end": "2026-11-14",
+        "platforms": [
+          "Terra",
+          "Aqua",
+          "N20",
+          "N21",
+          "SNPP"
+        ],
+        "modis_min_conf": 30,
+        "viirs_conf": [
+          "nominal",
+          "high"
+        ],
+        "types": [
+          "0"
+        ],
+        "daynight": [
+          "D",
+          "N"
+        ],
+        "aoi": "none",
+        "grid": 0.1
+      },
+      "seconds": 52.8,
+      "matching": {
+        "matched": 113567,
+        "candidate_pairs": 113567,
+        "ambiguous_candidates": 0,
+        "one_to_one": true,
+        "max_dt_within_tolerance": true,
+        "dt_percentiles_min": {
+          "10": 2.0,
+          "25": 6.0,
+          "50": 13.0,
+          "75": 23.0,
+          "90": 27.0,
+          "99": 30.0
+        },
+        "share_dt_at_least_two_thirds_tolerance": 0.32102635448677874
+      },
+      "coverage": {
+        "viirs_events": 1423050,
+        "modis_events": 306121,
+        "viirs_matched_share": 0.07980534766873967,
+        "modis_matched_share": 0.3709872893398362,
+        "viirs_unmatched_proxy_share": 0.38856259442746216,
+        "viirs_unmatched_no_evidence_share": 0.5316320579037982,
+        "status": "not_verified"
+      },
+      "validity": {
+        "status": "not_validated",
+        "label": "Not validated for application with this configuration",
+        "rules_version": "pyrosync-validity-1.0",
+        "checks": [
+          {
+            "id": "fitted",
+            "label": "Model fitted",
+            "passed": true,
+            "value": "fitted",
+            "rule": "At least 30 training and 10 held-out units, and a non-constant VIIRS value."
+          },
+          {
+            "id": "measurement",
+            "label": "Measurement eligible for application",
+            "passed": true,
+            "value": "detection counts",
+            "rule": "Only detection counts may be applied. FRP sums are evaluated but never applied: on the full Indonesia archive the log-log model did not reduce held-out FRP errors (docs/HARMONIZATION_VALIDATION.md, run E)."
+          },
+          {
+            "id": "held_out_size",
+            "label": "Enough held-out units",
+            "passed": true,
+            "value": "145,243 units",
+            "rule": "At least 100 held-out units."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Better than unadjusted VIIRS",
+            "passed": true,
+            "value": "MAE 0.531 vs 1.979; RMSE 0.976 vs 3.492; |MBE| 0.187 vs 1.605",
+            "rule": "Held-out MAE, RMSE and |MBE| all lower than using the raw VIIRS value (M\u0302 = V)."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Better than a constant model",
+            "passed": false,
+            "value": "MAE 0.531 vs best constant 0.411; RMSE 0.976 vs best constant 0.965",
+            "rule": "Held-out MAE and RMSE both lower than the better of two constants fitted on the training period (MODIS mean, MODIS median), i.e. the VIIRS value adds information beyond the overall level."
+          },
+          {
+            "id": "slope",
+            "label": "VIIRS slope clearly positive",
+            "passed": true,
+            "value": "\u03b2 95 % CI lower bound 0.1304",
+            "rule": "Lower bound of the 95 % interval of \u03b2 above 0 (intervals are optimistic because units are correlated)."
+          }
+        ],
+        "scope": "Valid only for the AOI, dates, filters, sensor pair, grid, tolerance and unit set of this run. Calibrated values before the held-out period are in-sample. Satellite coverage is not verified, and MODIS is a reference scale, not ground truth.",
+        "applies_to": "Map estimates and time series in the Harmonization tab. The calendar, history, Explore map and Sensor Workbench always show original observations."
+      },
+      "leakage": {
+        "train_before_test": true,
+        "days_on_both_sides": 0,
+        "split": "2019-11-07",
+        "refit_without_later_data": {
+          "n_units": 578557,
+          "n_train_in_full_run": 578557,
+          "alpha": 0.08195895298370115,
+          "beta": 0.13207332275473754,
+          "alpha_full": 0.08195895298370115,
+          "beta_full": 0.13207332275473754,
+          "max_abs_coefficient_difference": 0.0
+        },
+        "embargo_after_split": {
+          "0": {
+            "n": 145243,
+            "calibrated": {
+              "mae": 0.5314435689467851,
+              "rmse": 0.9757193962013124,
+              "mbe": -0.18711998311190278
+            },
+            "unadjusted": {
+              "mae": 1.9790007091563793,
+              "rmse": 3.4917038080901444,
+              "mbe": 1.6045386008275786
+            }
+          },
+          "30": {
+            "n": 138539,
+            "calibrated": {
+              "mae": 0.5337184649801876,
+              "rmse": 0.9770436901456843,
+              "mbe": -0.19055333514888684
+            },
+            "unadjusted": {
+              "mae": 1.970917936465544,
+              "rmse": 3.463460814966687,
+              "mbe": 1.5896678913518938
+            }
+          },
+          "90": {
+            "n": 136036,
+            "calibrated": {
+              "mae": 0.5360611669358492,
+              "rmse": 0.9814665094706057,
+              "mbe": -0.1930561815106839
+            },
+            "unadjusted": {
+              "mae": 1.9775574112734864,
+              "rmse": 3.4788914978325596,
+              "mbe": 1.5935414155076597
+            }
+          },
+          "365": {
+            "n": 115731,
+            "calibrated": {
+              "mae": 0.5466886665144478,
+              "rmse": 0.9997324604411508,
+              "mbe": -0.20571314921981762
+            },
+            "unadjusted": {
+              "mae": 1.9978916625623213,
+              "rmse": 3.5457818809706056,
+              "mbe": 1.5925378679869697
+            }
+          }
+        },
+        "constants_fitted_on": "training units only (see harmonize._calibrate)",
+        "smearing_applied": false
+      },
+      "metrics": {
+        "report": {
+          "calibrated": {
+            "mae": 0.5314435689467851,
+            "rmse": 0.9757193962013124,
+            "mbe": -0.18711998311190275,
+            "n": 145243
+          },
+          "unadjusted": {
+            "mae": 1.9790007091563793,
+            "rmse": 3.4917038080901444,
+            "mbe": 1.6045386008275786,
+            "n": 145243
+          }
+        },
+        "recomputed": {
+          "calibrated": {
+            "mae": 0.5314435689467851,
+            "rmse": 0.9757193962013124,
+            "mbe": -0.18711998311190278
+          },
+          "unadjusted": {
+            "mae": 1.9790007091563793,
+            "rmse": 3.4917038080901444,
+            "mbe": 1.6045386008275786
+          }
+        },
+        "max_abs_difference": 2.7755575615628914e-17
+      },
+      "alternatives": {
+        "calibrated": {
+          "mae": 0.5314435689467851,
+          "rmse": 0.9757193962013124,
+          "mbe": -0.18711998311190278
+        },
+        "unadjusted": {
+          "mae": 1.9790007091563793,
+          "rmse": 3.4917038080901444,
+          "mbe": 1.6045386008275786
+        },
+        "training_mean": {
+          "mae": 0.6187882264256427,
+          "rmse": 0.9650787448050545,
+          "mbe": 0.0065886041142143295
+        },
+        "training_median": {
+          "mae": 0.4111316896511364,
+          "rmse": 1.048981811189176,
+          "mbe": -0.4111316896511364
+        },
+        "ratio_model": {
+          "mae": 0.5436133132779061,
+          "rmse": 0.9394237973166438,
+          "mbe": -0.11279874982795243,
+          "ratio": 0.14800681501949947
+        }
+      },
+      "error_map_0.5deg_n20": {
+        "cells_validated": 834,
+        "cells_too_few": 329,
+        "cells_no_held_out": 139,
+        "held_out_units": 145243,
+        "held_out_units_in_validated_cells": 142938,
+        "share_in_validated_cells": 0.9841300441329358,
+        "overall_mae_cal": 0.5314435689467851,
+        "overall_mae_unadj": 1.9790007091563793,
+        "validated_cells_mae_cal_range": [
+          0.19258276637393343,
+          1.4015170421261438
+        ],
+        "validated_cells_worse_than_unadjusted": 0
+      },
+      "label": "as A, matched + proxy one-sided units"
+    },
+    "C": {
+      "config": {
+        "modis_platforms": [
+          "Aqua"
+        ],
+        "viirs_series": "VIIRS_N20",
+        "unit_grid": 0.1,
+        "tolerance_min": 60,
+        "metric": "detections",
+        "unit_set": "matched",
+        "evidence_radius_deg": 5.0,
+        "test_fraction": 0.2,
+        "split_date": null
+      },
+      "filters": {
+        "start": "2018-04-01",
+        "end": "2026-11-14",
+        "platforms": [
+          "Terra",
+          "Aqua",
+          "N20",
+          "N21",
+          "SNPP"
+        ],
+        "modis_min_conf": 30,
+        "viirs_conf": [
+          "nominal",
+          "high"
+        ],
+        "types": [
+          "0"
+        ],
+        "daynight": [
+          "D",
+          "N"
+        ],
+        "aoi": "none",
+        "grid": 0.1
+      },
+      "seconds": 23.1,
+      "matching": {
+        "matched": 59563,
+        "candidate_pairs": 60204,
+        "ambiguous_candidates": 641,
+        "one_to_one": true,
+        "max_dt_within_tolerance": true,
+        "dt_percentiles_min": {
+          "10": 3.0,
+          "25": 11.0,
+          "50": 23.0,
+          "75": 37.0,
+          "90": 49.0,
+          "99": 59.0
+        },
+        "share_dt_at_least_two_thirds_tolerance": 0.18808656380638988
+      },
+      "coverage": {
+        "viirs_events": 646529,
+        "modis_events": 133395,
+        "viirs_matched_share": 0.09212734463573946,
+        "modis_matched_share": 0.4465159863563102,
+        "viirs_unmatched_proxy_share": 0.5300659367174558,
+        "viirs_unmatched_no_evidence_share": 0.3778067186468047,
+        "status": "not_verified"
+      },
+      "validity": {
+        "status": "passes",
+        "label": "Passes PyroSync's validation rules for this configuration",
+        "rules_version": "pyrosync-validity-1.0",
+        "checks": [
+          {
+            "id": "fitted",
+            "label": "Model fitted",
+            "passed": true,
+            "value": "fitted",
+            "rule": "At least 30 training and 10 held-out units, and a non-constant VIIRS value."
+          },
+          {
+            "id": "measurement",
+            "label": "Measurement eligible for application",
+            "passed": true,
+            "value": "detection counts",
+            "rule": "Only detection counts may be applied. FRP sums are evaluated but never applied: on the full Indonesia archive the log-log model did not reduce held-out FRP errors (docs/HARMONIZATION_VALIDATION.md, run E)."
+          },
+          {
+            "id": "held_out_size",
+            "label": "Enough held-out units",
+            "passed": true,
+            "value": "11,971 units",
+            "rule": "At least 100 held-out units."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Better than unadjusted VIIRS",
+            "passed": true,
+            "value": "MAE 0.888 vs 3.113; RMSE 1.466 vs 6.253; |MBE| 0.254 vs 2.670",
+            "rule": "Held-out MAE, RMSE and |MBE| all lower than using the raw VIIRS value (M\u0302 = V)."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Better than a constant model",
+            "passed": true,
+            "value": "MAE 0.888 vs best constant 0.944; RMSE 1.466 vs best constant 1.594",
+            "rule": "Held-out MAE and RMSE both lower than the better of two constants fitted on the training period (MODIS mean, MODIS median), i.e. the VIIRS value adds information beyond the overall level."
+          },
+          {
+            "id": "slope",
+            "label": "VIIRS slope clearly positive",
+            "passed": true,
+            "value": "\u03b2 95 % CI lower bound 0.2562",
+            "rule": "Lower bound of the 95 % interval of \u03b2 above 0 (intervals are optimistic because units are correlated)."
+          }
+        ],
+        "scope": "Valid only for the AOI, dates, filters, sensor pair, grid, tolerance and unit set of this run. Calibrated values before the held-out period are in-sample. Satellite coverage is not verified, and MODIS is a reference scale, not ground truth.",
+        "applies_to": "Map estimates and time series in the Harmonization tab. The calendar, history, Explore map and Sensor Workbench always show original observations."
+      },
+      "leakage": {
+        "train_before_test": true,
+        "days_on_both_sides": 0,
+        "split": "2023-09-21",
+        "refit_without_later_data": {
+          "n_units": 47592,
+          "n_train_in_full_run": 47592,
+          "alpha": 0.6036473101375575,
+          "beta": 0.2602483565735077,
+          "alpha_full": 0.6036473101375575,
+          "beta_full": 0.2602483565735077,
+          "max_abs_coefficient_difference": 0.0
+        },
+        "embargo_after_split": {
+          "0": {
+            "n": 11971,
+            "calibrated": {
+              "mae": 0.8878275226626007,
+              "rmse": 1.4655885085969371,
+              "mbe": -0.2542079997912492
+            },
+            "unadjusted": {
+              "mae": 3.1133572800935596,
+              "rmse": 6.253038689928244,
+              "mbe": 2.6704535961907943
+            }
+          },
+          "30": {
+            "n": 8175,
+            "calibrated": {
+              "mae": 0.8722703061321403,
+              "rmse": 1.4586881944038168,
+              "mbe": -0.27178026989725806
+            },
+            "unadjusted": {
+              "mae": 2.757920489296636,
+              "rmse": 5.549488226121887,
+              "mbe": 2.2781651376146788
+            }
+          },
+          "90": {
+            "n": 6086,
+            "calibrated": {
+              "mae": 0.8681129067130161,
+              "rmse": 1.4773654167382102,
+              "mbe": -0.29458220681764524
+            },
+            "unadjusted": {
+              "mae": 2.511008872822872,
+              "rmse": 5.33562977725661,
+              "mbe": 1.973381531383503
+            }
+          },
+          "365": {
+            "n": 2754,
+            "calibrated": {
+              "mae": 0.7934973214980238,
+              "rmse": 1.235248511980219,
+              "mbe": -0.20653934022439635
+            },
+            "unadjusted": {
+              "mae": 2.4949164851125634,
+              "rmse": 5.458997489903365,
+              "mbe": 2.060639070442992
+            }
+          }
+        },
+        "constants_fitted_on": "training units only (see harmonize._calibrate)",
+        "smearing_applied": false
+      },
+      "metrics": {
+        "report": {
+          "calibrated": {
+            "mae": 0.8878275226626007,
+            "rmse": 1.4655885085969373,
+            "mbe": -0.2542079997912492,
+            "n": 11971
+          },
+          "unadjusted": {
+            "mae": 3.1133572800935596,
+            "rmse": 6.253038689928244,
+            "mbe": 2.6704535961907943,
+            "n": 11971
+          }
+        },
+        "recomputed": {
+          "calibrated": {
+            "mae": 0.8878275226626007,
+            "rmse": 1.4655885085969371,
+            "mbe": -0.2542079997912492
+          },
+          "unadjusted": {
+            "mae": 3.1133572800935596,
+            "rmse": 6.253038689928244,
+            "mbe": 2.6704535961907943
+          }
+        },
+        "max_abs_difference": 2.220446049250313e-16
+      },
+      "alternatives": {
+        "calibrated": {
+          "mae": 0.8878275226626007,
+          "rmse": 1.4655885085969371,
+          "mbe": -0.2542079997912492
+        },
+        "unadjusted": {
+          "mae": 3.1133572800935596,
+          "rmse": 6.253038689928244,
+          "mbe": 2.6704535961907943
+        },
+        "training_mean": {
+          "mae": 1.021750866479463,
+          "rmse": 1.5937018116687054,
+          "mbe": 0.06868081130227328
+        },
+        "training_median": {
+          "mae": 0.9440314092389942,
+          "rmse": 1.8510439520186268,
+          "mbe": -0.9440314092389942
+        },
+        "ratio_model": {
+          "mae": 1.284530734126209,
+          "rmse": 2.0497841114791013,
+          "mbe": -0.3444739696448972,
+          "ratio": 0.3466383437614217
+        }
+      },
+      "error_map_0.5deg_n20": {
+        "cells_validated": 188,
+        "cells_too_few": 568,
+        "cells_no_held_out": 505,
+        "held_out_units": 11971,
+        "held_out_units_in_validated_cells": 8769,
+        "share_in_validated_cells": 0.732520257288447,
+        "overall_mae_cal": 0.8878275226626007,
+        "overall_mae_unadj": 3.1133572800935596,
+        "validated_cells_mae_cal_range": [
+          0.3552744213612081,
+          2.237452099884875
+        ],
+        "validated_cells_worse_than_unadjusted": 2
+      },
+      "daily_totals": {
+        "domain": {
+          "check": {
+            "held_out": {
+              "days": 1147,
+              "first": "2023-09-21",
+              "last": "2026-11-14",
+              "sum_modis": 86826.0,
+              "sum_viirs": 445385.0,
+              "sum_calibrated": 20228.876034498953,
+              "ratio_viirs_to_modis": 5.129627070232419,
+              "ratio_calibrated_to_modis": 0.2329817800485909,
+              "unadjusted": {
+                "mae": 352.07933740191805,
+                "rmse": 648.8726680327699,
+                "mbe": 312.6059285091543,
+                "n": 1147
+              },
+              "calibrated": {
+                "mae": 58.078191328742214,
+                "rmse": 167.1753038490619,
+                "mbe": -58.06200868831827,
+                "n": 1147
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 83.50423181396677,
+                "rmse_pct": 74.23603858120603,
+                "abs_mbe_pct": 81.42645311775718,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              },
+              "constant_reference": {
+                "mae": 84.27422822881354,
+                "rmse": 172.4528967953863,
+                "mbe": -4.437517724331883,
+                "n": 1147,
+                "value": 71.26082578046324
+              }
+            },
+            "training": {
+              "days": 1986,
+              "first": "2018-04-01",
+              "last": "2023-09-20",
+              "sum_modis": 141524.0,
+              "sum_viirs": 1066900.0,
+              "sum_calibrated": 84550.19274513917,
+              "ratio_viirs_to_modis": 7.538650688222492,
+              "ratio_calibrated_to_modis": 0.5974265336277887,
+              "unadjusted": {
+                "mae": 465.95065458207455,
+                "rmse": 1022.1762317434251,
+                "mbe": 465.9496475327291,
+                "n": 1986
+              },
+              "calibrated": {
+                "mae": 28.794374681998978,
+                "rmse": 68.54156863252236,
+                "mbe": -28.687717650987327,
+                "n": 1986
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 93.82029526113112,
+                "rmse_pct": 93.29454486379342,
+                "abs_mbe_pct": 93.8431721532803,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              }
+            },
+            "definition": "Daily totals over the AOI on days where both sensors have a known coverage state. Unlike the unit-level evaluation, these totals include VIIRS-only and MODIS-only events, so they show whether the estimate reproduces MODIS-scale activity levels, not only matched pairs."
+          },
+          "totals_validity": {
+            "status": "not_validated",
+            "scope": "domain",
+            "checks": [
+              {
+                "id": "unit_level",
+                "label": "Unit-level validation passed",
+                "passed": true,
+                "value": "passes",
+                "rule": "The run passes the unit-level validity rules (see validation status)."
+              },
+              {
+                "id": "days",
+                "label": "Enough held-out days",
+                "passed": true,
+                "value": "1,147 days",
+                "rule": "At least 30 held-out days on which both sensors have a known coverage state."
+              },
+              {
+                "id": "level",
+                "label": "Total level close to MODIS",
+                "passed": false,
+                "value": "\u03a3 calibrated / \u03a3 MODIS = 0.23",
+                "rule": "Over the held-out days the summed estimate is between 0.8\u00d7 and 1.25\u00d7 the summed MODIS detections."
+              },
+              {
+                "id": "beats_unadjusted",
+                "label": "Daily totals better than unadjusted VIIRS",
+                "passed": true,
+                "value": "MAE 58.1 vs 352.1",
+                "rule": "Held-out daily-total MAE and RMSE below the raw VIIRS totals."
+              },
+              {
+                "id": "beats_constant",
+                "label": "Daily totals better than a constant",
+                "passed": true,
+                "value": "MAE 58.1 vs 84.3",
+                "rule": "Held-out daily-total MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+              }
+            ],
+            "label": "Calibrated totals are not validated for this configuration: the calibrated line is not drawn",
+            "note": "Unit-level results describe matched comparison units; a time series sums estimates over all events in the AOI, including events the model was not fitted on, so it needs its own check."
+          }
+        },
+        "all": {
+          "check": {
+            "held_out": {
+              "days": 1147,
+              "first": "2023-09-21",
+              "last": "2026-11-14",
+              "sum_modis": 86826.0,
+              "sum_viirs": 445385.0,
+              "sum_calibrated": 288293.2828900629,
+              "ratio_viirs_to_modis": 5.129627070232419,
+              "ratio_calibrated_to_modis": 3.3203566085050893,
+              "unadjusted": {
+                "mae": 352.07933740191805,
+                "rmse": 648.8726680327699,
+                "mbe": 312.6059285091543,
+                "n": 1147
+              },
+              "calibrated": {
+                "mae": 215.24104460643312,
+                "rmse": 353.95272840780353,
+                "mbe": 175.64715160423967,
+                "n": 1147
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 38.86575503272902,
+                "rmse_pct": 45.45112687811225,
+                "abs_mbe_pct": 43.811957616441674,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              },
+              "constant_reference": {
+                "mae": 84.27422822881354,
+                "rmse": 172.4528967953863,
+                "mbe": -4.437517724331883,
+                "n": 1147,
+                "value": 71.26082578046324
+              }
+            },
+            "training": {
+              "days": 1986,
+              "first": "2018-04-01",
+              "last": "2023-09-20",
+              "sum_modis": 141524.0,
+              "sum_viirs": 1066900.0,
+              "sum_calibrated": 616117.3279663286,
+              "ratio_viirs_to_modis": 7.538650688222492,
+              "ratio_calibrated_to_modis": 4.353447669415283,
+              "unadjusted": {
+                "mae": 465.95065458207455,
+                "rmse": 1022.1762317434251,
+                "mbe": 465.9496475327291,
+                "n": 1986
+              },
+              "calibrated": {
+                "mae": 238.99313378287889,
+                "rmse": 395.0549454973076,
+                "mbe": 238.969450134103,
+                "n": 1986
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 48.70848845630678,
+                "rmse_pct": 61.351581730334175,
+                "abs_mbe_pct": 48.71346047808366,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              }
+            },
+            "definition": "Daily totals over the AOI on days where both sensors have a known coverage state. Unlike the unit-level evaluation, these totals include VIIRS-only and MODIS-only events, so they show whether the estimate reproduces MODIS-scale activity levels, not only matched pairs."
+          },
+          "totals_validity": {
+            "status": "not_validated",
+            "scope": "all",
+            "checks": [
+              {
+                "id": "unit_level",
+                "label": "Unit-level validation passed",
+                "passed": true,
+                "value": "passes",
+                "rule": "The run passes the unit-level validity rules (see validation status)."
+              },
+              {
+                "id": "days",
+                "label": "Enough held-out days",
+                "passed": true,
+                "value": "1,147 days",
+                "rule": "At least 30 held-out days on which both sensors have a known coverage state."
+              },
+              {
+                "id": "level",
+                "label": "Total level close to MODIS",
+                "passed": false,
+                "value": "\u03a3 calibrated / \u03a3 MODIS = 3.32",
+                "rule": "Over the held-out days the summed estimate is between 0.8\u00d7 and 1.25\u00d7 the summed MODIS detections."
+              },
+              {
+                "id": "beats_unadjusted",
+                "label": "Daily totals better than unadjusted VIIRS",
+                "passed": true,
+                "value": "MAE 215.2 vs 352.1",
+                "rule": "Held-out daily-total MAE and RMSE below the raw VIIRS totals."
+              },
+              {
+                "id": "beats_constant",
+                "label": "Daily totals better than a constant",
+                "passed": false,
+                "value": "MAE 215.2 vs 84.3",
+                "rule": "Held-out daily-total MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+              }
+            ],
+            "label": "Calibrated totals are not validated for this configuration: the calibrated line is not drawn",
+            "note": "Unit-level results describe matched comparison units; a time series sums estimates over all events in the AOI, including events the model was not fitted on, so it needs its own check."
+          }
+        }
+      },
+      "label": "Indonesia, Aqua\u2013NOAA-20, \u00b160 min"
+    },
+    "D": {
+      "config": {
+        "modis_platforms": [
+          "Aqua"
+        ],
+        "viirs_series": "VIIRS_SNPP",
+        "unit_grid": 0.1,
+        "tolerance_min": 30,
+        "metric": "detections",
+        "unit_set": "matched",
+        "evidence_radius_deg": 5.0,
+        "test_fraction": 0.2,
+        "split_date": null
+      },
+      "filters": {
+        "start": "2012-01-20",
+        "end": "2026-11-14",
+        "platforms": [
+          "Terra",
+          "Aqua",
+          "N20",
+          "N21",
+          "SNPP"
+        ],
+        "modis_min_conf": 30,
+        "viirs_conf": [
+          "nominal",
+          "high"
+        ],
+        "types": [
+          "0"
+        ],
+        "daynight": [
+          "D",
+          "N"
+        ],
+        "aoi": "region:kalimantan",
+        "grid": 0.1
+      },
+      "seconds": 17.9,
+      "matching": {
+        "matched": 36893,
+        "candidate_pairs": 36893,
+        "ambiguous_candidates": 0,
+        "one_to_one": true,
+        "max_dt_within_tolerance": true,
+        "dt_percentiles_min": {
+          "10": 2.0,
+          "25": 7.0,
+          "50": 13.0,
+          "75": 23.0,
+          "90": 27.0,
+          "99": 30.0
+        },
+        "share_dt_at_least_two_thirds_tolerance": 0.33263762773425853
+      },
+      "coverage": {
+        "viirs_events": 371858,
+        "modis_events": 102892,
+        "viirs_matched_share": 0.09921260266015522,
+        "modis_matched_share": 0.3585604322979435,
+        "viirs_unmatched_proxy_share": 0.4025810927827289,
+        "viirs_unmatched_no_evidence_share": 0.4982063045571159,
+        "status": "not_verified"
+      },
+      "validity": {
+        "status": "passes",
+        "label": "Passes PyroSync's validation rules for this configuration",
+        "rules_version": "pyrosync-validity-1.0",
+        "checks": [
+          {
+            "id": "fitted",
+            "label": "Model fitted",
+            "passed": true,
+            "value": "fitted",
+            "rule": "At least 30 training and 10 held-out units, and a non-constant VIIRS value."
+          },
+          {
+            "id": "measurement",
+            "label": "Measurement eligible for application",
+            "passed": true,
+            "value": "detection counts",
+            "rule": "Only detection counts may be applied. FRP sums are evaluated but never applied: on the full Indonesia archive the log-log model did not reduce held-out FRP errors (docs/HARMONIZATION_VALIDATION.md, run E)."
+          },
+          {
+            "id": "held_out_size",
+            "label": "Enough held-out units",
+            "passed": true,
+            "value": "7,618 units",
+            "rule": "At least 100 held-out units."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Better than unadjusted VIIRS",
+            "passed": true,
+            "value": "MAE 0.975 vs 4.169; RMSE 1.654 vs 9.215; |MBE| 0.300 vs 3.752",
+            "rule": "Held-out MAE, RMSE and |MBE| all lower than using the raw VIIRS value (M\u0302 = V)."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Better than a constant model",
+            "passed": true,
+            "value": "MAE 0.975 vs best constant 1.054; RMSE 1.654 vs best constant 1.783",
+            "rule": "Held-out MAE and RMSE both lower than the better of two constants fitted on the training period (MODIS mean, MODIS median), i.e. the VIIRS value adds information beyond the overall level."
+          },
+          {
+            "id": "slope",
+            "label": "VIIRS slope clearly positive",
+            "passed": true,
+            "value": "\u03b2 95 % CI lower bound 0.1999",
+            "rule": "Lower bound of the 95 % interval of \u03b2 above 0 (intervals are optimistic because units are correlated)."
+          }
+        ],
+        "scope": "Valid only for the AOI, dates, filters, sensor pair, grid, tolerance and unit set of this run. Calibrated values before the held-out period are in-sample. Satellite coverage is not verified, and MODIS is a reference scale, not ground truth.",
+        "applies_to": "Map estimates and time series in the Harmonization tab. The calendar, history, Explore map and Sensor Workbench always show original observations."
+      },
+      "leakage": {
+        "train_before_test": true,
+        "days_on_both_sides": 0,
+        "split": "2019-09-12",
+        "refit_without_later_data": {
+          "n_units": 29275,
+          "n_train_in_full_run": 29275,
+          "alpha": 0.6866697622492846,
+          "beta": 0.20520338351511522,
+          "alpha_full": 0.6866697622492846,
+          "beta_full": 0.20520338351511522,
+          "max_abs_coefficient_difference": 0.0
+        },
+        "embargo_after_split": {
+          "0": {
+            "n": 7618,
+            "calibrated": {
+              "mae": 0.9750795785779782,
+              "rmse": 1.6536573847609621,
+              "mbe": -0.2995306286549324
+            },
+            "unadjusted": {
+              "mae": 4.169335783670254,
+              "rmse": 9.214987164853332,
+              "mbe": 3.7516408506169596
+            }
+          },
+          "30": {
+            "n": 5792,
+            "calibrated": {
+              "mae": 0.8581224487164051,
+              "rmse": 1.3275435541877998,
+              "mbe": -0.20058046989355677
+            },
+            "unadjusted": {
+              "mae": 2.9568370165745854,
+              "rmse": 5.9060905916983755,
+              "mbe": 2.523135359116022
+            }
+          },
+          "90": {
+            "n": 5359,
+            "calibrated": {
+              "mae": 0.8615466849470268,
+              "rmse": 1.3378833692211811,
+              "mbe": -0.21516887856121078
+            },
+            "unadjusted": {
+              "mae": 2.7790632580705354,
+              "rmse": 5.442313125775187,
+              "mbe": 2.325247247620825
+            }
+          },
+          "365": {
+            "n": 5170,
+            "calibrated": {
+              "mae": 0.8649329572678822,
+              "rmse": 1.346982455763069,
+              "mbe": -0.22879010632575716
+            },
+            "unadjusted": {
+              "mae": 2.738878143133462,
+              "rmse": 5.337542665134178,
+              "mbe": 2.2785299806576402
+            }
+          }
+        },
+        "constants_fitted_on": "training units only (see harmonize._calibrate)",
+        "smearing_applied": false
+      },
+      "metrics": {
+        "report": {
+          "calibrated": {
+            "mae": 0.9750795785779781,
+            "rmse": 1.6536573847609621,
+            "mbe": -0.2995306286549324,
+            "n": 7618
+          },
+          "unadjusted": {
+            "mae": 4.169335783670254,
+            "rmse": 9.214987164853332,
+            "mbe": 3.7516408506169596,
+            "n": 7618
+          }
+        },
+        "recomputed": {
+          "calibrated": {
+            "mae": 0.9750795785779782,
+            "rmse": 1.6536573847609621,
+            "mbe": -0.2995306286549324
+          },
+          "unadjusted": {
+            "mae": 4.169335783670254,
+            "rmse": 9.214987164853332,
+            "mbe": 3.7516408506169596
+          }
+        },
+        "max_abs_difference": 1.1102230246251565e-16
+      },
+      "alternatives": {
+        "calibrated": {
+          "mae": 0.9750795785779782,
+          "rmse": 1.6536573847609621,
+          "mbe": -0.2995306286549324
+        },
+        "unadjusted": {
+          "mae": 4.169335783670254,
+          "rmse": 9.214987164853332,
+          "mbe": 3.7516408506169596
+        },
+        "training_mean": {
+          "mae": 1.0977146445595278,
+          "rmse": 1.7834325531889497,
+          "mbe": -0.008503811033197337
+        },
+        "training_median": {
+          "mae": 1.0543449724337097,
+          "rmse": 2.0717631809326584,
+          "mbe": -1.0543449724337097
+        },
+        "ratio_model": {
+          "mae": 1.4910953276903316,
+          "rmse": 2.6401912799126683,
+          "mbe": -0.18772785442334558,
+          "ratio": 0.3214987385259542
+        }
+      },
+      "error_map_0.5deg_n20": {
+        "cells_validated": 114,
+        "cells_too_few": 80,
+        "cells_no_held_out": 20,
+        "held_out_units": 7618,
+        "held_out_units_in_validated_cells": 6947,
+        "share_in_validated_cells": 0.9119191388815963,
+        "overall_mae_cal": 0.9750795785779781,
+        "overall_mae_unadj": 4.169335783670254,
+        "validated_cells_mae_cal_range": [
+          0.43220736861583675,
+          1.8971593392775952
+        ],
+        "validated_cells_worse_than_unadjusted": 1
+      },
+      "daily_totals": {
+        "domain": {
+          "check": {
+            "held_out": {
+              "days": 2546,
+              "first": "2019-09-12",
+              "last": "2026-11-02",
+              "sum_modis": 60570.0,
+              "sum_viirs": 298465.0,
+              "sum_calibrated": 13368.175670906721,
+              "ratio_viirs_to_modis": 4.927604424632657,
+              "ratio_calibrated_to_modis": 0.22070621877012914,
+              "unadjusted": {
+                "mae": 104.01296150824824,
+                "rmse": 388.13147416972333,
+                "mbe": 93.43872741555381,
+                "n": 2546
+              },
+              "calibrated": {
+                "mae": 18.632988952520957,
+                "rmse": 92.57662569697963,
+                "mbe": -18.539601071914092,
+                "n": 2546
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 82.08589710134984,
+                "rmse_pct": 76.14812715330129,
+                "abs_mbe_pct": 80.15854711990866,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              },
+              "constant_reference": {
+                "mae": 53.9226265410845,
+                "rmse": 107.11398995142018,
+                "mbe": 22.537215662231016,
+                "n": 2546,
+                "value": 46.32747489239598
+              }
+            },
+            "training": {
+              "days": 2788,
+              "first": "2012-01-20",
+              "last": "2019-09-11",
+              "sum_modis": 129161.0,
+              "sum_viirs": 876107.0,
+              "sum_calibrated": 52780.703060475804,
+              "ratio_viirs_to_modis": 6.783061450437826,
+              "ratio_calibrated_to_modis": 0.40864272543938035,
+              "unadjusted": {
+                "mae": 267.98350071736013,
+                "rmse": 864.3024600611286,
+                "mbe": 267.9146341463415,
+                "n": 2788
+              },
+              "calibrated": {
+                "mae": 27.745275780168242,
+                "rmse": 111.47878543623911,
+                "mbe": -27.39608928964283,
+                "n": 2788
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 89.64664775782933,
+                "rmse_pct": 87.10187803603442,
+                "abs_mbe_pct": 89.77432144498744,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              }
+            },
+            "definition": "Daily totals over the AOI on days where both sensors have a known coverage state. Unlike the unit-level evaluation, these totals include VIIRS-only and MODIS-only events, so they show whether the estimate reproduces MODIS-scale activity levels, not only matched pairs."
+          },
+          "totals_validity": {
+            "status": "not_validated",
+            "scope": "domain",
+            "checks": [
+              {
+                "id": "unit_level",
+                "label": "Unit-level validation passed",
+                "passed": true,
+                "value": "passes",
+                "rule": "The run passes the unit-level validity rules (see validation status)."
+              },
+              {
+                "id": "days",
+                "label": "Enough held-out days",
+                "passed": true,
+                "value": "2,546 days",
+                "rule": "At least 30 held-out days on which both sensors have a known coverage state."
+              },
+              {
+                "id": "level",
+                "label": "Total level close to MODIS",
+                "passed": false,
+                "value": "\u03a3 calibrated / \u03a3 MODIS = 0.22",
+                "rule": "Over the held-out days the summed estimate is between 0.8\u00d7 and 1.25\u00d7 the summed MODIS detections."
+              },
+              {
+                "id": "beats_unadjusted",
+                "label": "Daily totals better than unadjusted VIIRS",
+                "passed": true,
+                "value": "MAE 18.6 vs 104.0",
+                "rule": "Held-out daily-total MAE and RMSE below the raw VIIRS totals."
+              },
+              {
+                "id": "beats_constant",
+                "label": "Daily totals better than a constant",
+                "passed": true,
+                "value": "MAE 18.6 vs 53.9",
+                "rule": "Held-out daily-total MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+              }
+            ],
+            "label": "Calibrated totals are not validated for this configuration: the calibrated line is not drawn",
+            "note": "Unit-level results describe matched comparison units; a time series sums estimates over all events in the AOI, including events the model was not fitted on, so it needs its own check."
+          }
+        },
+        "all": {
+          "check": {
+            "held_out": {
+              "days": 2546,
+              "first": "2019-09-12",
+              "last": "2026-11-02",
+              "sum_modis": 60570.0,
+              "sum_viirs": 298465.0,
+              "sum_calibrated": 162965.51767454215,
+              "ratio_viirs_to_modis": 4.927604424632657,
+              "ratio_calibrated_to_modis": 2.690531908115274,
+              "unadjusted": {
+                "mae": 104.01296150824824,
+                "rmse": 388.13147416972333,
+                "mbe": 93.43872741555381,
+                "n": 2546
+              },
+              "calibrated": {
+                "mae": 51.667870197163396,
+                "rmse": 137.1473644418679,
+                "mbe": 40.218192330927785,
+                "n": 2546
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 50.32554650117704,
+                "rmse_pct": 64.66471451838619,
+                "abs_mbe_pct": 56.95768398892699,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              },
+              "constant_reference": {
+                "mae": 53.9226265410845,
+                "rmse": 107.11398995142018,
+                "mbe": 22.537215662231016,
+                "n": 2546,
+                "value": 46.32747489239598
+              }
+            },
+            "training": {
+              "days": 2788,
+              "first": "2012-01-20",
+              "last": "2019-09-11",
+              "sum_modis": 129161.0,
+              "sum_viirs": 876107.0,
+              "sum_calibrated": 409261.71183453593,
+              "ratio_viirs_to_modis": 6.783061450437826,
+              "ratio_calibrated_to_modis": 3.168616779326081,
+              "unadjusted": {
+                "mae": 267.98350071736013,
+                "rmse": 864.3024600611286,
+                "mbe": 267.9146341463415,
+                "n": 2788
+              },
+              "calibrated": {
+                "mae": 101.72218738245695,
+                "rmse": 244.61447881338128,
+                "mbe": 100.46653939545766,
+                "n": 2788
+              },
+              "improvement_vs_unadjusted": {
+                "mae_pct": 62.04162304389685,
+                "rmse_pct": 71.69804667730777,
+                "abs_mbe_pct": 62.50054062348069,
+                "definition": "100 \u00d7 (unadjusted \u2212 calibrated) / unadjusted. Positive = calibrated error is smaller. For MBE the absolute bias is compared."
+              }
+            },
+            "definition": "Daily totals over the AOI on days where both sensors have a known coverage state. Unlike the unit-level evaluation, these totals include VIIRS-only and MODIS-only events, so they show whether the estimate reproduces MODIS-scale activity levels, not only matched pairs."
+          },
+          "totals_validity": {
+            "status": "not_validated",
+            "scope": "all",
+            "checks": [
+              {
+                "id": "unit_level",
+                "label": "Unit-level validation passed",
+                "passed": true,
+                "value": "passes",
+                "rule": "The run passes the unit-level validity rules (see validation status)."
+              },
+              {
+                "id": "days",
+                "label": "Enough held-out days",
+                "passed": true,
+                "value": "2,546 days",
+                "rule": "At least 30 held-out days on which both sensors have a known coverage state."
+              },
+              {
+                "id": "level",
+                "label": "Total level close to MODIS",
+                "passed": false,
+                "value": "\u03a3 calibrated / \u03a3 MODIS = 2.69",
+                "rule": "Over the held-out days the summed estimate is between 0.8\u00d7 and 1.25\u00d7 the summed MODIS detections."
+              },
+              {
+                "id": "beats_unadjusted",
+                "label": "Daily totals better than unadjusted VIIRS",
+                "passed": true,
+                "value": "MAE 51.7 vs 104.0",
+                "rule": "Held-out daily-total MAE and RMSE below the raw VIIRS totals."
+              },
+              {
+                "id": "beats_constant",
+                "label": "Daily totals better than a constant",
+                "passed": false,
+                "value": "MAE 51.7 vs 53.9",
+                "rule": "Held-out daily-total MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+              }
+            ],
+            "label": "Calibrated totals are not validated for this configuration: the calibrated line is not drawn",
+            "note": "Unit-level results describe matched comparison units; a time series sums estimates over all events in the AOI, including events the model was not fitted on, so it needs its own check."
+          }
+        }
+      },
+      "label": "Kalimantan, Aqua\u2013S-NPP (the online demo region)"
+    },
+    "E": {
+      "config": {
+        "modis_platforms": [
+          "Aqua"
+        ],
+        "viirs_series": "VIIRS_SNPP",
+        "unit_grid": 0.1,
+        "tolerance_min": 30,
+        "metric": "frp_sum",
+        "unit_set": "matched",
+        "evidence_radius_deg": 5.0,
+        "test_fraction": 0.2,
+        "split_date": null
+      },
+      "filters": {
+        "start": "2012-01-20",
+        "end": "2026-11-14",
+        "platforms": [
+          "Terra",
+          "Aqua",
+          "N20",
+          "N21",
+          "SNPP"
+        ],
+        "modis_min_conf": 30,
+        "viirs_conf": [
+          "nominal",
+          "high"
+        ],
+        "types": [
+          "0"
+        ],
+        "daynight": [
+          "D",
+          "N"
+        ],
+        "aoi": "none",
+        "grid": 0.1
+      },
+      "seconds": 49.3,
+      "matching": {
+        "matched": 113567,
+        "candidate_pairs": 113567,
+        "ambiguous_candidates": 0,
+        "one_to_one": true,
+        "max_dt_within_tolerance": true,
+        "dt_percentiles_min": {
+          "10": 2.0,
+          "25": 6.0,
+          "50": 13.0,
+          "75": 23.0,
+          "90": 27.0,
+          "99": 30.0
+        },
+        "share_dt_at_least_two_thirds_tolerance": 0.32102635448677874
+      },
+      "coverage": {
+        "viirs_events": 1423050,
+        "modis_events": 306121,
+        "viirs_matched_share": 0.07980534766873967,
+        "modis_matched_share": 0.3709872893398362,
+        "viirs_unmatched_proxy_share": 0.38856259442746216,
+        "viirs_unmatched_no_evidence_share": 0.5316320579037982,
+        "status": "not_verified"
+      },
+      "validity": {
+        "status": "not_validated",
+        "label": "Not validated for application with this configuration",
+        "rules_version": "pyrosync-validity-1.0",
+        "checks": [
+          {
+            "id": "fitted",
+            "label": "Model fitted",
+            "passed": true,
+            "value": "fitted",
+            "rule": "At least 30 training and 10 held-out units, and a non-constant VIIRS value."
+          },
+          {
+            "id": "measurement",
+            "label": "Measurement eligible for application",
+            "passed": false,
+            "value": "FRP sum",
+            "rule": "Only detection counts may be applied. FRP sums are evaluated but never applied: on the full Indonesia archive the log-log model did not reduce held-out FRP errors (docs/HARMONIZATION_VALIDATION.md, run E)."
+          },
+          {
+            "id": "held_out_size",
+            "label": "Enough held-out units",
+            "passed": true,
+            "value": "22,795 units",
+            "rule": "At least 100 held-out units."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Better than unadjusted VIIRS",
+            "passed": false,
+            "value": "MAE 40.713 vs 40.759; RMSE 137.841 vs 113.686; |MBE| 24.098 vs 8.532",
+            "rule": "Held-out MAE, RMSE and |MBE| all lower than using the raw VIIRS value (M\u0302 = V)."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Better than a constant model",
+            "passed": true,
+            "value": "MAE 40.713 vs best constant 51.380; RMSE 137.841 vs best constant 158.539",
+            "rule": "Held-out MAE and RMSE both lower than the better of two constants fitted on the training period (MODIS mean, MODIS median), i.e. the VIIRS value adds information beyond the overall level."
+          },
+          {
+            "id": "slope",
+            "label": "VIIRS slope clearly positive",
+            "passed": true,
+            "value": "\u03b2 95 % CI lower bound 0.5986",
+            "rule": "Lower bound of the 95 % interval of \u03b2 above 0 (intervals are optimistic because units are correlated)."
+          }
+        ],
+        "scope": "Valid only for the AOI, dates, filters, sensor pair, grid, tolerance and unit set of this run. Calibrated values before the held-out period are in-sample. Satellite coverage is not verified, and MODIS is a reference scale, not ground truth.",
+        "applies_to": "Map estimates and time series in the Harmonization tab. The calendar, history, Explore map and Sensor Workbench always show original observations."
+      },
+      "leakage": {
+        "train_before_test": true,
+        "days_on_both_sides": 0,
+        "split": "2019-09-22",
+        "refit_without_later_data": {
+          "n_units": 90772,
+          "n_train_in_full_run": 90772,
+          "alpha": 1.5047260285660977,
+          "beta": 0.6030457444340457,
+          "alpha_full": 1.5047260285660977,
+          "beta_full": 0.6030457444340457,
+          "max_abs_coefficient_difference": 0.0
+        },
+        "embargo_after_split": {
+          "0": {
+            "n": 22795,
+            "calibrated": {
+              "mae": 40.71309878922,
+              "rmse": 137.84059261572153,
+              "mbe": -24.0976351163111
+            },
+            "unadjusted": {
+              "mae": 40.75923141039702,
+              "rmse": 113.68644403442464,
+              "mbe": -8.532330774292609
+            }
+          },
+          "30": {
+            "n": 20156,
+            "calibrated": {
+              "mae": 38.48477670765316,
+              "rmse": 129.06454311756207,
+              "mbe": -22.339613454898082
+            },
+            "unadjusted": {
+              "mae": 38.48244344115896,
+              "rmse": 106.17347954530217,
+              "mbe": -9.89703760666799
+            }
+          },
+          "90": {
+            "n": 18186,
+            "calibrated": {
+              "mae": 37.873779210608454,
+              "rmse": 129.96860946489323,
+              "mbe": -21.73087567879724
+            },
+            "unadjusted": {
+              "mae": 38.204484218629716,
+              "rmse": 107.29806827974812,
+              "mbe": -10.136937754316508
+            }
+          },
+          "365": {
+            "n": 16137,
+            "calibrated": {
+              "mae": 37.64009353038352,
+              "rmse": 130.3310282056762,
+              "mbe": -21.602674292485457
+            },
+            "unadjusted": {
+              "mae": 38.06190307987854,
+              "rmse": 108.04529498996096,
+              "mbe": -10.319980789489993
+            }
+          }
+        },
+        "constants_fitted_on": "training units only (see harmonize._calibrate)",
+        "smearing_applied": false
+      },
+      "metrics": {
+        "report": {
+          "calibrated": {
+            "mae": 40.71309878922,
+            "rmse": 137.84059261572153,
+            "mbe": -24.0976351163111,
+            "n": 22795
+          },
+          "unadjusted": {
+            "mae": 40.759231410397014,
+            "rmse": 113.68644403442464,
+            "mbe": -8.532330774292607,
+            "n": 22795
+          }
+        },
+        "recomputed": {
+          "calibrated": {
+            "mae": 40.71309878922,
+            "rmse": 137.84059261572153,
+            "mbe": -24.0976351163111
+          },
+          "unadjusted": {
+            "mae": 40.75923141039702,
+            "rmse": 113.68644403442464,
+            "mbe": -8.532330774292609
+          }
+        },
+        "max_abs_difference": 7.105427357601002e-15
+      },
+      "alternatives": {
+        "calibrated": {
+          "mae": 40.71309878922,
+          "rmse": 137.84059261572153,
+          "mbe": -24.0976351163111
+        },
+        "unadjusted": {
+          "mae": 40.75923141039702,
+          "rmse": 113.68644403442464,
+          "mbe": -8.532330774292609
+        },
+        "training_mean": {
+          "mae": 70.91209929021308,
+          "rmse": 158.53933698081315,
+          "mbe": 11.953578806605668
+        },
+        "training_median": {
+          "mae": 51.37960078964685,
+          "rmse": 162.28613942328604,
+          "mbe": -36.67366527747313
+        },
+        "ratio_model": {
+          "mae": 42.9824292506707,
+          "rmse": 116.1970432851361,
+          "mbe": -1.4093501183495618,
+          "ratio": 1.1257558763122553
+        }
+      },
+      "error_map_0.5deg_n20": {
+        "cells_validated": 305,
+        "cells_too_few": 589,
+        "cells_no_held_out": 408,
+        "held_out_units": 22795,
+        "held_out_units_in_validated_cells": 19027,
+        "share_in_validated_cells": 0.8347005922351393,
+        "overall_mae_cal": 40.71309878922,
+        "overall_mae_unadj": 40.759231410397014,
+        "validated_cells_mae_cal_range": [
+          8.587699492924814,
+          242.54621825387693
+        ],
+        "validated_cells_worse_than_unadjusted": 97
+      },
+      "label": "as A, FRP sum (MW)"
+    }
+  }
+}

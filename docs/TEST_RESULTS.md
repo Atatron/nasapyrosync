@@ -1,18 +1,19 @@
 # Test results
 
-Every result below was produced by actually running the tests on **2026-11-14** (version 1.1.0, after the harmonization upgrade) in the development container: Linux 6.18, 4 vCPU Intel Xeon @ 2.30 GHz, 15 GB RAM, Python 3.13.18, Node 22.23.4, Chromium via Playwright 1.63. Nothing is reported as passed unless it was executed.
+Every result below was produced by actually running the tests on **2026-11-14** (version 1.2.0, after adding the Harmonization tab) in the development container: Linux 6.18, 4 vCPU Intel Xeon @ 2.30 GHz, 15 GB RAM, Python 3.13.18, Node 22.23.4, Chromium via Playwright 1.63. Nothing is reported as passed unless it was executed.
 
 ## Summary
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit/integration (pytest) | `cd backend && ../.venv/bin/python -m pytest -v` | **90 passed, 0 failed** (8.6 s): the 68 earlier tests unchanged, plus 19 harmonization tests (`test_harmonize.py`), 1 file-name window test and 2 demo tests |
+| Backend unit/integration (pytest) | `cd backend && ../.venv/bin/python -m pytest -v` | **98 passed, 0 failed** (12.4 s): the 90 tests of 1.1 unchanged, plus 8 calibration tests (`test_calibration.py`: validity rules, map windows, error map, series and totals gate, API, original data unchanged) |
 | TypeScript type check | `cd frontend && npx tsc -b --noEmit` | **passed** (no errors) |
 | Production build | `cd frontend && npm run build` | **passed** |
-| Browser-level checks (Playwright) | `cd frontend && npm run e2e` | **14 of 14 passed** (the 13 original flows with unchanged results, plus flow 14 for harmonization), 0 uncaught page errors |
+| Browser-level checks (Playwright) | `cd frontend && npm run e2e` | **16 of 16 passed** in 1 min 36 s (flows 1–14 with unchanged results, plus flow 15 for the Harmonization tab and flow 16 checking that the original-data pages are unchanged), 0 uncaught page errors |
 | Fresh-copy start (macOS/Linux script) | `./scripts/start.sh` in a clean copy without `.venv` or `data` | **passed**: created .venv, installed the locked packages, served `/api/health` |
 | CLI import of the sample | `./scripts/import.sh sample_data/indonesia.zip`, twice | **passed**: 566,644 new rows, 0 rejected, revision 1. The second run gave 0 new, 566,644 duplicates, revision unchanged. |
 | CLI import of the full-history archive | `./scripts/import.sh indonesia_full_history.zip` | **passed**: 3,886 files, 10,917,537 rows, 0 rejected, 2000-11-01 → 2026-11-14, 526 s |
-| Harmonization validation runs | `python -m pyrosync.cli harmonize …` (11 configurations) | **completed**: results in [HARMONIZATION_VALIDATION.md](HARMONIZATION_VALIDATION.md) |
+| Harmonization validation runs | `python -m pyrosync.cli harmonize …` (11 configurations) | **completed** and regenerated for 1.2: every 1.1 number reproduced exactly (0 differences, only the validity section and the median-constant row added). Results in [HARMONIZATION_VALIDATION.md](HARMONIZATION_VALIDATION.md) |
+| Harmonization audit | `python -m pyrosync.cli harmonize-audit --out ../docs/harmonization/AUDIT` | **completed** on the full archive (runs A–E, 18–53 s each): [AUDIT.md](harmonization/AUDIT/AUDIT.md) |
 | Windows scripts (`start.bat`, `start.ps1`, `import.ps1`) | — | **Not executed**: no Windows machine was available. Written for Windows and reviewed, but unverified. |
 | Live FIRMS API with a real MAP_KEY | `GET /api/firms/availability` on the Vercel deployment (key stored as a sensitive server-side variable) | **Authenticated availability check passed** on 2026-11-14: FIRMS returned the date ranges of 12 products (e.g. MODIS_SP 2000-11-01 → 2026-08-31, VIIRS_SNPP_SP 2012-01-20 → 2026-07-31); the key did not appear in the response. A full Area-API download was not run, because downloads are disabled in the read-only demo and the development container cannot reach NASA. |
 | Live NASA GIBS tiles | — | **Not executed against NASA**: the container's network blocks NASA hosts. Tile URLs and date handling are verified by intercepting the requests. The DescribeDomains values were read from NASA during development via a separate fetch. |
@@ -42,13 +43,13 @@ All test fixtures are synthetic, labelled as such, and created in temporary dire
 
 ## Browser checks (actual output, final run)
 ```
-PASS  1. App launches and shows an honest empty state — backend 1.0.0 on http://127.0.0.1:8765; no data shown before import
+PASS  1. App launches and shows an honest empty state — backend 1.2.0 on http://127.0.0.1:8765; no data shown before import
 PASS  2. Sample import through the browser (upload → inspect → commit) — 566,644 observations, 2023-01-01 → 2024-12-31, revision 1
 PASS  3. Changing the AOI changes the results — VIIRS N20 detections 2023-09-15: Kalimantan 384, Sumatra 646, drawn rectangle 84; calendar re-queried for the new AOI
 PASS  4. Moving one day changes the fire query and labels — frame request date=2023-09-16 issued; label "Daily frame 2023-09-16 UTC"
 PASS  5. Clicking a calendar day selects that date everywhere — calendar click → shared date 2023-09-20; map label and timeline date input follow; next-month and year navigation work
 PASS  6. Changing the sensor updates dependent panels — elevated-period request and summary card switched to MODIS
-PASS  7. Imagery tile requests include the selected date — 24 tile requests, all with /default/YYYY-MM-DD/; followed 09-15 → 09-16
+PASS  7. Imagery tile requests include the selected date — 36 tile requests, all with /default/YYYY-MM-DD/; followed 09-15 → 09-16
 PASS  8. Unavailable imagery is not replaced by another day — unavailable notice shown, 0 tiles requested, label keeps 2023-09-15 (nearest-date only on explicit click)
 PASS  9. Rapid scrubbing never leaves stale results — settled on 2024-06-05; card 7 = API 7
 PASS  10. Re-importing the same sample leaves counts unchanged — total 566,644 and revision 1 unchanged
@@ -56,8 +57,10 @@ PASS  11. An additional file extends coverage with no code changes (SYNTHETIC TE
 PASS  12. CSV and GeoJSON downloads contain the filtered data — observations CSV 3180 rows (= API, window 09-09..09-15, type 0 only); grid 683 cells (= frame); AOI MultiPolygon
 PASS  13. Analysis works without external imagery or network — history/baseline/elevated rendered offline (12 elevated periods); explore shows 384 detections with imagery blocked
 PASS  14. Harmonization runs the three stages and matches the API — 5907 matched Aqua–N20 units; beta 0.196; held-out MAE 1.99 → 1.10
+PASS  15. Harmonization tab: stages, validation, map layers and error map match the API — 5907 matches; validity not_validated; map day 2024-09-15 MODIS 4 / VIIRS 651 (= daily series); 13 validated 0.5° regions; series totals not_validated
+PASS  16. Original-data pages are unchanged by the Harmonization tab — daily series and 12 elevated periods identical after harmonization requests; calendar, workbench panel and explore (384 N20 detections) still render
 
-14/14 browser checks passed.
+16/16 browser checks passed.
 ```
 During this whole run every non-localhost request is aborted, so the app is exercised offline. GIBS tiles in flows 7–8 are intercepted and answered locally.
 
@@ -71,8 +74,13 @@ During this whole run every non-localhost request is aborted, so the app is exer
 6. (1.1) Event numbering in harmonization used a window ordered only by time, so detections with identical timestamps could be assigned to the previous event. Ordering now includes the row id (`test_stage1_keeps_sensor_values_separate` caught it).
 7. (1.1) The scatter chart type was not registered with ECharts, which blanked the harmonization panel (browser flow 14 caught it).
 8. (1.1) The proxy-evidence search was a correlated subquery (52 s for Kalimantan on the full archive). It is now a time-bucketed join (1 s) with identical class counts.
+9. (1.2) Calibration runs were kept after an import, so a later request could use a run fitted on older data. They are now cleared on every cache invalidation (caught by the tests in `test_calibration.py`).
+10. (1.2) The daily-total test fixture had only 12 held-out days, below the 30-day minimum of the totals rule; the test now uses a 50 % hold-out so the rule can actually be exercised.
+11. (1.2) The map's layer label overlapped the zoom control and the totals table overflowed on narrow screens. Both fixed (checked in screenshots).
 
 ## Harmonization performance (full archive: 10,917,537 rows; same container, cold cache)
+In 1.2 the map, error-map and series requests reuse the run that produced the report. On the read-only demo database locally: Kalimantan run 7.5 s (36,893 matches), then map 0.1 s and series 0.7 s.
+
 | Run | Time |
 |---|---|
 | Kalimantan, Aqua–NOAA-20, 2023–2024 | 1.0 s |
