@@ -158,7 +158,7 @@ The repository can also be deployed to Vercel as a **read-only** demo with a fix
   - `deploy/blob/db/` holds that database as xz-compressed parts (153 MB in three files under GitHub's 100 MB limit) and `deploy/blob/manifest.json` their checksums. It is built with `--slim` (same columns blanked as above) and has the Indonesia national boundary membership precomputed, so the first Indonesia request does not have to test 8.8 million points on a small instance.
   - The Vercel build (`node deploy/blob/upload.mjs`) uploads any part that is not yet in the store and removes parts of earlier versions. A normal redeploy uploads nothing.
   - On a cold start the function downloads the parts, decompresses them into `/tmp` and checks the SHA-256 (`backend/pyrosync/remote_seed.py`). Measured on Vercel: about 18 s added to the first request on a new instance; later requests on that instance are normal.
-  - DuckDB is capped at 512 MB and 2 threads online (`PYROSYNC_DUCKDB_MEMORY`, `PYROSYNC_DUCKDB_THREADS` in `api/index.py`). Without the cap it sizes itself from the host and instances ran out of memory.
+  - DuckDB is capped at 1 GB and 2 threads online and spills larger work to `/tmp` (`PYROSYNC_DUCKDB_MEMORY`, `PYROSYNC_DUCKDB_THREADS` in `api/index.py`). Without the cap it sizes itself from the host and instances ran out of memory.
   - If no store is connected, or the download fails or takes longer than 40 s, the function uses the bundled database, and the banner says what it contains.
   - Each cold start reads about 153 MB from Blob, which counts against the Blob data-transfer allowance of the Vercel plan.
   - To set it up: in the Vercel dashboard open the project, then **Storage → Create → Blob**, connect it to the project, and redeploy.

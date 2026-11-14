@@ -95,6 +95,7 @@ def get_conn() -> duckdb.DuckDBPyConnection:
             if os.environ.get("PYROSYNC_DUCKDB_MEMORY"):
                 _conn.execute(f"SET memory_limit = '{os.environ['PYROSYNC_DUCKDB_MEMORY']}'")
                 _conn.execute("SET preserve_insertion_order = false")
+                _conn.execute(f"SET temp_directory = '{Path(path).parent / 'duckdb_tmp'}'")  # spill instead of failing
             if os.environ.get("PYROSYNC_DUCKDB_THREADS"):
                 _conn.execute(f"SET threads = {int(os.environ['PYROSYNC_DUCKDB_THREADS'])}")
             _init(_conn)
