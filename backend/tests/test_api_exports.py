@@ -47,7 +47,7 @@ def test_daily_export_matches_query(api):
     assert not any("union_detections" in c for c in rows[0].keys())
     m = json.loads(files["manifest.json"])
     assert m["dataset_revision"] == d["dataset_revision"]
-    assert m["filters"]["types"] == ["0"]
+    assert m["filters"]["types"] == ["0", "unknown"]
     assert "Not an official NASA application" in m["attribution"]
 
 

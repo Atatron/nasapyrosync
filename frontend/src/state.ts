@@ -85,7 +85,7 @@ export const useApp = create<AppState>((set, get) => ({
   platforms: ['Terra', 'Aqua', 'N20', 'N21', 'SNPP'],
   modisMinConf: 30,
   viirsConf: ['nominal', 'high'],
-  types: ['0'],
+  types: ['0', 'unknown'], // 1.3: FIRMS NRT rows carry no type column; excluding them would read recent weeks as zero
   daynight: ['D', 'N'],
   basemap: 'light',
   imagery: 'off',

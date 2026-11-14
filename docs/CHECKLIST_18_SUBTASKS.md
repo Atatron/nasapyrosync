@@ -62,3 +62,18 @@ Status values: **Implemented and verified** · **Implemented with an identified 
 | H8 | Link to historical analysis (P2) | **Implemented; calibrated line correctly withheld on the real data** | Original vs calibrated series with a second, daily-total gate. On the full archive no configuration passes (Σ calibrated / Σ MODIS 0.22–0.24 or 2.7–3.8), so only original series are drawn; calendar and history unchanged. Tests: `test_series_matches_daily_and_gates_totals`, `test_series_hides_calibrated_when_totals_fail`; flows 15–16. |
 | H9 | Audit of method and regression (P1) | **Done** | `harmonize-audit`: one-to-one matching, \|Δt\| within tolerance, coverage shares, no leakage (refit after deleting later data reproduces α, β exactly), metrics recomputed, alternatives (mean, median, ratio), FRP not claimed. [AUDIT.md](harmonization/AUDIT/AUDIT.md). |
 | H10 | Testing and documentation (P1) | **Done** | 98 backend tests, 16/16 browser flows (map, calendar, timeline, AOI, Workbench unchanged), live deployment check; [CHANGES_1.2.md](CHANGES_1.2.md), Methodology §16, validation report "Application". |
+
+## AOI Insights (added in 1.3)
+| ID | Item | Status | Evidence |
+|---|---|---|---|
+| I1 | AOI Insights tab with role presets (Early warning, Emergency responder, Land manager, Scientist, All) | **Implemented and verified** | `pages/InsightsPage.tsx`; browser flow 17 |
+| I2 | Fire regime and season tracker (A1, B4) | **Implemented and verified** | `insights.regime`; `test_regime_and_tracker`; full-archive check in TEST_RESULTS |
+| I3 | Unusual conditions: robust score, daily, weekly and per cell (B2) | **Implemented and verified** | `insights.anomaly`, `cell_anomaly`; hand-computed z test; guard-rail test |
+| I4 | Critical periods and readiness calendar (C1, C2) | **Implemented and verified** | `insights.critical`; hand-computed leave-one-year-out threshold test |
+| I5 | Recurrence map and hotspot exports (A2, E2) | **Implemented and verified** | `insights.recurrence`, `/api/export/hotspots.*`; tests and flow 17 |
+| I6 | Years, ENSO and IOD phases, analog years (D2, F2) | **Implemented and verified** | `climate.py` with checksummed NOAA files; `test_years_report_uses_noaa_phases`, `test_analog_groups_exclude_the_focus_year` |
+| I7 | Compare areas (F1) | **Implemented and verified** | `insights.compare_aois`; API test |
+| I8 | Status now from FIRMS NRT, on request only (D1) | **Implemented; verified with a mocked FIRMS** | `live.py`; NRT never stored, key never in responses; real FIRMS call not run from the container |
+| I9 | Printable bilingual briefing EN/ID (E1) | **Implemented and verified** | `components/InsightsBriefing.tsx`; flow 17 checks both languages and the disclaimer |
+| I10 | Method drawer, insights package, CLI, example notebook (G1, G4) | **Done** | `/api/export/insights.zip`, `cli insights`, `docs/notebooks/aoi_insights_api.ipynb` |
+| I11 | NRT rows without a type no longer read as zero (all tabs) | **Fixed** | Default type filter `0,unknown`; test and TEST_RESULTS |

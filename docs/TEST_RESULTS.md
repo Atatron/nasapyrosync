@@ -1,14 +1,14 @@
 # Test results
 
-Every result below was produced by actually running the tests on **2026-11-14** (version 1.2.0, after adding the Harmonization tab) in the development container: Linux 6.18, 4 vCPU Intel Xeon @ 2.30 GHz, 15 GB RAM, Python 3.13.18, Node 22.23.4, Chromium via Playwright 1.63. Nothing is reported as passed unless it was executed.
+Every result below was produced by actually running the tests on **2026-11-14** (version 1.3.0, after adding the AOI Insights tab) in the development container: Linux 6.18, 4 vCPU Intel Xeon @ 2.30 GHz, 15 GB RAM, Python 3.13.18, Node 22.23.4, Chromium via Playwright 1.63. Nothing is reported as passed unless it was executed.
 
 ## Summary
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit/integration (pytest) | `cd backend && ../.venv/bin/python -m pytest -v` | **98 passed, 0 failed** (12.4 s): the 90 tests of 1.1 unchanged, plus 8 calibration tests (`test_calibration.py`: validity rules, map windows, error map, series and totals gate, API, original data unchanged) |
+| Backend unit/integration (pytest) | `cd backend && ../.venv/bin/python -m pytest -v` | **112 passed, 0 failed** (18 s): the 98 tests of 1.2 (one assertion updated for the new default type filter), plus 14 AOI Insights tests (`test_insights.py`: regime and tracker, insufficient history, recurrence, critical periods and readiness with a hand-computed threshold, anomaly score with a hand-computed z, guard rail against count noise, cell anomaly, years and NOAA phases, analog groups exclude the focus year, climate file checksums, API/compare/exports, NRT rows without a type, demo refuses areas outside its data, near-real-time view with a mocked FIRMS: nothing stored, key not leaked) |
 | TypeScript type check | `cd frontend && npx tsc -b --noEmit` | **passed** (no errors) |
 | Production build | `cd frontend && npm run build` | **passed** |
-| Browser-level checks (Playwright) | `cd frontend && npm run e2e` | **16 of 16 passed** in 1 min 36 s (flows 1–14 with unchanged results, plus flow 15 for the Harmonization tab and flow 16 checking that the original-data pages are unchanged), 0 uncaught page errors |
+| Browser-level checks (Playwright) | `cd frontend && npm run e2e` | **17 of 17 passed** in 1 min 36 s (flows 1–16 with unchanged results, plus flow 17 for AOI Insights: role presets, honest "not enough history" on the short sample, no FIRMS request until asked, English and Indonesian briefing with the disclaimer, method drawer, hotspot and package exports), 0 uncaught page errors |
 | Fresh-copy start (macOS/Linux script) | `./scripts/start.sh` in a clean copy without `.venv` or `data` | **passed**: created .venv, installed the locked packages, served `/api/health` |
 | CLI import of the sample | `./scripts/import.sh sample_data/indonesia.zip`, twice | **passed**: 566,644 new rows, 0 rejected, revision 1. The second run gave 0 new, 566,644 duplicates, revision unchanged. |
 | CLI import of the full-history archive | `./scripts/import.sh indonesia_full_history.zip` | **passed**: 3,886 files, 10,917,537 rows, 0 rejected, 2000-11-01 → 2026-11-14, 526 s |
@@ -101,3 +101,14 @@ In 1.2 the map, error-map and series requests reuse the run that produced the re
 | `/api/export/daily.zip` | 0.019 s | 0.013 s |
 
 Timings are wall-clock from `curl` against the local server. Laptop results will differ.
+
+
+## AOI Insights (added in 1.3), checked on the full archive
+Run locally on the full-history database (2000-11-01 → 2026-11-14), read-only, Kalimantan, MODIS (Terra + Aqua), as of 2026-11-14:
+- Timings (first request, no cache): regime 1.6 s, anomaly (180 days) 0.2 s, recurrence 0.4 s, critical periods 0.4 s, years 0.1 s after the regime, compare Kalimantan + Sumatra 1.4–9.2 s. All are well inside the 60 s limit of the online demo.
+- Season tracker: 70,762 detections by 14 Nov 2026, higher than 25 of 25 reference years (median 13,866): "among the highest on record". The 2026 dry season was an El Niño season (mean ONI of JAS and ASO 2.31 °C, NOAA CPC).
+- **Defect found and fixed (affected 1.2 too):** FIRMS near-real-time area files have no `type` column, and the 1.2 default filter (type 0 only) dropped every NRT row, so every tab showed Kalimantan as having zero fire from 1 Sep 2026 (MODIS) and from 1 Aug 2026 (VIIRS); before the fix the tracker read "within the usual range". The default now includes "unknown/missing type" (Methodology §4, §17); `/api/daily` for 1–10 Sep 2026 now shows 3,084, 295, 1,631 … MODIS detections instead of zeros. Test: `test_nrt_rows_without_type_are_not_read_as_zero`.
+- Usual season (median of complete years): start 08 Jul, peak 05 Sep, end 10 Oct; busiest week 24–30 Sep. Readiness: 24–30 Sep held a critical day in 13 of 26 complete years.
+- Example notebook `docs/notebooks/aoi_insights_api.ipynb`: its code cells were executed as a script against this server and completed (tracker, anomaly, critical periods, analog years, recurrence, ZIP download). The notebook file itself is stored without outputs.
+- CLI `python -m pyrosync.cli insights --aoi region:kalimantan --series MODIS --as-of 2026-11-14` wrote the 9-file package.
+- **Not executed:** the "Status now" request against the real FIRMS API (the container cannot reach NASA); it is covered by a test with a mocked FIRMS response.

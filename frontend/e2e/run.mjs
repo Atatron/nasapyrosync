@@ -1,4 +1,4 @@
-// PyroSync browser-level checks (13 required flows + 1 harmonization flow added in v1.1).
+// PyroSync browser-level checks (13 required flows + harmonization flows added in v1.1/v1.2 + AOI Insights flow added in v1.3).
 //
 // Starts its OWN backend on 127.0.0.1:8765 with a fresh, temporary data directory, so it never
 // touches your real database. The only synthetic rows used (flow 11) are a clearly labelled
@@ -380,6 +380,51 @@ try {
     assert(det > 0, 'explore lost its detections')
     return `daily series and ${ela.periods.length} elevated periods identical after harmonization requests; calendar, workbench panel and explore (${det} N20 detections) still render`
   })
+
+  await check('17. AOI Insights: roles, honest "not enough history", no NRT call until asked, bilingual briefing, method drawer', async () => {
+    const nowCalls = []
+    page.on('request', (r) => { if (r.url().includes('/api/insights/now')) nowCalls.push(r.url()) })
+    await open(page, 'page=insights&aoi=region:kalimantan')
+    await page.getByRole('heading', { name: 'AOI Insights' }).waitFor({ timeout: 30000 })
+    const inv = await api('/api/inventory')
+    const last = inv.products.filter((p) => ['Terra', 'Aqua'].includes(p.platform)).map((p) => p.last_date).sort().pop()
+    const qs = `start=${last.slice(0, 4)}-01-01&end=${last}&aoi=region:kalimantan&platforms=Terra,Aqua&series=MODIS`
+    const reg = await api(`/api/insights/regime?${qs}&metric=detections`)
+    const tracker = page.locator('#ins-tracker')
+    await tracker.waitFor()
+    if (reg.available) {
+      await tracker.getByText(reg.tracker.status.band).first().waitFor({ timeout: 60000 })
+    } else {
+      await tracker.getByText('Not enough history').waitFor({ timeout: 60000 })
+      assert((await tracker.locator('canvas').count()) === 0, 'a tracker chart is drawn without enough history')
+    }
+    // role presets change the sections shown
+    await page.getByRole('button', { name: 'Land manager', exact: true }).click()
+    await page.locator('#ins-map').waitFor()
+    assert((await page.locator('#ins-now').count()) === 0, 'land manager view should not show the NRT section')
+    await page.getByRole('button', { name: 'Early warning', exact: true }).click()
+    await page.locator('#ins-now').waitFor()
+    await page.waitForTimeout(800)
+    assert(nowCalls.length === 0, 'FIRMS NRT was requested without pressing the button')
+    // briefing in both languages, always with the disclaimer
+    await page.getByRole('button', { name: /Briefing/ }).click()
+    const dlg = page.getByRole('dialog')
+    await dlg.getByText('Not a forecast, not a fire-danger rating and not an official warning').waitFor({ timeout: 30000 })
+    await dlg.getByRole('button', { name: 'Bahasa Indonesia' }).click()
+    await dlg.getByText('Bukan prakiraan, bukan peringkat bahaya kebakaran').waitFor()
+    await dlg.getByRole('button', { name: 'Tutup' }).click()
+    // method drawer and exports
+    await page.getByRole('button', { name: /Method & data/ }).click()
+    await page.getByText('python -m pyrosync.cli insights --aoi region:kalimantan').waitFor()
+    for (const f of ['csv', 'geojson', 'kml']) {
+      const r = await fetch(`${BASE}/api/export/hotspots.${f}?${qs}&top=50`)
+      assert(r.ok, `hotspots ${f} HTTP ${r.status}`)
+    }
+    const z = await fetch(`${BASE}/api/export/insights.zip?${qs}&metric=detections`)
+    assert(z.ok && (await z.arrayBuffer()).byteLength > 200, 'insights.zip missing')
+    return reg.available ? `tracker: ${reg.tracker.status.band}` : `sample history too short: "${reg.reason}" shown, nothing estimated; NRT not called; EN/ID briefing; exports OK`
+  })
+
 } finally {
   await browser.close()
   server.kill()

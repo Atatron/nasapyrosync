@@ -62,18 +62,34 @@ def _md(doy: float | None) -> str | None:
     return (date(2001, 1, 1) + timedelta(days=int(round(doy)) - 1)).strftime("%d %b")
 
 
-TYPE_NOTE = ("FIRMS near-real-time (NRT) rows carry no fire-type column. When presumed vegetation fire is selected, Insights keeps rows "
-             "without a type, so NRT periods are not read as zero fire; static sources and volcanoes cannot be removed from those rows.")
+TYPE_NOTE = ("FIRMS near-real-time (NRT) rows carry no fire-type column. The default filter keeps rows without a type ('unknown/missing "
+             "type'), so NRT periods are not read as zero fire; static sources and volcanoes cannot be removed from those rows.")
 
 
-def insight_types(types: list[str]) -> list[str]:
-    """FIRMS near-real-time area files carry no fire-type column, so their rows have a missing type. When presumed vegetation
-    fire (type 0) is selected, Insights also keeps rows WITHOUT a type, the same rule as the near-real-time view; otherwise the
-    whole NRT period would read as zero fire. Rows that HAVE a type are filtered exactly as selected."""
-    return sorted(set(types) | {"unknown"}) if "0" in types else list(types)
+def demo_scope_error(aoi_id: str) -> str | None:
+    """In the read-only demo, the database may hold only one AOI's observations (dataset_meta 'demo_subset') while coverage
+    intervals span the whole download. An AOI outside that subset would read as 'no fire', so Insights refuses it."""
+    import json
+    from . import aoi as A
+    from .config import get_settings
+    if not get_settings().readonly:
+        return None
+    with cursor() as cur:
+        row = cur.execute("SELECT value FROM dataset_meta WHERE key = 'demo_subset'").fetchone()
+    sub = json.loads(row[0]) if row else {}
+    if not sub.get("aoi_id"):
+        return None
+    G, g = A.get_geometry(sub["aoi_id"]), A.get_geometry(aoi_id)
+    if G is None or (g is not None and G.buffer(0.05).covers(g)):
+        return None
+    return (f"The online demo only holds observations for {sub.get('aoi') or sub['aoi_id']}; outside it the record would wrongly read as "
+            f"no fire. Choose that area or a province inside it, or run PyroSync locally with your own data.")
 
 
 def _history_filters(f: Filters, series: str) -> Filters:
+    err = demo_scope_error(f.aoi)
+    if err:
+        raise ValueError(err)
     inv = inventory()
     if not inv["date_range"]:
         raise ValueError("no data imported")
@@ -81,7 +97,7 @@ def _history_filters(f: Filters, series: str) -> Filters:
     plats = [p for p in f.platforms if N.PLATFORM_SERIES[p] == series]
     if not plats:
         raise ValueError(f"series '{series}' is not selected by the current platform filter")
-    return f.model_copy(update={"start": min(lo, f.end), "end": f.end, "platforms": plats, "types": insight_types(f.types)})
+    return f.model_copy(update={"start": min(lo, f.end), "end": f.end, "platforms": plats})
 
 
 def _history(f: Filters, series: str, metric: str):
@@ -534,7 +550,7 @@ def _cell_anomaly(f: Filters, series: str, limit: int) -> dict:
         return envelope(f, {"metric": "detections"}, available=False, cells=[],
                         reason=f"Insufficient history: {len(ref_years)} earlier year(s) with ≥ 80 % known days in this window; {MIN_YEARS} are needed.", **base)
     plats = [p for p in f.platforms if N.PLATFORM_SERIES[p] == series]
-    hs = f.model_copy(update={"platforms": plats, "types": insight_types(f.types)})
+    hs = f.model_copy(update={"platforms": plats})
     ci, cj, _ = cell_sql(f.grid)
     parts, params = [], []
     for y in ref_years + [f.end.year]:
@@ -604,7 +620,7 @@ def _years_report(f: Filters, series: str, metric: str) -> dict:
     for dim, keyname in (("enso", ("El Niño", "neutral", "La Niña")), ("iod", ("positive", "neutral", "negative"))):
         g = []
         for k in keyname:
-            xs = [r for r in er if r[dim] == k]
+            xs = [r for r in er if r[dim] == k and not r["is_focus"]]  # analog years are PAST years: the focus year is excluded
             g.append({"phase": k, "n_years": len(xs), "years": [r["year"] for r in xs],
                       "median_total": float(np.median([r["total"] for r in xs])) if xs else None,
                       "median_peak_season": float(np.median([r["peak_season_total"] for r in xs])) if xs else None,
@@ -646,6 +662,11 @@ def compare_aois(f: Filters, aois: list[str], series: str, metric: str = "detect
             raise ValueError("every compared area must be a region or a drawn/uploaded AOI")
         fa = f.model_copy(update={"aoi": a})
         area = _area_km2(g)
+        err = demo_scope_error(a)
+        if err:
+            out.append({"aoi": a, "name": A.describe(a)["name"], "area_km2": round(area, 1), "small_area": area < 1000,
+                        "regime_available": False, "reason": err})
+            continue
         reg = regime(fa, series, metric)
         rec = recurrence(fa, series)
         cri = critical(fa, series, metric)

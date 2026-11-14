@@ -73,6 +73,7 @@ Copy `.env.example` to `.env` and set `FIRMS_MAP_KEY=` to your key ([request one
 
 ## 4. Using the app (where things are)
 - **Explore**: the map with grid cells or individual detections, the timeline (prev/next, play, speed, date picker, scrubber, daily/7-day/30-day window, histogram), summary cards and the details panel. The map always shows two separate labels, "Fire observations: [window] UTC" and "Satellite imagery: [date], [product]".
+- **AOI Insights** (since 1.3): for the selected area of interest and ONE sensor series, choose a role (*Early warning*, *Emergency responder*, *Land manager*, *Scientist* or *All sections*) and an "as of" day. Sections: **Status now** (last 10 days of FIRMS near-real-time data, fetched only when you press the button and never stored), **Season tracker** (this year's cumulative detections against the 10th–90th percentile of past complete years), **Fire regime** (usual season start, peak and end, busiest week, year-to-year variability), **Unusual conditions** (daily and weekly robust scores against earlier years), **Critical periods and readiness calendar**, **Map** (recurrence of fire per cell, or unusual cells in the last 7/30/90 days, with hotspot CSV/GeoJSON/KML), **Years and climate background** (ENSO/IOD phases from NOAA, analog years) and **Compare areas**. *Briefing (EN / ID)* opens a printable one-page summary in English or Bahasa Indonesia; *Method & data* has the rules, the ZIP package and the CLI command. It describes past detections: not a forecast, a fire-danger rating or an official warning.
 - **Burning Calendar**: a month grid with keyboard navigation, month/year navigation, a year overview and ISO-week heatmaps. Clicking a day selects it everywhere.
 - **Historical Patterns**: monthly, seasonal and annual summaries; a 2023-vs-2024 comparison; baseline eligibility; rankings; elevated periods with editable rules.
 - **Harmonization** (since 1.2): one page that follows *choose region → compare sensors → harmonize → evaluate errors → view on map → historical patterns*. Pick the VIIRS sensor, MODIS platform, tolerance, grid and measurement, press *Run harmonization*, then read the three stages, the validation checks (against unadjusted VIIRS and against constant models), and the map with five layers: Original MODIS, Original VIIRS, **Experimental calibrated** (MODIS-scale estimates on the grid, only for runs that pass the rules), Matching (pairs and |Δt|) and **Calibration error** (held-out MAE per region, with a minimum sample size and unvalidated regions marked). The original-vs-calibrated series draws the calibrated line only if it also passes a held-out daily-total check. The other pages always show original observations.
@@ -90,6 +91,13 @@ cd backend
 ```
 It writes `report.md`, `report.json` and `units.csv`. See Methodology §15 for the method and what the results do and do not mean.
 
+### AOI Insights from the command line or a notebook
+```bash
+cd backend
+../.venv/bin/python -m pyrosync.cli insights --aoi region:kalimantan --series MODIS --as-of 2026-11-14 --out ../insights_kalimantan
+```
+It writes the same package as *Method & data → Download the insights package* (JSON and CSV for the regime, critical periods, years and recurrence, a manifest and a README). [docs/notebooks/aoi_insights_api.ipynb](docs/notebooks/aoi_insights_api.ipynb) shows the same numbers through the API. Method: Methodology §17.
+
 ## 5. Troubleshooting
 | Symptom | Fix |
 |---|---|
@@ -104,7 +112,7 @@ It writes `report.md`, `report.json` and `units.csv`. See Methodology §15 for t
 | Windows blocks `start.bat` | Right-click → Properties → Unblock, or run `powershell -ExecutionPolicy Bypass -File scripts\start.ps1`. |
 
 ## 6. Upgrading PyroSync itself
-Earlier versions are kept on GitHub branches: **`legacy-v1`** (1.0.0) and **`legacy-v1.1`** (1.1.0, before the Harmonization tab). To go back: `git checkout legacy-v1.1` (or `legacy-v1`); your `data/` folder and `.env` are not affected. Versions 1.1 and 1.2 only add code, endpoints, a panel and a tab; they do not change stored data. Changes are listed in [docs/CHANGES_1.1.md](docs/CHANGES_1.1.md) and [docs/CHANGES_1.2.md](docs/CHANGES_1.2.md).
+Earlier versions are kept on GitHub branches: **`legacy-v1`** (1.0.0), **`legacy-v1.1`** (1.1.0, before the Harmonization tab) and **`legacy-v1.2`** (1.2.0, before AOI Insights). To go back: `git checkout legacy-v1.2` (or `legacy-v1.1`, `legacy-v1`); your `data/` folder and `.env` are not affected. Versions 1.1 to 1.3 add code, endpoints, a panel and tabs; they do not change stored data. 1.3 also changes the default type filter so FIRMS near-real-time rows (which have no type column) are no longer dropped. Changes are listed in [docs/CHANGES_1.1.md](docs/CHANGES_1.1.md), [docs/CHANGES_1.2.md](docs/CHANGES_1.2.md) and [docs/CHANGES_1.3.md](docs/CHANGES_1.3.md).
 
 1. Stop the server. Back up the `data/` folder, which holds your database, reports and raw copies.
 2. Replace the program files with the new version, but keep `data/` and `.env`.
@@ -125,13 +133,13 @@ data/                created on first run: database, reports, raw copies, caches
 
 ## 8. Running the tests
 ```bash
-cd backend && ../.venv/bin/python -m pytest -q          # backend: 98 tests
-cd frontend && npm ci && npm run build && npm run e2e    # browser: 16 flows (needs Node + Playwright Chromium)
+cd backend && ../.venv/bin/python -m pytest -q          # backend: 112 tests
+cd frontend && npm ci && npm run build && npm run e2e    # browser: 17 flows (needs Node + Playwright Chromium)
 ```
 The browser checks start their own server on port 8765 with a temporary data folder, so they never touch your database. See [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
 
 ## 9. Documentation
-- [docs/METHODOLOGY.md](docs/METHODOLOGY.md): methods, definitions, sources and limitations (§15: harmonization, §16: Harmonization tab and validity rules)
+- [docs/METHODOLOGY.md](docs/METHODOLOGY.md): methods, definitions, sources and limitations (§15: harmonization, §16: Harmonization tab and validity rules, §17: AOI Insights)
 - [docs/HARMONIZATION_VALIDATION.md](docs/HARMONIZATION_VALIDATION.md): harmonization results on the full archive, with per-run reports in `docs/harmonization/` and the generated audit in `docs/harmonization/AUDIT/`
 - [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md): stored fields, export columns and API metrics
 - [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md): what was run and the actual results

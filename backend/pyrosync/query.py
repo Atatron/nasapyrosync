@@ -35,7 +35,7 @@ class Filters(BaseModel):
     platforms: list[str] = Field(default_factory=lambda: list(ALL_PLATFORMS))
     modis_min_conf: int = Field(30, ge=0, le=100)
     viirs_conf: list[Literal["low", "nominal", "high"]] = Field(default_factory=lambda: ["nominal", "high"])
-    types: list[str] = Field(default_factory=lambda: ["0"])
+    types: list[str] = Field(default_factory=lambda: ["0", "unknown"])  # 1.3: NRT rows have no type column; see METHODOLOGY §17
     daynight: list[Literal["D", "N"]] = Field(default_factory=lambda: ["D", "N"])
     aoi: str = "none"
     grid: float = 0.1

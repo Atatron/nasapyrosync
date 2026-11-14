@@ -83,7 +83,7 @@ function FilterPanel({ inventory, onClose }: { inventory?: Inventory | null; onC
       </div>
       <div>
         <div className="label mb-1">Detection type <Info>FIRMS type codes (MODIS/VIIRS user guides): 0 presumed vegetation fire, 1 active volcano, 2 other static land source, 3 offshore. NRT files may lack a type (shown as unknown). Excluded types are disclosed on every derived result.</Info></div>
-        {[['0', 'Presumed vegetation fire (0)'], ['1', 'Active volcano (1)'], ['2', 'Other static land source (2)'], ['3', 'Offshore (3)'], ['unknown', 'Unknown / missing type']].map(([v, l]) => (
+        {[['0', 'Presumed vegetation fire (0)'], ['1', 'Active volcano (1)'], ['2', 'Other static land source (2)'], ['3', 'Offshore (3)'], ['unknown', 'Unknown / missing type (FIRMS NRT has no type column)']].map(([v, l]) => (
           <label key={v} className="flex items-center gap-2 py-0.5"><input type="checkbox" checked={s.types.includes(v)} onChange={() => s.set({ types: toggle(s.types, v) })} />{l}</label>
         ))}
       </div>
