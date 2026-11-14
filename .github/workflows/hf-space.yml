@@ -27,6 +27,8 @@ jobs:
           python - <<'PY'
           import os
           from huggingface_hub import HfApi
+          if not os.environ.get("HF_TOKEN"):
+              raise SystemExit("HF_TOKEN is not set: add a Hugging Face WRITE token as a GitHub Actions secret named HF_TOKEN, then re-run.")
           api = HfApi(token=os.environ["HF_TOKEN"])
           repo = os.environ.get("HF_SPACE") or f"{api.whoami()['name']}/pyrosync"
           api.create_repo(repo, repo_type="space", space_sdk="docker", exist_ok=True)
