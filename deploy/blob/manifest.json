@@ -1,5 +1,5 @@
 {
-  "about": "PyroSync archive for the Vercel demo: all five satellites, 2000-2026, slim columns, with the Indonesia boundary membership precomputed. Generated from the files in deploy/blob/db; the Vercel build uploads these parts to Vercel Blob and the function downloads them.",
+  "about": "PyroSync archive for the Vercel demo: all five satellites, 2000-2026, slim columns, with the Indonesia boundary membership precomputed. Generated from the files in deploy/blob/db; the Vercel build uploads these parts to Vercel Blob and the function downloads them. Since 2026-11-15 the parts are downloaded from the public mirror in base_url (GitHub, Atatron/pyrosync-data, pinned to a commit), because the Hobby Blob store was blocked after exceeding its monthly transfer; Blob stays as the fallback.",
   "prefix": "pyrosync-full/77b3e43532a607fe/",
   "db_sha256": "77b3e43532a607fef56d014918554d527f6971984b269ab6a0e318bd60683ef9",
   "db_bytes": 352071680,
@@ -20,5 +20,6 @@
       "bytes": 6580376,
       "sha256": "18690622d581155f0bcead3832f77beea1a51e2b464d478257e673d0d1eb82e1"
     }
-  ]
+  ],
+  "base_url": "https://raw.githubusercontent.com/Atatron/pyrosync-data/c35a1187377f8bf567bc32126c74c9b50a26c5fb/77b3e43532a607fe/"
 }
