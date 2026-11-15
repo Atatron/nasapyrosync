@@ -132,7 +132,7 @@ def daily_platform_arrays(f: Q.Filters) -> dict:
     rev = get_revision()
 
     def compute():
-        d = Q.daily(rf)
+        d = Q.daily_counts(rf)
         nd = len(d["dates"])
         dates = [rf.start + timedelta(days=i) for i in range(nd)]
         recs = platform_records()
@@ -141,19 +141,16 @@ def daily_platform_arrays(f: Q.Filters) -> dict:
         K: dict[str, np.ndarray] = {}
         for p in PLATFORMS:
             ser = N.PLATFORM_SERIES[p]
-            s = d["series"].get(ser)
-            if s is None or p not in recs:
+            sts = d["status"].get(ser)
+            if sts is None or p not in recs:
                 X[p] = np.zeros(nd)
                 K[p] = np.zeros(nd, bool)
                 continue
-            if ser == "MODIS":
-                X[p] = np.array(s["terra" if p == "Terra" else "aqua"], dtype=float)
-            else:
-                X[p] = np.array(s["detections"], dtype=float)
+            X[p] = np.array(d["platforms"][p], dtype=float)
             a, b = recs[p]
             g = gaps.get(p, set())
             K[p] = np.array([st in ("detections", "zero_reported") and a <= dd <= b and dd not in g
-                             for st, dd in zip(s["status"], dates)])
+                             for st, dd in zip(sts, dates)])
             X[p][~K[p]] = 0.0
         return {"dates": dates, "X": X, "K": K, "filters": rf}
     return cache.get_or_compute(cache.make_key("fusion_arrays", rev, model_key(f)), compute)

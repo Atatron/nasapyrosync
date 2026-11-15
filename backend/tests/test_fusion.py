@@ -332,3 +332,15 @@ def test_unexpected_error_is_json_and_redacted(env, monkeypatch, caplog):
     line = " ".join(rec.getMessage() for rec in caplog.records if "pyrosync 500" in rec.getMessage())
     assert "RuntimeError" in line and "[redacted]" in line and "SYNTHETICKEY" not in line
     assert API._redact("x SYNTHETICKEY0123456789 y") == "x [redacted] y"
+
+
+def test_daily_counts_matches_daily(built):
+    """The lean per-platform query used by the fusion gives exactly the detections and statuses of `query.daily`."""
+    f = F()
+    d, c = Q.daily(f), Q.daily_counts(f)
+    assert [x.isoformat() for x in c["dates"]] == d["dates"]
+    for s in f.series:
+        tot = [sum(c["platforms"][p][i] for p in f.platforms if Q.N.PLATFORM_SERIES[p] == s) for i in range(len(c["dates"]))]
+        assert tot == d["series"][s]["detections"], s
+        assert c["status"][s] == d["series"][s]["status"], s
+    assert c["platforms"]["Aqua"] == d["series"]["MODIS"]["aqua"] and c["platforms"]["Terra"] == d["series"]["MODIS"]["terra"]

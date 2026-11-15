@@ -369,6 +369,33 @@ def _daily(f: Filters) -> dict:
                     series_labels={s: N.SERIES_LABEL[s] for s in series_keys}, status_doc=STATUS_DOC, grid_doc=GRID_DOC)
 
 
+
+def daily_counts(f: Filters) -> dict:
+    """Lean per-platform daily detection counts with the per-series day status of `daily` (same filters, same status
+    rules), without cells, FRP or medians. Used by the 1.5 fusion over the whole record, where the full `daily` query
+    would need far more memory (the read-only demo has only a small temp space)."""
+    rev = get_revision()
+    return cache.get_or_compute(cache.make_key("daily_counts", rev, f.key()), lambda: _daily_counts(f))
+
+
+def _daily_counts(f: Filters) -> dict:
+    sql, params = filtered_sql(f)
+    with cursor() as cur:
+        rows = cur.execute(f"SELECT acq_date, platform, count(*) FROM ({sql}) o GROUP BY ALL", params).fetchall()
+    ndays = (f.end - f.start).days + 1
+    dates = [f.start + timedelta(days=i) for i in range(ndays)]
+    idx = {d: i for i, d in enumerate(dates)}
+    plat = {p: [0] * ndays for p in f.platforms}
+    for d, p, n in rows:
+        if p in plat:
+            plat[p][idx[d]] = n
+    ctx = coverage_context(f)
+    status = {}
+    for s in f.series:
+        tot = [sum(plat[p][i] for p in f.platforms if N.PLATFORM_SERIES[p] == s) for i in range(ndays)]
+        status[s] = [day_status(ctx, s, d, tot[i] > 0)[0] for i, d in enumerate(dates)]
+    return {"dates": dates, "platforms": plat, "status": status}
+
 METRICS = {
     "detections": "Raw detection count: number of FIRMS active-fire records passing the filters (per sensor/platform). "
                   "A detection is not a separate fire event and not burned area.",
