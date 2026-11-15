@@ -15,7 +15,7 @@ Method: [MULTISENSOR_FUSION.md](MULTISENSOR_FUSION.md).
 | File | Purpose |
 |---|---|
 | `backend/pyrosync/fusion.py` | Platform records and gap days, the per-platform daily arrays, pairwise 1.4 ratios against Aqua, the fused series, the leave-reference-out validation (hold-out, rolling origin, high-fire, monthly, seasonal, transitions, missing data), the gate, effective coefficients and status, series, `daily_like`, map cells, regional check, reports, and the reference override used only by the CLI sensitivity run |
-| `backend/tests/test_fusion.py` | 13 tests on SYNTHETIC TEST FIXTURES (software behaviour only, no scientific claim) |
+| `backend/tests/test_fusion.py` | 15 tests on SYNTHETIC TEST FIXTURES (software behaviour only, no scientific claim) |
 | `frontend/src/fusion.ts`, `frontend/src/components/FusionParts.tsx` | Fusion types, the status pill, banner, history chart and diagnostics panel |
 | `docs/MULTISENSOR_FUSION.md`, `docs/SCIENTIFIC_REFERENCES.md`, `docs/CHANGES_1.5.md` | Documentation |
 | `docs/harmonization/FUSION/` | Generated real-data reports: runs N (Indonesia), K (Kalimantan), S (Sumatra) and T (Terra as reference, sensitivity), each with 0.5°, 1° and 2° regional checks |
@@ -23,9 +23,9 @@ Method: [MULTISENSOR_FUSION.md](MULTISENSOR_FUSION.md).
 ## Changed
 | File | Change |
 |---|---|
-| `backend/pyrosync/api.py` | New: `/api/fusion`, `/api/fusion/series`, `/api/fusion/map`, `/api/fusion/regions`, `/api/export/fusion.zip`, `/api/daily?fused=true`. The series parameter accepts `FUSED`, and `/api/insights/now` refuses it with 422 |
+| `backend/pyrosync/api.py` | New: `/api/fusion`, `/api/fusion/series`, `/api/fusion/map`, `/api/fusion/regions`, `/api/export/fusion.zip`, `/api/daily?fused=true`. The series parameter accepts `FUSED`, and `/api/insights/now` refuses it with 422. Unexpected errors return a JSON 500 with a reference id and log one redacted line (no FIRMS key or Blob token) |
 | `backend/pyrosync/aoi.py` | `circle:<lat>,<lon>,<radius_km>` AOIs: parsing, validation, canonical id and geodesic polygon |
-| `backend/pyrosync/query.py` | 0.25° grid |
+| `backend/pyrosync/query.py` | 0.25° grid; `daily_counts`, a lean per-platform daily count used by the fusion (avoids running out of DuckDB temp space on the read-only demo) |
 | `backend/pyrosync/analysis.py`, `insights.py`, `normalize.py` | `FUSED` as a detections-only series for weeks, rankings, comparison, baseline, elevated periods and AOI Insights. Insights cell maps use the Aqua reference |
 | `backend/pyrosync/exports.py` | `fusion_zip`: report JSON and Markdown, fused daily CSV, manifest |
 | `backend/pyrosync/cli.py` | `harmonize-fusion` command |
@@ -53,7 +53,7 @@ Method: [MULTISENSOR_FUSION.md](MULTISENSOR_FUSION.md).
 | P0 Region AOI, drawn polygons, GeoJSON upload, shared links preserved | Done: flows 3 and 19 |
 | P0 FIRMS-style popup with "Analyze around this detection"; missing fields shown as unavailable | Done |
 | P0 shareable URL state | Done: circle and view restored in a fresh page (flow 19) |
-| P0 regression tests | Done: backend 135/135, browser 20/20 |
+| P0 regression tests | Done: backend 137/137, browser 20/20 |
 | P1 four main destinations, advanced tools kept | Done |
 | P1 performance (debounce, caching, stale requests) | Done: 300 ms debounced map moves, server cache keyed by revision, aborted stale map requests, a viewport bbox for fine grids |
 | P1 reproducible HTTP 500s | None found: a sweep of 2,320 requests on the full archive returned no 5xx |

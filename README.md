@@ -137,7 +137,7 @@ data/                created on first run: database, reports, raw copies, caches
 
 ## 8. Running the tests
 ```bash
-cd backend && ../.venv/bin/python -m pytest -q          # backend: 135 tests
+cd backend && ../.venv/bin/python -m pytest -q          # backend: 137 tests
 cd frontend && npm ci && npm run build && npm run e2e    # browser: 20 flows (needs Node + Playwright Chromium)
 ```
 The browser checks start their own server on port 8765 with a temporary data folder, so they never touch your database. See [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
