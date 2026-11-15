@@ -13,8 +13,11 @@ export function AoiSelect({ regions, id = 'aoi-select' }: { regions: Region[]; i
     <select id={id} className="field w-auto max-w-[190px]" value={aoi} aria-label="Area of interest"
       onChange={(e) => { const v = e.target.value; if (v.startsWith('circle:')) set({ aoi: v }); else set({ aoi: v, analyzeMode: 'region', clickAt: '', lastRegionAoi: v }) }}>
       <option value="none">All imported observations (no AOI)</option>
-      <optgroup label="Named regions (boundaries)">
-        {regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+      <optgroup label="Country and islands">
+        {regions.filter((r) => r.kind !== 'province').map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+      </optgroup>
+      <optgroup label={`Provinces (${regions.filter((r) => r.kind === 'province').length})`}>
+        {regions.filter((r) => r.kind === 'province').map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
       </optgroup>
       {custom && <option value={aoi}>Custom AOI (drawn/uploaded)</option>}
       {circle && <option value={aoi}>Click-to-Analyze circle ({aoi.split(',')[2]} km)</option>}

@@ -37,3 +37,18 @@ cache headers (see "Speed" below). The backend still reports version 1.5.0.
 
 Backend Python, ingestion, harmonization/fusion math, query logic, the seven page ids of the hash, dataset hooks, and
 every number shown. `git diff backup/ui-1.6 -- backend` is empty.
+
+## 1.7.1: all 38 provinces in the area list
+
+* The area selector now lists all 38 Indonesian provinces, including North Kalimantan and the 2022 Papua provinces
+  (South, Central and Highland Papua, Southwest Papua), under "Provinces (38)". Indonesia, Sumatra and Kalimantan stay
+  under "Country and islands" with unchanged boundaries, so their numbers do not change.
+* Province outlines come from Badan Informasi Geospasial (BIG), via github.com/ardian28/GeoJson-Indonesia-38-Provinsi
+  (MIT). Each province is trimmed to the Natural Earth national outline and simplified at 0.002°, so no detection is
+  counted in two provinces and no province reaches outside Indonesia. `tools/build_regions38.py` rebuilds the file.
+* Checked on the full archive: 0 detections in two provinces, 0 outside the Indonesia boundary, and 8,763,495 of the
+  8,779,400 Indonesia detections (99.8 %) fall in a province; the rest sit in small coastal gaps.
+* The 7 provinces that were already listed (Riau, Jambi, South Sumatra, four in Kalimantan) keep their ids, so shared
+  links still work, but their outlines now follow BIG, so their totals shift slightly. East Kalimantan no longer
+  includes North Kalimantan.
+* Only data file changed in the backend: `backend/pyrosync/resources/regions.geojson`. No Python code or math changed.

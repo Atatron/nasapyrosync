@@ -389,7 +389,7 @@ export function Methods() {
         </ul>
         <h3>Boundaries</h3>
         <ul>
-          <li>Named regions use Natural Earth 1:10m admin-0/admin-1 boundaries (public domain), simplified at 0.002°. Sumatra = 8 provinces; Kalimantan = Indonesian Borneo provinces as delineated by Natural Earth. Points on an AOI boundary are included. Antimeridian-crossing AOIs are rejected.</li>
+          <li>Indonesia, Sumatra and Kalimantan use Natural Earth 1:10m admin-0/admin-1 boundaries (public domain), simplified at 0.002°. Sumatra = 8 provinces; Kalimantan = Indonesian Borneo provinces as delineated by Natural Earth. The 38 provinces (including the 2022 Papua provinces and North Kalimantan) use Badan Informasi Geospasial (BIG) boundaries, trimmed to the Natural Earth national outline so province totals never exceed the Indonesia total, and simplified at 0.002°. Points on an AOI boundary are included. Antimeridian-crossing AOIs are rejected.</li>
           <li>The imported extent (≈ lon 94.27–142.0, lat −12.0–7.0) is a download bounding box broader than Indonesia; "All imported observations" is not "Indonesia".</li>
         </ul>
         <h3>Sources</h3>

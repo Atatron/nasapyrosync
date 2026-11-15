@@ -434,7 +434,7 @@ function CompareSection({ asOf, regions }: { asOf: ISODate; regions: Region[] })
     <Panel title={SECTION_LABEL.compare} info={<>The same measures for up to six areas, each with its own history and thresholds. Detections per 1,000 km² use an approximate area. Critical days
       compare how often an area exceeds its OWN high-activity level, not absolute activity.</>}>
       <div className="space-y-3">
-        <fieldset className="flex flex-wrap gap-2 text-[12px]"><legend className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Compare the current area with…</legend>
+        <fieldset className="flex max-h-40 flex-wrap gap-2 overflow-auto text-[12px]"><legend className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Compare the current area with…</legend>
           {others.map((r) => <label key={r.id} className="flex items-center gap-1 rounded border border-line px-2 py-1">
             <input type="checkbox" checked={ins.compare.includes(r.id)} onChange={() => toggle(r.id)} />{r.name}</label>)}
         </fieldset>
