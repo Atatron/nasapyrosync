@@ -152,3 +152,12 @@ def test_api_endpoints_zip_and_original_data_unchanged(env):
     assert any(n.endswith("aggregate_report.json") for n in names) and any(n.endswith("AGGREGATE_REPORT.md") for n in names)
     cache.invalidate()
     assert Q.daily(F())["series"] == before["series"]
+
+
+def test_missing_viirs_series_gives_insufficient_gate(env):
+    # SYNTHETIC: the fixture has no NOAA-20 rows, as on a deployment whose database lacks that satellite
+    _build(env)
+    cfg = H.HarmonizeConfig(viirs_series="VIIRS_N20", modis_platforms=["Aqua"])
+    s = A.series(F(platforms=["Aqua", "N20"]), cfg, "month", "detections")
+    assert s["gate"]["status"] == "insufficient" and s["gate"]["checks"]
+    assert s["calibrated"] is None

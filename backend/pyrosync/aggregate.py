@@ -169,8 +169,12 @@ def _evaluate(arr: dict, q: str, split: date | None, event_pred: dict | None) ->
     out["c"] = cval
     out["status"] = "ok" if cval is not None and te.sum() > 0 else "insufficient"
     if out["status"] != "ok":
-        out["reason"] = (f"Needs at least {MIN_TRAIN_DAYS} training days with known coverage of both sensors and VIIRS activity, "
-                         f"and held-out days; got {int(tr.sum())} training and {int(te.sum())} held-out days.")
+        if tr.sum() >= MIN_TRAIN_DAYS and te.sum() > 0 and float(V[tr].sum()) <= 0:
+            out["reason"] = "No VIIRS detections on the training days for these filters, so the ratio cannot be fitted."
+        else:
+            out["reason"] = (f"Needs at least {MIN_TRAIN_DAYS} training days with known coverage of both sensors and VIIRS activity, "
+                             f"and held-out days; got {int(tr.sum())} training and {int(te.sum())} held-out days.")
+        out["gate"] = gate(out)
         return out
     out["bootstrap"] = bootstrap_ratio(M, V, tr, dates)
     o = M[te]

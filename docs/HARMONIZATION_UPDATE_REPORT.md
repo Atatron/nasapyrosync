@@ -96,7 +96,7 @@ See [`CHANGES_1.4.md`](CHANGES_1.4.md) for the full list. Added: `backend/pyrosy
 
 ## 8. Test methodology
 
-- **Backend unit tests** (`test_aggregate.py`, 5 tests on labelled SYNTHETIC TEST FIXTURES covering five years) check:
+- **Backend unit tests** (`test_aggregate.py`, 6 tests on labelled SYNTHETIC TEST FIXTURES covering five years) check:
   - c = ΣM/ΣV on training days only;
   - the gate passes on a stable relation;
   - doubling MODIS after the split leaves c and the split **identical** (no leakage), while the gate fails on the level check and no line or band is drawn;
@@ -106,7 +106,7 @@ See [`CHANGES_1.4.md`](CHANGES_1.4.md) for the full list. Added: `backend/pyrosy
   - the endpoints return 200 and reject invalid values with 422;
   - the ZIP contains the aggregate report;
   - original daily series are unchanged.
-- **Full backend suite:** 120 passed.
+- **Full backend suite:** 121 passed. The sixth test (a VIIRS series absent from the database returns an "insufficient" gate instead of no gate) was added after the first preview showed that case.
 - **Browser checks:** 18 of 18 passed. Flow 18 checks:
   - the gate badge equals the API;
   - the series is withheld when the gate fails;

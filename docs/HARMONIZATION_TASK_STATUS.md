@@ -8,7 +8,7 @@ Each status was checked against the code and the tests in this repository. Statu
 - **FAILED VALIDATION**: implemented, but it did not pass its scientific criteria.
 - **NOT IMPLEMENTED**: missing from the code.
 
-Test names refer to `backend/tests/` and to the browser flows in `frontend/e2e/run.mjs`. The results of the final run are in [TEST_RESULTS.md](TEST_RESULTS.md): 120 backend tests passed and 18 of 18 browser checks passed.
+Test names refer to `backend/tests/` and to the browser flows in `frontend/e2e/run.mjs`. The results of the final run are in [TEST_RESULTS.md](TEST_RESULTS.md): 121 backend tests passed and 18 of 18 browser checks passed.
 
 ## Previous tasks
 
@@ -34,5 +34,5 @@ Test names refer to `backend/tests/` and to the browser flows in `frontend/e2e/r
 | N5 Reproduce run A | — | **COMPLETE** | — | See "Statistical calibration" above. | — |
 | N6 Two-part (hurdle) model | — | **FAILED VALIDATION** (prototype; not implemented in the app) | Prototype only (`docs/harmonization/AGGREGATE/prototype/proto.py`). | Held-out level 0.43× (UPDATE_REPORT §3). | Meaningful only with verified coverage. |
 | N7 Observation coverage verification | — | **NOT IMPLEMENTED** by team decision (C0). Would be **BLOCKED** here in any case. | — | The status stays `not_verified` in every report (asserted in flows 14 and 18 and in `test_ratio_fit_holdout_and_gate_pass`). | Needs MOD03/MOD14 and VNP03/VNP14. LAADS was not reachable from the development container. |
-| N8 Regression tests | — | **COMPLETE** | 5 new backend tests and browser flow 18. Flow 15 now clicks "Event model (1.0 baseline)" before reading the 1.0 series, because the history panel opens on the ratio. `test_api_and_export` also expects the two new ZIP files; the original four files are still required. | 120 backend tests and 18/18 browser checks (TEST_RESULTS). | — |
+| N8 Regression tests | — | **COMPLETE** | 6 new backend tests and browser flow 18. Flow 15 now clicks "Event model (1.0 baseline)" before reading the 1.0 series, because the history panel opens on the ratio. `test_api_and_export` also expects the two new ZIP files; the original four files are still required. | 121 backend tests and 18/18 browser checks (TEST_RESULTS). | — |
 | N9 Preview and production deployment | — | See CHANGES_1.4 "Deployment" | Feature branch, then a Vercel preview, then main after the team approves. | — | — |

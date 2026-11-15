@@ -5,7 +5,7 @@ Every result below was produced by actually running the tests on **2026-11-14** 
 ## Summary
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit/integration (pytest), 1.4 | `cd backend && ../.venv/bin/python -m pytest -q` | **120 passed, 0 failed** (20 s): the 115 tests of 1.3 with Blob (one assertion in `test_api_and_export` extended to the two added ZIP files) plus 5 day-level ratio tests (`test_aggregate.py`) |
+| Backend unit/integration (pytest), 1.4 | `cd backend && ../.venv/bin/python -m pytest -q` | **121 passed, 0 failed** (24 s): the 115 tests of 1.3 with Blob (one assertion in `test_api_and_export` extended to the two added ZIP files) plus 6 day-level ratio tests (`test_aggregate.py`) |
 | Browser-level checks, 1.4 | `cd frontend && npm run build && npm run e2e` | **18 of 18 passed** (flows 1–17, flow 15 now selects the 1.0 event model before reading its series, plus flow 18), 0 uncaught page errors |
 | Backend unit/integration (pytest), 1.3 | `cd backend && ../.venv/bin/python -m pytest -v` | **112 passed, 0 failed** (18 s): the 98 tests of 1.2 (one assertion updated for the new default type filter), plus 14 AOI Insights tests (`test_insights.py`: regime and tracker, insufficient history, recurrence, critical periods and readiness with a hand-computed threshold, anomaly score with a hand-computed z, guard rail against count noise, cell anomaly, years and NOAA phases, analog groups exclude the focus year, climate file checksums, API/compare/exports, NRT rows without a type, demo refuses areas outside its data, near-real-time view with a mocked FIRMS: nothing stored, key not leaked) |
 | TypeScript type check | `cd frontend && npx tsc -b --noEmit` | **passed** (no errors) |

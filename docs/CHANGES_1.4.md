@@ -8,7 +8,7 @@ Backup: version 1.3 (the state of `main` before this work, commit `5077b98`, wit
 | File | Purpose |
 |---|---|
 | `backend/pyrosync/aggregate.py` | Daily arrays (checked against `/api/daily`), ratio fit, month-block bootstrap, split rule, held-out and rolling-origin evaluation, gate, report, series, map augmentation, regional ratio, Markdown reports |
-| `backend/tests/test_aggregate.py` | 5 tests on SYNTHETIC TEST FIXTURES: fit and gate, no leakage plus drift detection, unknown days and monthly sums, short history, API, ZIP and unchanged originals |
+| `backend/tests/test_aggregate.py` | 6 tests on SYNTHETIC TEST FIXTURES: fit and gate, no leakage plus drift detection, unknown days and monthly sums, short history, a VIIRS series missing from the database, API, ZIP and unchanged originals |
 | `frontend/src/components/HarmonizationAggregate.tsx` | Validation panel, ratio series, gate badge and the History/Insights comparison (`ModisEquivalentComparison`) |
 | `docs/harmonization/AGGREGATE/` | Generated reports for runs A, C, D and F (`harmonize-aggregate --with-events`), the Aqua drift diagnostic, and the planning prototype with its results |
 | `docs/HARMONIZATION_UPDATE_REPORT.md`, `docs/HARMONIZATION_TASK_STATUS.md`, `docs/CHANGES_1.4.md` | Documentation |
