@@ -2,6 +2,7 @@
 
 The database used here is a tiny synthetic test fixture (one table), not FIRMS data.
 """
+import os
 import functools
 import hashlib
 import http.server
@@ -70,3 +71,14 @@ def test_store_id_from_token_without_exposing_it(monkeypatch):
     assert remote_seed.blob_base() == "https://abc123.public.blob.vercel-storage.com/"
     monkeypatch.delenv("BLOB_READ_WRITE_TOKEN")
     assert remote_seed.blob_base() is None
+
+
+def test_mirror_base_takes_precedence_and_drops_prefix(store, monkeypatch):
+    # SYNTHETIC fixture: the same parts served flat, as a GitHub release would serve them
+    tmp, man = store
+    port = os.environ["PYROSYNC_BLOB_BASE"].rsplit(":", 1)[1].strip("/")
+    monkeypatch.setenv("PYROSYNC_BLOB_BASE", "http://127.0.0.1:9/")  # a blocked/unreachable store
+    monkeypatch.setenv("PYROSYNC_ARCHIVE_BASE", f"http://127.0.0.1:{port}/{man['prefix']}")
+    assert remote_seed.configured()
+    info = remote_seed.fetch(tmp / "out2.duckdb")
+    assert info["source"] == "mirror" and info["bytes"] == man["db_bytes"]

@@ -10,6 +10,10 @@ Configuration (environment):
   PYROSYNC_BLOB_BASE        optional base URL of the store; otherwise derived from the store id
                             inside BLOB_READ_WRITE_TOKEN (the token itself is never logged or sent)
   PYROSYNC_REMOTE_DEADLINE  seconds before giving up (default 40)
+  PYROSYNC_ARCHIVE_BASE     optional mirror base URL (e.g. a GitHub release download URL); part names are
+                            appended without the Blob prefix. The manifest's "base_url" is used the same way.
+                            A mirror takes precedence over Blob (added after the Hobby Blob store was blocked
+                            for exceeding its monthly data transfer).
 """
 from __future__ import annotations
 
@@ -41,9 +45,20 @@ def blob_base() -> str | None:
     return f"https://{bits[3].lower()}.public.blob.vercel-storage.com/"
 
 
+def mirror_base(man: dict | None = None) -> str | None:
+    base = os.environ.get("PYROSYNC_ARCHIVE_BASE")
+    if not base and man is None:
+        m = os.environ.get("PYROSYNC_REMOTE_MANIFEST")
+        if m and Path(m).is_file():
+            man = json.loads(Path(m).read_text(encoding="utf-8"))
+    if not base and man:
+        base = man.get("base_url")
+    return base.rstrip("/") + "/" if base else None
+
+
 def configured() -> bool:
     m = os.environ.get("PYROSYNC_REMOTE_MANIFEST")
-    return bool(m and Path(m).is_file() and blob_base())
+    return bool(m and Path(m).is_file() and (mirror_base() or blob_base()))
 
 
 def _get(url: str, expect: int, sha: str, deadline: float) -> bytes:
@@ -69,9 +84,11 @@ def fetch(dest: str | Path) -> dict:
     t0 = time.monotonic()
     deadline = t0 + float(os.environ.get("PYROSYNC_REMOTE_DEADLINE", "40"))
     man = json.loads(Path(os.environ["PYROSYNC_REMOTE_MANIFEST"]).read_text(encoding="utf-8"))
-    base = blob_base()
+    mirror = mirror_base(man)
+    base = mirror or blob_base()
     if not base:
-        raise RemoteSeedError("no Blob store configured")
+        raise RemoteSeedError("no archive source configured")
+    prefix = "" if mirror else man["prefix"]
     dest = Path(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = Path(str(dest) + ".part")
@@ -79,7 +96,7 @@ def fetch(dest: str | Path) -> dict:
     h = hashlib.sha256()
     n = 0
     with ThreadPoolExecutor(max_workers=len(man["parts"])) as pool:
-        futs = [pool.submit(_get, base + man["prefix"] + p["name"], p["bytes"], p["sha256"], deadline) for p in man["parts"]]
+        futs = [pool.submit(_get, base + prefix + p["name"], p["bytes"], p["sha256"], deadline) for p in man["parts"]]
         with open(tmp, "wb") as out:
             for f in futs:  # in order: part-00, part-01, ...
                 data = f.result()
@@ -95,6 +112,6 @@ def fetch(dest: str | Path) -> dict:
         tmp.unlink(missing_ok=True)
         raise RemoteSeedError("decompressed database does not match manifest.json")
     tmp.replace(dest)
-    info = {"seconds": round(time.monotonic() - t0, 1), "bytes": n, "sha256": man["db_sha256"][:16]}
-    log.warning("pyrosync: full archive fetched from Vercel Blob %s", info)
+    info = {"source": "mirror" if mirror else "blob", "seconds": round(time.monotonic() - t0, 1), "bytes": n, "sha256": man["db_sha256"][:16]}
+    log.warning("pyrosync: full archive fetched %s", info)
     return info
