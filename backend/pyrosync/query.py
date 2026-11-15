@@ -12,7 +12,7 @@ from . import normalize as N
 from .config import PROCESSING_VERSION
 from .db import cursor, get_revision
 
-GRID_R = {0.1: 10000, 0.05: 5000, 0.01: 1000}  # cell size in 1e-5 degree units
+GRID_R = {0.25: 25000, 0.1: 10000, 0.05: 5000, 0.01: 1000}  # cell size in 1e-5 degree units (0.25° added in 1.5 for zoomed-out maps)
 TYPE_VALUES = ["0", "1", "2", "3", "unknown"]
 ALL_PLATFORMS = ["Terra", "Aqua", "N20", "N21", "SNPP"]
 
@@ -62,7 +62,7 @@ class Filters(BaseModel):
         for g in GRID_R:
             if abs(v - g) < 1e-9:
                 return g
-        raise ValueError("grid must be one of 0.1, 0.05, 0.01")
+        raise ValueError("grid must be one of 0.25, 0.1, 0.05, 0.01")
 
     @model_validator(mode="after")
     def _range(self) -> "Filters":

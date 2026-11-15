@@ -14,14 +14,33 @@ import HarmonizationPage from './pages/HarmonizationPage'
 import InsightsPage from './pages/InsightsPage'
 
 const NAV: { id: Page; label: string; icon: string; hint: string }[] = [
-  { id: 'explore', label: 'Explore', icon: 'map', hint: 'Map, timeline and frame details' },
-  { id: 'insights', label: 'AOI Insights', icon: 'insights', hint: 'Fire regime, unusual conditions, critical periods and a briefing for one area' },
-  { id: 'calendar', label: 'Burning Calendar', icon: 'cal', hint: 'Daily heatmap and ISO weeks' },
+  { id: 'explore', label: 'Explore', icon: 'map', hint: 'One map: original detections, harmonized activity heatmap, Region AOI or Click-to-Analyze' },
+  { id: 'calendar', label: 'Harmonized Calendar', icon: 'cal', hint: 'Daily burning-activity calendar; harmonized multi-sensor series by default' },
+  { id: 'insights', label: 'Insights', icon: 'insights', hint: 'Fire regime, unusual conditions, critical periods and a briefing for one area' },
+  { id: 'data', label: 'Methods & Data', icon: 'data', hint: 'Methodology, imports, FIRMS refresh, exports' },
+]
+const ADVANCED: { id: Page; label: string; icon: string; hint: string }[] = [
+  { id: 'harmonization', label: 'Harmonization diagnostics', icon: 'harmonize', hint: 'Multi-sensor fusion validation, MODIS–VIIRS calibration, error maps' },
   { id: 'history', label: 'Historical Patterns', icon: 'chart', hint: 'Monthly, seasonal, annual, baselines, elevated periods' },
   { id: 'workbench', label: 'Sensor Workbench', icon: 'sensor', hint: 'Sensor-by-sensor comparison and source records' },
-  { id: 'harmonization', label: 'Harmonization', icon: 'harmonize', hint: 'MODIS–VIIRS comparison, calibration, error map and calibrated estimates' },
-  { id: 'data', label: 'Data & Methods', icon: 'data', hint: 'Imports, FIRMS refresh, exports, methodology' },
 ]
+
+function NavItem({ n }: { n: { id: Page; label: string; icon: string; hint: string } }) {
+  const s = useApp()
+  return (
+    <li>
+      <button type="button" onClick={() => {
+        // the Harmonized Calendar opens on the harmonized multi-sensor series; any sensor can still be chosen in the top bar
+        s.set({ page: n.id, ...(n.id === 'calendar' && s.page !== 'calendar' ? { series: 'FUSED', metric: 'detections' } : {}) })
+        if (window.innerWidth < 768) s.set({ navOpen: false })
+      }}
+        aria-current={s.page === n.id ? 'page' : undefined} title={n.hint}
+        className={cls('flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm', s.page === n.id ? 'bg-soft font-semibold text-ink' : 'text-muted hover:bg-soft hover:text-ink')}>
+        <Icon name={n.icon} className="h-[18px] w-[18px] shrink-0" />{s.navOpen && <span className="truncate">{n.label}</span>}
+      </button>
+    </li>
+  )
+}
 
 export default function App() {
   const s = useApp()
@@ -29,6 +48,8 @@ export default function App() {
   const regions = useApi<{ regions: Region[] }>('/api/regions')
   const health = useApi<{ readonly?: boolean; demo_note?: string | null }>('/api/health')
   const [hashPlatforms] = useState(() => new URLSearchParams(window.location.hash.slice(1)).has('platforms'))
+  const [advOpen, setAdvOpen] = useState(() => ADVANCED.some((n) => n.id === useApp.getState().page))
+  useEffect(() => { if (ADVANCED.some((n) => n.id === s.page)) setAdvOpen(true) }, [s.page])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', s.theme === 'dark')
@@ -50,7 +71,9 @@ export default function App() {
         if (!hashPlatforms && d.available_platforms.length) patch.platforms = d.available_platforms
       }
       // primary sensor must exist in the data (e.g. the online demo has no NOAA-20)
-      if (s.series !== 'UNION' && d.available_series.length && !d.available_series.includes(s.series)) {
+      // (the harmonized series FUSED needs the MODIS Aqua reference; UNION needs any sensor)
+      const ok = s.series === 'UNION' || (s.series === 'FUSED' ? d.available_series.includes('MODIS') : d.available_series.includes(s.series))
+      if (d.available_series.length && !ok) {
         patch.series = ['VIIRS_N20', 'VIIRS_SNPP', 'VIIRS_N21', 'MODIS'].find((x) => d.available_series.includes(x)) ?? d.available_series[0]
       }
       s.set(patch)
@@ -82,16 +105,14 @@ export default function App() {
           </span>
           {s.navOpen && <div className="min-w-0"><div className="text-[15px] font-bold leading-tight">PyroSync</div><div className="truncate text-[11px] text-muted">Fire history, in context</div></div>}
         </div>
-        <ul className="flex-1 space-y-1 p-2">
-          {NAV.map((n) => (
-            <li key={n.id}>
-              <button type="button" onClick={() => { s.set({ page: n.id }); if (window.innerWidth < 768) s.set({ navOpen: false }) }}
-                aria-current={s.page === n.id ? 'page' : undefined} title={n.hint}
-                className={cls('flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm', s.page === n.id ? 'bg-soft font-semibold text-ink' : 'text-muted hover:bg-soft hover:text-ink')}>
-                <Icon name={n.icon} className="h-[18px] w-[18px] shrink-0" />{s.navOpen && <span className="truncate">{n.label}</span>}
-              </button>
-            </li>
-          ))}
+        <ul className="flex-1 space-y-1 overflow-auto p-2">
+          {NAV.map((n) => <NavItem key={n.id} n={n} />)}
+          <li className="pt-2">
+            <button type="button" className="flex w-full items-center gap-2 rounded-lg px-3 py-1 text-left text-[11px] font-semibold uppercase tracking-wide text-muted hover:text-ink"
+              aria-expanded={advOpen} data-testid="nav-advanced" onClick={() => setAdvOpen(!advOpen)} title="Advanced scientific tools">
+              <span aria-hidden>{advOpen ? '▾' : '▸'}</span>{s.navOpen && 'Advanced'}</button>
+          </li>
+          {advOpen && ADVANCED.map((n) => <NavItem key={n.id} n={n} />)}
         </ul>
         {s.navOpen && (
           <div className="space-y-2 border-t border-line p-3 text-[11px] leading-snug text-muted">

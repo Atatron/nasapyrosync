@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { postJSON, type Daily, type Frame, type Region } from '../api'
-import { useDaily, useElevated, useFrame } from '../hooks'
+import { useDaily, useDisplayFrame, useElevated, useFrame } from '../hooks'
 import { frameWindow, selectedSeries, useApp } from '../state'
 import { SERIES_COLOR, SERIES_SHORT, STATUS_LABEL, cls, diffDays, fmtNum } from '../util'
 import MapView from '../components/MapView'
@@ -30,13 +30,14 @@ function Summary({ frame, daily, regions, elevatedCount }: { frame: Frame | null
   const s = useApp()
   const [w0, w1] = frameWindow(s.date, s.frameMode)
   const cur = frame && frame.frame.date === s.date && frame.frame.mode_days === s.frameMode ? frame : null
-  const aoiName = s.aoi === 'none' ? 'All imported observations' : s.aoi.startsWith('region:') ? regions.find((r) => r.id === s.aoi)?.name ?? s.aoi : 'Custom AOI'
+  const aoiName = s.aoi === 'none' ? 'All imported observations' : s.aoi.startsWith('region:') ? regions.find((r) => r.id === s.aoi)?.name ?? s.aoi
+    : s.aoi.startsWith('circle:') ? `Circle, radius ${s.aoi.split(',')[2]} km` : 'Custom AOI'
   const sers = selectedSeries(s.platforms)
   return (
     <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-6" data-testid="summary-cards">
       <Card label="Selected AOI" testid="card-aoi">
         <div className="truncate font-semibold" title={aoiName}>{aoiName}</div>
-        <div className="text-[11px] text-muted">{s.aoi === 'none' ? 'Download extent is broader than Indonesia' : 'Exact point-in-polygon filter'}</div>
+        <div className="text-[11px] text-muted">{s.aoi === 'none' ? 'Download extent is broader than Indonesia' : s.aoi.startsWith('circle:') ? 'Click-to-Analyze: radius follows the map zoom' : 'Exact point-in-polygon filter · fixed when zooming'}</div>
       </Card>
       <Card label="Display window" testid="card-window">
         <div className="font-semibold num">{s.frameMode === 1 ? s.date : `${w0} → ${w1}`}</div>
@@ -62,11 +63,12 @@ function Summary({ frame, daily, regions, elevatedCount }: { frame: Frame | null
   )
 }
 
-function Details({ frame, daily }: { frame: Frame | null; daily: Daily | null }) {
+function Details({ frame, cellFrame, daily }: { frame: Frame | null; cellFrame: Frame | null; daily: Daily | null }) {
   const s = useApp()
   const el = useElevated()
   const cur = frame && frame.frame.date === s.date && frame.frame.mode_days === s.frameMode ? frame : null
-  const cell = cur && s.selectedCell ? cur.cells.find((c) => c.ci === s.selectedCell!.ci && c.cj === s.selectedCell!.cj) : null
+  const cf = cellFrame && cellFrame.frame.date === s.date && cellFrame.frame.mode_days === s.frameMode ? cellFrame : null
+  const cell = cf && s.selectedCell ? cf.cells.find((c) => c.ci === s.selectedCell!.ci && c.cj === s.selectedCell!.cj) : null
   const i = daily ? daily.dates.indexOf(s.date) : -1
   return (
     <aside aria-label="Details" className="flex w-full shrink-0 flex-col gap-3 overflow-auto lg:w-[340px]">
@@ -80,10 +82,10 @@ function Details({ frame, daily }: { frame: Frame | null; daily: Daily | null })
         ) : <p className="text-xs text-muted">Loading…</p>}
         {daily && i >= 0 && daily.series.MODIS && <p className="mt-1 text-[11px] text-muted">MODIS by platform: Terra {daily.series.MODIS.terra?.[i] ?? 0}, Aqua {daily.series.MODIS.aqua?.[i] ?? 0}. {daily.series[s.series]?.unfiltered[i] ? `${daily.series[s.series].unfiltered[i] - daily.series[s.series].detections[i]} ${SERIES_SHORT[s.series]} records removed by quality/type filters.` : ''}</p>}
       </Panel>
-      {cell && cur && (
+      {cell && cf && (
         <Panel title="Selected grid cell" actions={<button className="text-xs underline" onClick={() => s.set({ selectedCell: null })}>Clear</button>}>
           <div className="space-y-1 text-xs" data-testid="cell-details">
-            <div>Cell col {cell.ci}, row {cell.cj}: {(cell.ci * cur.grid_size - 180).toFixed(2)}° to {(cell.ci * cur.grid_size - 180 + cur.grid_size).toFixed(2)}° E, {(cell.cj * cur.grid_size - 90).toFixed(2)}° to {(cell.cj * cur.grid_size - 90 + cur.grid_size).toFixed(2)}° N</div>
+            <div>{cf.grid_size}° cell col {cell.ci}, row {cell.cj}: {(cell.ci * cf.grid_size - 180).toFixed(2)}° to {(cell.ci * cf.grid_size - 180 + cf.grid_size).toFixed(2)}° E, {(cell.cj * cf.grid_size - 90).toFixed(2)}° to {(cell.cj * cf.grid_size - 90 + cf.grid_size).toFixed(2)}° N</div>
             {Object.entries(cell.by_series).map(([k, v]) => <div key={k} className="flex justify-between"><span>{SERIES_SHORT[k]}</span><b className="num">{v} detections</b></div>)}
             <div>Max FRP {fmtNum(cell.frp_max, 1)} MW · active on {cell.days} day(s) in window ({cell.first} → {cell.last})</div>
             <p className="text-muted">A grid cell with detections is not a burned-area polygon.</p>
@@ -105,7 +107,8 @@ function Details({ frame, daily }: { frame: Frame | null; daily: Daily | null })
 
 export default function Explore({ regions }: { regions: Region[] }) {
   const s = useApp()
-  const frame = useFrame()
+  const frame = useFrame() // analysis grid: cards and statistics (never change with zoom for a fixed AOI)
+  const mapFrame = useDisplayFrame() // display grid: the map's detection-grid layer
   const daily = useDaily()
   const el = useElevated()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -128,11 +131,11 @@ export default function Explore({ regions }: { regions: Region[] }) {
         data-testid="geojson-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = '' }} />
       <div className={cls('flex flex-col gap-3 lg:flex-row')}>
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className="h-[56vh] min-h-[360px]"><MapView frame={frame} onUploadRequest={() => fileRef.current?.click()} /></div>
+          <div className="h-[56vh] min-h-[360px]"><MapView frame={mapFrame} onUploadRequest={() => fileRef.current?.click()} /></div>
           <Timeline daily={daily.data} elevated={el.data} />
           {daily.error && <ErrorNote msg={daily.error} />}
         </div>
-        {s.detailsOpen && <Details frame={frame.data} daily={daily.data} />}
+        {s.detailsOpen && <Details frame={frame.data} cellFrame={mapFrame.data} daily={daily.data} />}
       </div>
     </div>
   )

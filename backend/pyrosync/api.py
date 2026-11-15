@@ -148,8 +148,16 @@ def aoi_get(aoi_id: str):
 
 # ------------------------------------------------------------------ analysis
 @app.get("/api/daily")
-def daily(request: Request):
-    return Q.daily(F(request))
+def daily(request: Request, fused: bool = False):
+    """Per-sensor daily series. fused=true (1.5) adds the harmonized multi-sensor series 'FUSED' (detections only)."""
+    f = F(request)
+    out = Q.daily(f)
+    if fused:
+        from . import fusion
+        fl = fusion.daily_like(f)
+        out = {**out, "series": {**out["series"], **fl["series"]}, "series_labels": {**out["series_labels"], **fl["series_labels"]},
+               "fused_validation": {"status": fl["validation_status"], "label": fl["validation_label"], "source": fl["coefficient_source"]}}
+    return out
 
 
 @app.get("/api/frame")
@@ -324,8 +332,47 @@ def export_harmonization(request: Request):
     return _dl(exports.harmonization_zip(f, cfg), f"pyrosync_harmonization_{f.start}_{f.end}.zip", "application/zip")
 
 
+# ------------------------------------------------------------------ multi-sensor historical fusion (1.5, additive, read-only)
+@app.get("/api/fusion")
+def fusion_report(request: Request):
+    """Fusion model for the AOI and filters over the whole record: pairwise ratios, eligibility, leave-reference-out validation and gate."""
+    from . import fusion
+    return fusion.report(F(request))
+
+
+@app.get("/api/fusion/series")
+def fusion_series(request: Request, agg: Literal["day", "month", "year"] = "month"):
+    from . import fusion
+    return fusion.series(F(request), agg)
+
+
+@app.get("/api/fusion/map")
+def fusion_map(request: Request, date_: date = Query(alias="date"), mode: int = 1, bbox: str | None = None, limit: int = 30000):
+    from . import fusion
+    if mode not in (1, 7, 30):
+        raise HTTPException(422, "mode must be 1, 7 or 30")
+    f = F(request)
+    return fusion.frame_cells(f, date_, mode, f.grid, _bbox(bbox), min(max(limit, 1), 100000))
+
+
+@app.get("/api/fusion/regions")
+def fusion_regions(request: Request, grid_deg: float = 1.0, min_days: int = 20):
+    from . import fusion
+    if grid_deg not in (0.5, 1.0, 2.0):
+        raise HTTPException(422, "grid_deg must be 0.5, 1 or 2")
+    if min_days not in (5, 10, 20, 30, 50):
+        raise HTTPException(422, "min_days must be one of 5, 10, 20, 30, 50")
+    return fusion.regional(F(request), grid_deg, min_days)
+
+
+@app.get("/api/export/fusion.zip")
+def export_fusion(request: Request):
+    f = F(request)
+    return _dl(exports.fusion_zip(f), f"pyrosync_fusion_{f.start}_{f.end}.zip", "application/zip")
+
+
 # ------------------------------------------------------------------ AOI Insights (1.3)
-Series = Literal["MODIS", "VIIRS_SNPP", "VIIRS_N20", "VIIRS_N21"]
+Series = Literal["MODIS", "VIIRS_SNPP", "VIIRS_N20", "VIIRS_N21", "FUSED"]
 InsMetric = Literal["detections", "cells"]
 
 
@@ -367,6 +414,9 @@ def insights_compare(request: Request, aois: str, series: Series = "MODIS", metr
 
 @app.get("/api/insights/now")
 def insights_now(request: Request, series: Series = "VIIRS_SNPP", days: int = 10):
+    if series == "FUSED":
+        raise HTTPException(422, "The live 'now vs history' view needs one sensor's near-real-time feed; "
+                                 "the harmonized series is historical only. Pick a single sensor series.")
     try:
         return LIVE.now_vs_history(F(request), series, days)
     except firms.FirmsError as e:

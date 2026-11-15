@@ -8,13 +8,16 @@ import { Icon, Info } from './ui'
 export function AoiSelect({ regions, id = 'aoi-select' }: { regions: Region[]; id?: string }) {
   const { aoi, set } = useApp()
   const custom = aoi.startsWith('custom:')
+  const circle = aoi.startsWith('circle:')
   return (
-    <select id={id} className="field max-w-[220px]" value={aoi} aria-label="Area of interest" onChange={(e) => set({ aoi: e.target.value })}>
+    <select id={id} className="field max-w-[220px]" value={aoi} aria-label="Area of interest"
+      onChange={(e) => { const v = e.target.value; if (v.startsWith('circle:')) set({ aoi: v }); else set({ aoi: v, analyzeMode: 'region', clickAt: '', lastRegionAoi: v }) }}>
       <option value="none">All imported observations (no AOI)</option>
       <optgroup label="Named regions (boundaries)">
         {regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
       </optgroup>
       {custom && <option value={aoi}>Custom AOI (drawn/uploaded)</option>}
+      {circle && <option value={aoi}>Click-to-Analyze circle ({aoi.split(',')[2]} km)</option>}
     </select>
   )
 }
@@ -27,15 +30,16 @@ export function SeriesMetric() {
   return (
     <>
       <label className="sr-only" htmlFor="series-select">Sensor for calendar, timeline and flags</label>
-      <select id="series-select" className="field" value={series} onChange={(e) => set({ series: e.target.value })}>
+      <select id="series-select" className="field" value={series} onChange={(e) => set({ series: e.target.value, ...(e.target.value === 'FUSED' ? { metric: 'detections' } : {}) })}>
+        <option value="FUSED" title="Multi-sensor fusion: every eligible satellite calibrated to MODIS Aqua and averaged (detections only)">Harmonized (all sensors)</option>
         {opts.map((o) => <option key={o} value={o}>{SERIES_SHORT[o]}</option>)}
         <option value="UNION" disabled={metric !== 'cells'}>Any selected sensor (union)</option>
-        {!opts.includes(series) && series !== 'UNION' && <option value={series}>{SERIES_SHORT[series] ?? series} (not selected)</option>}
+        {!opts.includes(series) && series !== 'UNION' && series !== 'FUSED' && <option value={series}>{SERIES_SHORT[series] ?? series} (not selected)</option>}
       </select>
       <label className="sr-only" htmlFor="metric-select">Metric</label>
       <select id="metric-select" className="field" value={metric} onChange={(e) => {
         const m = e.target.value as Metric
-        set({ metric: m, ...(series === 'UNION' && m !== 'cells' ? { series: opts[0] ?? 'VIIRS_N20' } : {}) })
+        set({ metric: m, ...((series === 'UNION' && m !== 'cells') || (series === 'FUSED' && m !== 'detections') ? { series: opts[0] ?? 'VIIRS_N20' } : {}) })
       }}>
         <option value="cells">Occupied cells / day</option>
         <option value="detections">Detections / day</option>
@@ -93,9 +97,9 @@ function FilterPanel({ inventory, onClose }: { inventory?: Inventory | null; onC
           {['D', 'N'].map((v) => <label key={v} className="mr-3 inline-flex items-center gap-1"><input type="checkbox" checked={s.daynight.includes(v)} onChange={() => s.set({ daynight: toggle(s.daynight, v) })} />{v === 'D' ? 'Day' : 'Night'}</label>)}
         </div>
         <div>
-          <div className="label mb-1">Grid <Info>WGS84 degree grid anchored at (−180°, −90°). Degree cells are not equal-area; a 0.01° cell is not 1 km².</Info></div>
-          <select className="field" value={s.grid} onChange={(e) => s.set({ grid: Number(e.target.value) })} aria-label="Grid size">
-            <option value={0.1}>0.1° (default)</option><option value={0.05}>0.05°</option><option value={0.01}>0.01° (exploration)</option>
+          <div className="label mb-1">Grid <Info>WGS84 degree grid anchored at (−180°, −90°). Degree cells are not equal-area; a 0.01° cell is not 1 km². Auto changes only the map display with the zoom (3–5: 0.25°, 6–7: 0.1°, 8–10: 0.05°, 11+: 0.01°); statistics keep the analysis grid ({s.grid}°). A manual choice sets both.</Info></div>
+          <select className="field" value={s.gridMode === 'auto' ? 'auto' : s.grid} onChange={(e) => { const v = e.target.value; if (v === 'auto') s.set({ gridMode: 'auto' }); else s.set({ gridMode: 'manual', grid: Number(v) }) }} aria-label="Grid size">
+            <option value="auto">Auto (recommended)</option><option value={0.25}>0.25°</option><option value={0.1}>0.1°</option><option value={0.05}>0.05°</option><option value={0.01}>0.01° (exploration)</option>
           </select>
         </div>
       </div>
@@ -140,7 +144,7 @@ export default function TopBar({ regions, inventory }: { regions: Region[]; inve
     return () => document.removeEventListener('mousedown', h)
   }, [])
   const dr = s.dataRange
-  const nf = (s.modisMinConf !== 30 ? 1 : 0) + (s.viirsConf.join() !== 'nominal,high' ? 1 : 0) + (s.types.join() !== '0' ? 1 : 0) + (s.daynight.length !== 2 ? 1 : 0) + (s.grid !== 0.1 ? 1 : 0)
+  const nf = (s.modisMinConf !== 30 ? 1 : 0) + (s.viirsConf.join() !== 'nominal,high' ? 1 : 0) + (s.types.join() !== '0' ? 1 : 0) + (s.daynight.length !== 2 ? 1 : 0) + (s.gridMode === 'manual' ? 1 : 0)
   return (
     <header className="sticky top-0 z-[1000] flex min-h-14 flex-wrap items-center gap-2 border-b border-line bg-panel px-3 py-2">
       <button className="btn px-2" aria-label={s.navOpen ? 'Collapse navigation' : 'Expand navigation'} aria-expanded={s.navOpen} onClick={() => s.set({ navOpen: !s.navOpen })}><Icon name="menu" /></button>

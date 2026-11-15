@@ -129,3 +129,16 @@ Full method, candidate comparison and derivation: [HARMONIZATION_UPDATE_REPORT.m
 On the same held-out days (run A, from 2023-10-27) the 1.0 event model gives 3.67× (all VIIRS events, MAE 307.1) and 0.05× (matched events, MAE 109.9). **Aggregate validation therefore passes for Indonesia-wide detection totals with Aqua and S-NPP or NOAA-20, and fails for occupied cells, for Kalimantan and for the Terra control.** In the app the MODIS-equivalent line is drawn only where the gate passes for the exact filters, AOI and pair. Coverage remains not verified.
 
 **Aqua drift.** Aqua's median daytime acquisition over Indonesia moved from 05:38–06:11 UTC (2012–2023) to 07:47 UTC (2026), and the share of S-NPP detections in ±30 min matched events fell to 7.1 % (2024), 1.8 % (2025) and 0.0 % (2026) ([`aqua_drift_matched_share.json`](harmonization/AGGREGATE/aqua_drift_matched_share.json)). The event-level model cannot be refitted on recent years; the day-level ratio for run A stays at 0.83×, 0.92× and 1.04× in 2024–2026.
+
+## Multi-sensor fusion (added in 1.5)
+
+Method: [MULTISENSOR_FUSION.md](MULTISENSOR_FUSION.md). Generated reports: [`docs/harmonization/FUSION/`](harmonization/FUSION/FUSION.md) (`python -m pyrosync.cli harmonize-fusion --out docs/harmonization/FUSION`). Method `pyrosync-fusion-1.0`, gate `pyrosync-fusion-gate-1.0`, full archive (10.9 M rows, 2000-11-01 → 2026-11-14), types 0 + unknown.
+
+| Run | Eligible (c) | Held-out Σ/Σ Aqua | MAE fused / raw mean / constant | Rolling years in band | High-fire days | Gate | 1° regions within |
+|---|---|---|---|---|---|---|---|
+| N Indonesia | S-NPP 0.1322, N20 0.1385, N21 0.1555 | 0.963 | 35.7 / 515.8 / 132.4 | 14 of 14 (worst 1.24×) | 112 days, 0.91× | **passes** | 114 of 319 (36 %) |
+| K Kalimantan | S-NPP 0.1483, N20 0.1617, N21 0.1917 | 1.014 | 33.7 / 258.9 / 71.3 | 10 of 14 | 0.78× | not validated | 29 of 63 |
+| S Sumatra | S-NPP 0.1219, N20 0.1379, N21 0.1558 | 0.866 | 12.0 / 87.7 / 40.0 | 10 of 14 | 0.53× | not validated | 28 of 57 |
+| T Indonesia, Terra reference | none (all four pairs fail against Terra) | — | — | — | — | insufficient | — |
+
+Terra fails its pair with Aqua: 13 of 23 years within 0.8–1.25×, range 0.53–1.64×. It is not fused. The pair test is leave-reference-out with the common split 2022-01-08 (1,737 held-out days). On the same days, the fusion error is close to the best single-sensor ratio (S-NPP 35.4 against 35.5 MAE). The fusion adds continuity across satellite changes, not accuracy. Coverage is not verified.

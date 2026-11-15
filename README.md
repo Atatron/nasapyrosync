@@ -1,6 +1,6 @@
 # PyroSync — Fire history, in context
 
-A local web application for exploring historical NASA FIRMS active-fire detections (MODIS and VIIRS) over Indonesia, with a day-by-day timeline, a burning calendar, area-of-interest (AOI) selection, seasonal and annual patterns, a baseline-eligibility check, explainable "elevated observed activity" periods, a three-stage MODIS–VIIRS harmonization with a chronological hold-out validation (since 1.1), and (since 1.2) a **Harmonization** tab that applies a validated calibration to a map, a per-region error map and an original-vs-calibrated time series.
+A local web application for exploring historical NASA FIRMS active-fire detections (MODIS and VIIRS) over Indonesia, with a day-by-day timeline, a burning calendar, area-of-interest (AOI) selection, seasonal and annual patterns, a baseline-eligibility check, explainable "elevated observed activity" periods, a three-stage MODIS–VIIRS harmonization with a chronological hold-out validation (since 1.1), (since 1.2) a **Harmonization** tab that applies a validated calibration to a map, a per-region error map and an original-vs-calibrated time series, and (since 1.5) a **multi-sensor harmonized history**: Terra, Aqua, S-NPP, NOAA-20 and NOAA-21 calibrated to the MODIS Aqua scale and averaged (never summed), with an adaptive map grid, *Analyze Location* circles and FIRMS-style detection popups.
 
 > Independent hackathon prototype using NASA FIRMS data and, where enabled, NASA GIBS imagery. Not an official NASA application.
 
@@ -72,9 +72,11 @@ Copy `.env.example` to `.env` and set `FIRMS_MAP_KEY=` to your key ([request one
 **Status: the connector is tested with simulated responses (invalid key, rate limit, empty result, cancel, network failure). Authenticated live retrieval has not been verified: the development machine could not reach NASA servers. Test it once on your own computer with your key.**
 
 ## 4. Using the app (where things are)
-- **Explore**: the map with grid cells or individual detections, the timeline (prev/next, play, speed, date picker, scrubber, daily/7-day/30-day window, histogram), summary cards and the details panel. The map always shows two separate labels, "Fire observations: [window] UTC" and "Satellite imagery: [date], [product]".
+Since 1.5 the navigation has four main destinations, **Explore**, **Harmonized Calendar**, **Insights** and **Methods & Data**. The scientific tools sit under **Advanced**: Harmonization diagnostics, Historical Patterns and Sensor Workbench. Nothing was removed.
+
+- **Explore**: the map with grid cells, individual detections ("Observed Active-Fire Detections"; click one for its FIRMS attributes and *Analyze around this detection*) or the **Experimental Harmonized Activity Index** (1.5). The **Auto** grid (recommended) follows the zoom (0.25° → 0.1° → 0.05° → 0.01°), and a manual grid still works; statistics always use the analysis grid set in Filters, so they never change with zoom. *Region AOI* keeps the region, drawn polygon or uploaded GeoJSON; *Analyze Location* analyses a circle around any clicked point, whose radius follows the zoom. Then come the timeline (prev/next, play, speed, date picker, scrubber, daily/7-day/30-day window, histogram), summary cards and the details panel. The map always shows two separate labels, "Fire observations: [window] UTC" and "Satellite imagery: [date], [product]".
 - **AOI Insights** (since 1.3): for the selected area of interest and ONE sensor series, choose a role (*Early warning*, *Emergency responder*, *Land manager*, *Scientist* or *All sections*) and an "as of" day. Sections: **Status now** (last 10 days of FIRMS near-real-time data, fetched only when you press the button and never stored), **Season tracker** (this year's cumulative detections against the 10th–90th percentile of past complete years), **Fire regime** (usual season start, peak and end, busiest week, year-to-year variability), **Unusual conditions** (daily and weekly robust scores against earlier years), **Critical periods and readiness calendar**, **Map** (recurrence of fire per cell, or unusual cells in the last 7/30/90 days, with hotspot CSV/GeoJSON/KML), **Years and climate background** (ENSO/IOD phases from NOAA, analog years) and **Compare areas**. *Briefing (EN / ID)* opens a printable one-page summary in English or Bahasa Indonesia; *Method & data* has the rules, the ZIP package and the CLI command. It describes past detections: not a forecast, a fire-danger rating or an official warning.
-- **Burning Calendar**: a month grid with keyboard navigation, month/year navigation, a year overview and ISO-week heatmaps. Clicking a day selects it everywhere.
+- **Harmonized Calendar** (called Burning Calendar before 1.5): opens on the harmonized multi-sensor series, with its validation status; any single sensor can still be picked. A month grid with keyboard navigation, month/year navigation, a year overview and ISO-week heatmaps. Clicking a day selects it everywhere.
 - **Historical Patterns**: monthly, seasonal and annual summaries; a 2023-vs-2024 comparison; baseline eligibility; rankings; elevated periods with editable rules.
 - **Harmonization** (since 1.2): one page that follows *choose region → compare sensors → harmonize → evaluate errors → view on map → historical patterns*. Pick the VIIRS sensor, MODIS platform, tolerance, grid and measurement, press *Run harmonization*, then read the three stages, the validation checks (against unadjusted VIIRS and against constant models), and the map with five layers: Original MODIS, Original VIIRS, **Experimental calibrated** (MODIS-scale estimates on the grid, only for runs that pass the rules), Matching (pairs and |Δt|) and **Calibration error** (held-out MAE per region, with a minimum sample size and unvalidated regions marked). The original-vs-calibrated series draws the calibrated line only if it also passes a held-out daily-total check. Since 1.4 the tab also validates a **day-level ratio** for AOI daily totals (section 5: held-out errors, year-by-year stability, high-fire days, and a gate badge), with matching map views (ratio index, regional daily totals). Historical Patterns and AOI Insights offer an **experimental MODIS-equivalent comparison**, off by default and drawn only when the gate passes for the current filters. The other pages always show original observations.
 - **Sensor Workbench**: per-sensor series, union versus sum of cells, the **MODIS–VIIRS harmonization** panel (choose the sensor pair, time tolerance, grid and measurement, press *Run harmonization*, download the validation package), confidence and type breakdowns, and paged source records.
@@ -89,6 +91,7 @@ cd backend
 #          --unit-set matched_plus_proxy --test-fraction 0.3 --split-date 2022-01-01 --no-units
 ../.venv/bin/python -m pyrosync.cli harmonize-audit --out ../harmonization_audit   # audit of runs A–E on the full archive
 ../.venv/bin/python -m pyrosync.cli harmonize-aggregate --out ../docs/harmonization/AGGREGATE --with-events   # 1.4 day-level ratio, runs A, C, D, F
+../.venv/bin/python -m pyrosync.cli harmonize-fusion --out ../docs/harmonization/FUSION   # 1.5 multi-sensor fusion, runs N, K, S, T
 ```
 It writes `report.md`, `report.json` and `units.csv`. See Methodology §15 for the method and what the results do and do not mean.
 
@@ -134,13 +137,14 @@ data/                created on first run: database, reports, raw copies, caches
 
 ## 8. Running the tests
 ```bash
-cd backend && ../.venv/bin/python -m pytest -q          # backend: 112 tests
-cd frontend && npm ci && npm run build && npm run e2e    # browser: 17 flows (needs Node + Playwright Chromium)
+cd backend && ../.venv/bin/python -m pytest -q          # backend: 135 tests
+cd frontend && npm ci && npm run build && npm run e2e    # browser: 20 flows (needs Node + Playwright Chromium)
 ```
 The browser checks start their own server on port 8765 with a temporary data folder, so they never touch your database. See [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
 
 ## 9. Documentation
-- [docs/METHODOLOGY.md](docs/METHODOLOGY.md): methods, definitions, sources and limitations (§15: harmonization, §16: Harmonization tab and validity rules, §17: AOI Insights, §18: day-level ratio)
+- [docs/METHODOLOGY.md](docs/METHODOLOGY.md): methods, definitions, sources and limitations (§15: harmonization, §16: Harmonization tab and validity rules, §17: AOI Insights, §18: day-level ratio, §19: multi-sensor fusion, §20: adaptive grid and Analyze Location)
+- [docs/MULTISENSOR_FUSION.md](docs/MULTISENSOR_FUSION.md): the 1.5 fusion method, validation and results; [docs/SCIENTIFIC_REFERENCES.md](docs/SCIENTIFIC_REFERENCES.md): checked references; [docs/CHANGES_1.5.md](docs/CHANGES_1.5.md): 1.5 change record
 - [docs/HARMONIZATION_VALIDATION.md](docs/HARMONIZATION_VALIDATION.md): harmonization results on the full archive, with per-run reports in `docs/harmonization/` and the generated audit in `docs/harmonization/AUDIT/`
 - [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md): stored fields, export columns and API metrics
 - [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md): what was run and the actual results

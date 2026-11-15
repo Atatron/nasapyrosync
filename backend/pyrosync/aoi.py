@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import threading
 from functools import lru_cache
 from pathlib import Path
@@ -142,9 +143,54 @@ def register_custom(obj: dict, name: str | None = None) -> dict:
     return describe(aid) | {"notes": notes}
 
 
+# ------------------------------------------------------------------ Click-to-Analyze circles (1.5)
+EARTH_RADIUS_KM = 6371.0088  # IUGG mean Earth radius; the same sphere Leaflet uses for distances (6371 km)
+CIRCLE_MIN_KM, CIRCLE_MAX_KM = 0.1, 2000.0
+CIRCLE_VERTICES = 96
+
+
+def parse_circle(aoi_id: str) -> tuple[float, float, float]:
+    """'circle:<lat>,<lon>,<radius_km>' -> (lat, lon, radius_km), validated."""
+    try:
+        lat, lon, r = (float(x) for x in aoi_id.split(":", 1)[1].split(","))
+    except ValueError:
+        raise AOIError("Malformed circle AOI id; expected circle:<lat>,<lon>,<radius_km>.") from None
+    if not (-85 <= lat <= 85 and -180 <= lon <= 180):
+        raise AOIError("Circle centre must lie within latitude ±85° and longitude ±180°.")
+    if not (CIRCLE_MIN_KM <= r <= CIRCLE_MAX_KM) or not math.isfinite(r):
+        raise AOIError(f"Circle radius must be between {CIRCLE_MIN_KM} and {CIRCLE_MAX_KM:g} km.")
+    return lat, lon, r
+
+
+def circle_id(lat: float, lon: float, radius_km: float) -> str:
+    """Canonical id: centre to 4 decimals (about 11 m), radius to 3 significant digits, so equal circles share caches."""
+    r = float(f"{radius_km:.3g}")
+    return f"circle:{lat:.4f},{lon:.4f},{r:g}"
+
+
+def circle_polygon(lat: float, lon: float, radius_km: float, n: int = CIRCLE_VERTICES) -> shapely.Geometry:
+    """Geodesic circle on the sphere: n points at great-circle distance radius_km from the centre (destination-point formula).
+    On the WGS84 ellipsoid the true distance differs by less than 0.5 %."""
+    d = radius_km / EARTH_RADIUS_KM
+    p1, l1 = math.radians(lat), math.radians(lon)
+    pts = []
+    for k in range(n):
+        b = 2 * math.pi * k / n
+        p2 = math.asin(math.sin(p1) * math.cos(d) + math.cos(p1) * math.sin(d) * math.cos(b))
+        l2 = l1 + math.atan2(math.sin(b) * math.sin(d) * math.cos(p1), math.cos(d) - math.sin(p1) * math.sin(p2))
+        pts.append((math.degrees(l2), math.degrees(p2)))
+    pts.append(pts[0])
+    g = shapely.Polygon(pts)
+    if not g.is_valid:
+        g = g.buffer(0)
+    return _check(g)
+
+
 def get_geometry(aoi_id: str | None) -> shapely.Geometry | None:
     if not aoi_id or aoi_id == "none":
         return None
+    if aoi_id.startswith("circle:"):
+        return circle_polygon(*parse_circle(aoi_id))
     if aoi_id.startswith("region:"):
         r = regions().get(aoi_id.split(":", 1)[1])
         if not r:
@@ -166,6 +212,11 @@ def describe(aoi_id: str | None) -> dict:
         return {"id": "none", "name": "All imported observations (no AOI)", "kind": "none", "bbox": None,
                 "note": "No spatial filter. The imported extent is a download bounding box and is broader than Indonesia's land boundary."}
     g = get_geometry(aoi_id)
+    if aoi_id.startswith("circle:"):
+        lat, lon, r = parse_circle(aoi_id)
+        return {"id": aoi_id, "name": f"Circle {r:g} km around {lat:.3f}°, {lon:.3f}°", "kind": "circle", "bbox": list(g.bounds),
+                "center": [lat, lon], "radius_km": r,
+                "note": "Click-to-Analyze area: a geodesic circle on the sphere. Its radius follows the map zoom when it was created."}
     if aoi_id.startswith("region:"):
         p = regions()[aoi_id.split(":", 1)[1]]["properties"]
         return {"id": aoi_id, "name": p["name"], "kind": p["kind"], "bbox": list(g.bounds), "source": p["source"],

@@ -6,6 +6,8 @@ import { MON3, METRIC_INFO, SERIES_COLOR, SERIES_SHORT, addDays, fmtDate, fmtNum
 import { EChart, Empty, ErrorNote, Info, Loading, Panel, Seg } from '../components/ui'
 import { ElevatedList, ElevatedSettings } from '../components/Elevated'
 import { ModisEquivalentComparison } from '../components/HarmonizationAggregate'
+import { FusionBanner, FusionHistory } from '../components/FusionParts'
+import type { FusionSeries } from '../fusion'
 
 type Measure = 'detections' | 'sum_daily_cells' | 'distinct_cells' | 'frp_sum'
 const MEASURE_LABEL: Record<Measure, string> = {
@@ -20,7 +22,8 @@ function usePeakDay() {
     if (!d) return
     const ser = d.series[s.series]
     let best = -1, bd = ''
-    d.dates.forEach((x, i) => { if (x.startsWith(prefix) && ser.cells[i] > best) { best = ser.cells[i]; bd = x } })
+    const vals = s.series === 'FUSED' ? (ser.detections as (number | null)[]) : ser.cells
+    d.dates.forEach((x, i) => { const v = vals[i] ?? -1; if (x.startsWith(prefix) && v > best) { best = v; bd = x } })
     if (bd) { s.set({ frameMode: 1 }); s.setDate(bd) }
   }
 }
@@ -33,6 +36,8 @@ export default function HistoryPage() {
   const peak = usePeakDay()
   const el = useElevated()
   const inv = useInventory()
+  const fused = s.series === 'FUSED'
+  const fm = useApi<FusionSeries>(fused ? `/api/fusion/series?${qs}&agg=month` : null)
 
   const monthly = useMemo(() => {
     if (!h.data) return {}
@@ -49,6 +54,18 @@ export default function HistoryPage() {
   }, [h.data, measure])
 
   const seasonal = useMemo(() => {
+    if (fused) {
+      if (!fm.data) return {}
+      const d = fm.data
+      const years = Array.from(new Set(d.dates.map((x) => Number(x.slice(0, 4)))))
+      const palette = ['#0f1d3a', '#ea580c', '#0f766e', '#7c3aed', '#2563eb', '#a16207']
+      return {
+        grid: { left: 56, right: 12, top: 30, bottom: 28 }, legend: { top: 0, type: 'scroll' }, tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', data: MON3 }, yAxis: { type: 'value', name: 'MODIS-Aqua-eq. detections', nameTextStyle: { fontSize: 10 } },
+        series: years.map((y, i) => ({ name: String(y), type: 'line', symbolSize: 6, itemStyle: { color: palette[i % palette.length] },
+          data: Array.from({ length: 12 }, (_, mi) => { const k = d.dates.indexOf(`${y}-${String(mi + 1).padStart(2, '0')}`); return k >= 0 ? d.fused[k] : null }) })),
+      }
+    }
     if (!h.data) return {}
     const years = Array.from(new Set(h.data.months.map((m) => m.year)))
     const palette = ['#0f1d3a', '#ea580c', '#0f766e', '#7c3aed', '#2563eb', '#a16207']
@@ -58,11 +75,15 @@ export default function HistoryPage() {
       series: years.map((y, i) => ({ name: String(y), type: 'line', symbolSize: 6, itemStyle: { color: palette[i % palette.length] },
         data: Array.from({ length: 12 }, (_, mi) => { const m = h.data!.months.find((x) => x.year === y && x.month === mi + 1); return m ? m.series[s.series]?.[measure] ?? 0 : null }) })),
     }
-  }, [h.data, measure, s.series])
+  }, [h.data, measure, s.series, fused, fm.data])
 
   return (
     <div className="flex flex-col gap-3 p-3">
+      <FusionBanner />
       {h.error && <ErrorNote msg={h.error} />}
+      {fused && <Panel title="Harmonized multi-sensor record (whole archive)" info="All eligible satellites on the MODIS Aqua scale, averaged per day; the per-sensor charts below keep the original observations.">
+        <FusionHistory range="record" />
+      </Panel>}
       <Panel title="Monthly totals by sensor" info="Each sensor is kept separate. 'Sum of daily occupied cells' counts a cell once per day it has detections; 'Distinct cells in month' counts it once per month. * = partial month in the analysis range. Click a bar to jump to that month's most active day."
         actions={<Seg<Measure> label="Monthly measure" value={measure} onChange={setMeasure} options={(Object.keys(MEASURE_LABEL) as Measure[]).map((k) => ({ value: k, label: MEASURE_LABEL[k] }))} />}>
         {!h.data ? <Loading /> : <EChart ariaLabel="Monthly totals by sensor" option={monthly} height={280} onClick={(p) => peak(h.data!.months[p.dataIndex].label)} />}

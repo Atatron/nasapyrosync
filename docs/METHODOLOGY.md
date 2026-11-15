@@ -184,3 +184,38 @@ Implementation: `backend/pyrosync/aggregate.py` (method `pyrosync-aggregate-1.0`
 **History and Insights.** The comparison is off until the user ticks it. It uses Aqua and one VIIRS satellite and the page's own filters (Insights: the AOI's whole history up to the as-of day). It shows the gate, c, the valid period (days on which both sensors exist; never before the VIIRS record starts) and the split. If the gate fails, only the original totals are shown, with the failed checks listed. No other statistic on those pages uses calibrated values.
 
 **Results on the full archive (types 0 + unknown).** The gate passes for Indonesia-wide detections with Aqua–S-NPP (c 0.1309, held-out 0.99×, 14 of 14 years in the band) and with Aqua–NOAA-20 (c 0.1349, 1.07×, 8 of 8). It fails for occupied cells, for Kalimantan and for Terra–S-NPP. See [HARMONIZATION_VALIDATION.md](HARMONIZATION_VALIDATION.md). Coverage is not verified.
+
+## 19. Multi-sensor historical fusion (added in 1.5)
+Implementation: `backend/pyrosync/fusion.py` (method `pyrosync-fusion-1.0`, gate `pyrosync-fusion-gate-1.0`). Full method and results: [MULTISENSOR_FUSION.md](MULTISENSOR_FUSION.md). Sources: [SCIENTIFIC_REFERENCES.md](SCIENTIFIC_REFERENCES.md).
+
+**Scale.** MODIS Aqua detections per UTC day in the AOI ("MODIS-Aqua-equivalent detections per day"). It is a reference scale, not ground truth.
+
+**Estimator.** F_d = mean over eligible platforms known on day d of c_p·X_p,d, with c_Aqua = 1. Each c_p is the §18 day-level ratio against Aqua. Raw detections of different satellites are never added. A platform is eligible when its pair with Aqua passes the unchanged §18 gate Indonesia-wide. Smaller AOIs inherit eligibility and fit their own ratios. A platform is known on a day only inside its own record, inside an imported interval and outside its gap days. A day with no known platform has no value, never zero.
+
+**Validation.** Leave-reference-out (the estimate without Aqua against observed Aqua), with a common chronological 20 % hold-out. It is compared with the raw-count mean, a constant and each single sensor. It is also checked by rolling origin per year, high-fire days, monthly and seasonal consistency, sensor-join transitions, missing data and regional cells at 0.5°, 1° and 2°. The nine-check gate is listed in MULTISENSOR_FUSION.md §4. Status: passes, not validated (experimental, the area's own fit), or insufficient (Indonesia-wide coefficients, labelled "Insufficient validation data").
+
+**Results (full archive).**
+
+- **Indonesia passes.** Held-out 0.96×, MAE 35.7 against 515.8 (raw mean) and 132.4 (constant), all 14 rolling years in band, high-fire days 0.91×, NOAA-20 and NOAA-21 join steps 1.00× and 0.95×.
+- **Kalimantan and Sumatra are experimental.** 10 of 14 years in band; high-fire days 0.78× and 0.53×.
+- **Terra fails as a pair, and as a reference.** It is not fused, so 2000-11 to 2002-07 has no fused value.
+- **Regional 1° agreement:** 36 %.
+- **Accuracy:** the fusion matches the best single-sensor ratio rather than improving on it. What it adds is continuity across changes of satellite.
+
+## 20. Adaptive map grid, Analyze Location and the hotspot popup (added in 1.5)
+
+**Two grids.**
+
+- The **analysis grid** is chosen in Filters and is 0.1° by default. It drives every statistic and card. Zooming never changes it, so a Region AOI's statistics do not change with zoom.
+- The **display grid** only draws the map. In Auto (recommended) it follows the zoom: zoom 3–5 → 0.25°, 6–7 → 0.1°, 8–10 → 0.05°, 11+ → 0.01°. A manual choice overrides it. Grids of 0.05° or finer are requested only for the viewport, snapped outward to 0.5°.
+- An old link with `grid=` and no `gridMode` opens as a manual grid, so bookmarks keep their resolution.
+
+**Analyze Location.**
+
+- Clicking the map, or "Analyze around this detection" in a hotspot popup, makes a circle AOI `circle:<lat>,<lon>,<radius_km>`.
+- Its diameter is 22 % of the shortest map side (width or height) at the current zoom, and is recalculated when the zoom changes.
+- The circle is geodesic on a sphere (R = 6371.0088 km, 96 vertices, destination-point formula). On the WGS84 ellipsoid the true distance differs by less than 0.5 %.
+- Valid range: radius 0.1–2000 km, centre within ±85° latitude.
+- A shared link restores the same circle and view. Region AOIs, drawn polygons and GeoJSON uploads work as before, and "Back to region" returns to the previous one.
+
+**Hotspot popup.** In the Detections layer, a click shows the FIRMS attributes of one original detection: position, time, satellite, instrument, confidence, FRP, brightness temperatures, scan × track, day/night, type and source product. A field missing from the database is shown as "unavailable" and is never estimated.

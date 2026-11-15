@@ -1,0 +1,5456 @@
+{
+  "method_version": "pyrosync-fusion-1.0",
+  "gate_version": "pyrosync-fusion-gate-1.0",
+  "dataset_revision": 1,
+  "aoi": "region:sumatra",
+  "effective_filters": {
+    "start": "2000-11-01",
+    "end": "2026-11-14",
+    "platforms": [
+      "Terra",
+      "Aqua",
+      "N20",
+      "N21",
+      "SNPP"
+    ],
+    "modis_min_conf": 30,
+    "viirs_conf": [
+      "nominal",
+      "high"
+    ],
+    "types": [
+      "0",
+      "unknown"
+    ],
+    "daynight": [
+      "D",
+      "N"
+    ],
+    "aoi": "region:sumatra"
+  },
+  "record": [
+    "2000-11-01",
+    "2026-11-14"
+  ],
+  "platform_records": {
+    "Aqua": [
+      "2002-07-04",
+      "2026-11-14"
+    ],
+    "Terra": [
+      "2000-11-01",
+      "2026-11-14"
+    ],
+    "N20": [
+      "2018-04-01",
+      "2026-11-14"
+    ],
+    "N21": [
+      "2023-03-01",
+      "2026-11-14"
+    ],
+    "SNPP": [
+      "2012-01-20",
+      "2026-11-02"
+    ]
+  },
+  "reference": "Aqua",
+  "reference_available": true,
+  "reference_doc": "Reference scale: MODIS Aqua active-fire detections per UTC day in the AOI. Aqua is the longest single-platform MODIS record with an afternoon overpass, the one the 1.4 day-level ratio was validated against. It is a reference observational scale, not ground truth: MODIS misses small fires and fires under cloud or smoke, and its own errors stay in the target. Aqua's overpass has drifted later since it left the A-Train in 2022; the year-by-year checks show whether that changes the ratios.",
+  "equation": "F_d = mean over eligible platforms p known on day d of c_p \u00b7 X_p,d;  c_Aqua = 1,  c_p = \u03a3_train Aqua / \u03a3_train p (1.4 day-level ratio, pairwise chronological split)",
+  "coefficients": {
+    "SNPP": 0.12189804796073941,
+    "N20": 0.1379235501832358,
+    "N21": 0.15579160977565107
+  },
+  "eligible": [
+    "SNPP",
+    "N20",
+    "N21"
+  ],
+  "eligibility_rule": "platforms that pass the pairwise 1.4 gate against Aqua Indonesia-wide (instrument-level eligibility), with a ratio fitted on this area's own training days (\u2265 180 known overlap days)",
+  "national_eligibility": [
+    "SNPP",
+    "N20",
+    "N21"
+  ],
+  "pairs": {
+    "Terra": {
+      "platform": "Terra",
+      "platform_label": "Terra (MODIS)",
+      "status": "ok",
+      "reason": null,
+      "c": 2.0375111888257456,
+      "bootstrap": {
+        "n_boot": 500,
+        "seed": 20261115,
+        "blocks": 227,
+        "c_lo": 1.8819920291206744,
+        "c_hi": 2.2153929197196516,
+        "rule": "Month-block bootstrap: whole calendar months of training days resampled with replacement; 2.5th and 97.5th percentiles."
+      },
+      "split": "2021-06-01",
+      "split_rule": "chronological hold-out: the last 20% of days with activity and known coverage of both sensors",
+      "train_days": 6792,
+      "held_out_days": 1910,
+      "train_period": [
+        "2002-07-04",
+        "2021-05-31"
+      ],
+      "held_out_period": [
+        "2021-06-01",
+        "2026-11-14"
+      ],
+      "overlap_days": 8702,
+      "eligible": false,
+      "used": false,
+      "gate": {
+        "version": "pyrosync-aggregate-gate-1.0",
+        "status": "not_validated",
+        "checks": [
+          {
+            "id": "days",
+            "label": "Enough held-out days",
+            "passed": true,
+            "value": "1,910 days",
+            "rule": "At least 30 held-out days with a known coverage state for both sensors."
+          },
+          {
+            "id": "level",
+            "label": "Total level close to MODIS",
+            "passed": false,
+            "value": "\u03a3 estimate / \u03a3 MODIS = 1.27",
+            "rule": "Held-out total between 0.8\u00d7 and 1.25\u00d7 the MODIS total."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Daily totals better than raw VIIRS",
+            "passed": false,
+            "value": "MAE 16.0 vs 12.3; RMSE 56.5 vs 38.1",
+            "rule": "Held-out daily MAE and RMSE below raw VIIRS."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Daily totals better than a constant",
+            "passed": false,
+            "value": "MAE 16.0 vs 41.2; RMSE 56.5 vs 50.1",
+            "rule": "Held-out daily MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+          },
+          {
+            "id": "roll_years",
+            "label": "Enough rolling-origin years",
+            "passed": true,
+            "value": "23 years",
+            "rule": "At least 3 calendar years predicted from earlier years only."
+          },
+          {
+            "id": "roll_share",
+            "label": "Most years close to MODIS",
+            "passed": false,
+            "value": "10 of 23 years within 0.8\u20131.25\u00d7",
+            "rule": "At least 80% of rolling-origin years within 0.8\u20131.25\u00d7."
+          },
+          {
+            "id": "roll_hard",
+            "label": "No year far off",
+            "passed": false,
+            "value": "worst year 2026: 1.59\u00d7",
+            "rule": "No rolling-origin year outside 0.67\u20131.5\u00d7."
+          },
+          {
+            "id": "high_activity",
+            "label": "High-fire days close to MODIS",
+            "passed": false,
+            "value": "50 days, 0.78\u00d7",
+            "rule": "At least 10 held-out days at or above the training 90th percentile, total within 0.8\u20131.25\u00d7."
+          }
+        ],
+        "label": "Not validated under the project's aggregate rules: the calibrated line is not drawn",
+        "note": "\"Passes\" means the documented PyroSync rules on held-out (later) data; it is not an official or NASA validation."
+      },
+      "held_out": {
+        "day_ratio": {
+          "n": 1910,
+          "mae": 16.01801580500311,
+          "rmse": 56.539143369733985,
+          "mbe": 3.6059975375591957,
+          "ratio": 1.2654636845919467,
+          "sum_pred": 32832.45529673806,
+          "sum_obs": 25945.0
+        },
+        "raw": {
+          "n": 1910,
+          "mae": 12.314659685863875,
+          "rmse": 38.09725086617418,
+          "mbe": -5.147120418848168,
+          "ratio": 0.6210830603199075,
+          "sum_pred": 16114.0,
+          "sum_obs": 25945.0
+        },
+        "constant": {
+          "n": 1910,
+          "mae": 41.20904482637412,
+          "rmse": 50.14815388136617,
+          "mbe": 29.649445914195333,
+          "ratio": 3.1827111850496466,
+          "sum_pred": 82575.44169611308,
+          "sum_obs": 25945.0,
+          "value": 43.23321554770318
+        }
+      },
+      "rolling_years": [
+        {
+          "year": 2004,
+          "c": 2.653736294112227,
+          "ratio": 1.0706138863531802,
+          "within_level": true,
+          "test_days": 364
+        },
+        {
+          "year": 2005,
+          "c": 2.57533828466782,
+          "ratio": 1.3106214575152118,
+          "within_level": false,
+          "test_days": 362
+        },
+        {
+          "year": 2006,
+          "c": 2.3646326027579776,
+          "ratio": 0.9968838277251628,
+          "within_level": true,
+          "test_days": 359
+        },
+        {
+          "year": 2007,
+          "c": 2.366967459666393,
+          "ratio": 0.7107100946981845,
+          "within_level": false,
+          "test_days": 362
+        },
+        {
+          "year": 2008,
+          "c": 2.4476898344363947,
+          "ratio": 0.7851607802244599,
+          "within_level": false,
+          "test_days": 359
+        },
+        {
+          "year": 2009,
+          "c": 2.508429206059916,
+          "ratio": 1.2371454823510242,
+          "within_level": true,
+          "test_days": 361
+        },
+        {
+          "year": 2010,
+          "c": 2.430763598159851,
+          "ratio": 0.739139327413273,
+          "within_level": false,
+          "test_days": 361
+        },
+        {
+          "year": 2011,
+          "c": 2.459126660407271,
+          "ratio": 1.1005649509075608,
+          "within_level": true,
+          "test_days": 360
+        },
+        {
+          "year": 2012,
+          "c": 2.4346007760973003,
+          "ratio": 1.1739130038819292,
+          "within_level": true,
+          "test_days": 359
+        },
+        {
+          "year": 2013,
+          "c": 2.391844035921051,
+          "ratio": 1.3672934207352816,
+          "within_level": false,
+          "test_days": 359
+        },
+        {
+          "year": 2014,
+          "c": 2.3246323171325605,
+          "ratio": 1.4720467074914907,
+          "within_level": false,
+          "test_days": 363
+        },
+        {
+          "year": 2015,
+          "c": 2.2157511459411503,
+          "ratio": 1.4371840846177724,
+          "within_level": false,
+          "test_days": 364
+        },
+        {
+          "year": 2016,
+          "c": 2.1279306215288663,
+          "ratio": 1.1935794797299877,
+          "within_level": true,
+          "test_days": 357
+        },
+        {
+          "year": 2017,
+          "c": 2.1210340590440784,
+          "ratio": 1.1217088199242262,
+          "within_level": true,
+          "test_days": 360
+        },
+        {
+          "year": 2018,
+          "c": 2.1186498811240595,
+          "ratio": 1.4223065015723377,
+          "within_level": false,
+          "test_days": 363
+        },
+        {
+          "year": 2019,
+          "c": 2.1064129022395477,
+          "ratio": 1.5456033715334443,
+          "within_level": false,
+          "test_days": 363
+        },
+        {
+          "year": 2020,
+          "c": 2.0460649221131293,
+          "ratio": 1.5167408036072716,
+          "within_level": false,
+          "test_days": 348
+        },
+        {
+          "year": 2021,
+          "c": 2.0400707417438952,
+          "ratio": 1.3679152025908103,
+          "within_level": false,
+          "test_days": 354
+        },
+        {
+          "year": 2022,
+          "c": 2.035460307377898,
+          "ratio": 0.8438322842911173,
+          "within_level": true,
+          "test_days": 329
+        },
+        {
+          "year": 2023,
+          "c": 2.03699374269408,
+          "ratio": 1.2178005749603156,
+          "within_level": true,
+          "test_days": 356
+        },
+        {
+          "year": 2024,
+          "c": 2.0280574429695415,
+          "ratio": 0.8990937502800842,
+          "within_level": true,
+          "test_days": 358
+        },
+        {
+          "year": 2025,
+          "c": 2.0299934825691976,
+          "ratio": 0.715367897098583,
+          "within_level": false,
+          "test_days": 345
+        },
+        {
+          "year": 2026,
+          "c": 2.0359069153325633,
+          "ratio": 1.592211589018571,
+          "within_level": false,
+          "test_days": 311
+        }
+      ]
+    },
+    "SNPP": {
+      "platform": "SNPP",
+      "platform_label": "Suomi NPP (VIIRS)",
+      "status": "ok",
+      "reason": null,
+      "c": 0.12189804796073941,
+      "bootstrap": {
+        "n_boot": 500,
+        "seed": 20261115,
+        "blocks": 142,
+        "c_lo": 0.10880052333645347,
+        "c_hi": 0.13735823252382706,
+        "rule": "Month-block bootstrap: whole calendar months of training days resampled with replacement; 2.5th and 97.5th percentiles."
+      },
+      "split": "2023-10-08",
+      "split_rule": "chronological hold-out: the last 20% of days with activity and known coverage of both sensors",
+      "train_days": 4195,
+      "held_out_days": 1075,
+      "train_period": [
+        "2012-01-20",
+        "2023-10-07"
+      ],
+      "held_out_period": [
+        "2023-10-08",
+        "2026-11-02"
+      ],
+      "overlap_days": 5270,
+      "eligible": false,
+      "used": true,
+      "gate": {
+        "version": "pyrosync-aggregate-gate-1.0",
+        "status": "not_validated",
+        "checks": [
+          {
+            "id": "days",
+            "label": "Enough held-out days",
+            "passed": true,
+            "value": "1,075 days",
+            "rule": "At least 30 held-out days with a known coverage state for both sensors."
+          },
+          {
+            "id": "level",
+            "label": "Total level close to MODIS",
+            "passed": true,
+            "value": "\u03a3 estimate / \u03a3 MODIS = 0.82",
+            "rule": "Held-out total between 0.8\u00d7 and 1.25\u00d7 the MODIS total."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Daily totals better than raw VIIRS",
+            "passed": true,
+            "value": "MAE 13.8 vs 101.2; RMSE 34.3 vs 267.7",
+            "rule": "Held-out daily MAE and RMSE below raw VIIRS."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Daily totals better than a constant",
+            "passed": true,
+            "value": "MAE 13.8 vs 32.0; RMSE 34.3 vs 50.6",
+            "rule": "Held-out daily MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+          },
+          {
+            "id": "roll_years",
+            "label": "Enough rolling-origin years",
+            "passed": true,
+            "value": "14 years",
+            "rule": "At least 3 calendar years predicted from earlier years only."
+          },
+          {
+            "id": "roll_share",
+            "label": "Most years close to MODIS",
+            "passed": false,
+            "value": "8 of 14 years within 0.8\u20131.25\u00d7",
+            "rule": "At least 80% of rolling-origin years within 0.8\u20131.25\u00d7."
+          },
+          {
+            "id": "roll_hard",
+            "label": "No year far off",
+            "passed": true,
+            "value": "worst year 2021: 0.68\u00d7",
+            "rule": "No rolling-origin year outside 0.67\u20131.5\u00d7."
+          },
+          {
+            "id": "high_activity",
+            "label": "High-fire days close to MODIS",
+            "passed": false,
+            "value": "79 days, 0.54\u00d7",
+            "rule": "At least 10 held-out days at or above the training 90th percentile, total within 0.8\u20131.25\u00d7."
+          }
+        ],
+        "label": "Not validated under the project's aggregate rules: the calibrated line is not drawn",
+        "note": "\"Passes\" means the documented PyroSync rules on held-out (later) data; it is not an official or NASA validation."
+      },
+      "held_out": {
+        "day_ratio": {
+          "n": 1075,
+          "mae": 13.758189549305596,
+          "rmse": 34.29543788949646,
+          "mbe": -3.1789777955168153,
+          "ratio": 0.8194812144006879,
+          "sum_pred": 15513.598869819423,
+          "sum_obs": 18931.0
+        },
+        "raw": {
+          "n": 1075,
+          "mae": 101.24651162790698,
+          "rmse": 267.69006722891913,
+          "mbe": 100.77767441860465,
+          "ratio": 6.722677090486504,
+          "sum_pred": 127267.0,
+          "sum_obs": 18931.0
+        },
+        "constant": {
+          "n": 1075,
+          "mae": 31.98021321063282,
+          "rmse": 50.6170136220791,
+          "mbe": 11.473915236854507,
+          "ratio": 1.6515481950038877,
+          "sum_pred": 31265.4588796186,
+          "sum_obs": 18931.0,
+          "value": 29.084147794994042
+        }
+      },
+      "rolling_years": [
+        {
+          "year": 2013,
+          "c": 0.15686630416768604,
+          "ratio": 1.1949611437403949,
+          "within_level": true,
+          "test_days": 362
+        },
+        {
+          "year": 2014,
+          "c": 0.14396405985849353,
+          "ratio": 1.2486094796116813,
+          "within_level": true,
+          "test_days": 363
+        },
+        {
+          "year": 2015,
+          "c": 0.1308179751571481,
+          "ratio": 1.4105237626244844,
+          "within_level": false,
+          "test_days": 364
+        },
+        {
+          "year": 2016,
+          "c": 0.11698067404820024,
+          "ratio": 0.8491088678404698,
+          "within_level": true,
+          "test_days": 366
+        },
+        {
+          "year": 2017,
+          "c": 0.11789206552252837,
+          "ratio": 0.7716656789788714,
+          "within_level": false,
+          "test_days": 362
+        },
+        {
+          "year": 2018,
+          "c": 0.11861718717445903,
+          "ratio": 0.9173770761506239,
+          "within_level": true,
+          "test_days": 364
+        },
+        {
+          "year": 2019,
+          "c": 0.11899906125465567,
+          "ratio": 0.9334727936034933,
+          "within_level": true,
+          "test_days": 363
+        },
+        {
+          "year": 2020,
+          "c": 0.12010795364343546,
+          "ratio": 0.7944715781216439,
+          "within_level": false,
+          "test_days": 349
+        },
+        {
+          "year": 2021,
+          "c": 0.12046617217822507,
+          "ratio": 0.677331838610902,
+          "within_level": false,
+          "test_days": 358
+        },
+        {
+          "year": 2022,
+          "c": 0.12107238050875967,
+          "ratio": 0.8080877489770704,
+          "within_level": true,
+          "test_days": 329
+        },
+        {
+          "year": 2023,
+          "c": 0.12133476653688516,
+          "ratio": 0.870241233210194,
+          "within_level": true,
+          "test_days": 359
+        },
+        {
+          "year": 2024,
+          "c": 0.122112723060916,
+          "ratio": 0.7261345853443755,
+          "within_level": false,
+          "test_days": 343
+        },
+        {
+          "year": 2025,
+          "c": 0.12280954457088003,
+          "ratio": 0.6996717521858412,
+          "within_level": false,
+          "test_days": 358
+        },
+        {
+          "year": 2026,
+          "c": 0.12370961611554541,
+          "ratio": 0.8721832979862993,
+          "within_level": true,
+          "test_days": 289
+        }
+      ]
+    },
+    "N20": {
+      "platform": "N20",
+      "platform_label": "NOAA-20 (VIIRS)",
+      "status": "ok",
+      "reason": null,
+      "c": 0.1379235501832358,
+      "bootstrap": {
+        "n_boot": 500,
+        "seed": 20261115,
+        "blocks": 84,
+        "c_lo": 0.13157129671940881,
+        "c_hi": 0.1491351980031591,
+        "rule": "Month-block bootstrap: whole calendar months of training days resampled with replacement; 2.5th and 97.5th percentiles."
+      },
+      "split": "2025-03-10",
+      "split_rule": "chronological hold-out: the last 20% of days with activity and known coverage of both sensors",
+      "train_days": 2470,
+      "held_out_days": 611,
+      "train_period": [
+        "2018-04-01",
+        "2025-03-09"
+      ],
+      "held_out_period": [
+        "2025-03-10",
+        "2026-11-14"
+      ],
+      "overlap_days": 3081,
+      "eligible": false,
+      "used": true,
+      "gate": {
+        "version": "pyrosync-aggregate-gate-1.0",
+        "status": "not_validated",
+        "checks": [
+          {
+            "id": "days",
+            "label": "Enough held-out days",
+            "passed": true,
+            "value": "611 days",
+            "rule": "At least 30 held-out days with a known coverage state for both sensors."
+          },
+          {
+            "id": "level",
+            "label": "Total level close to MODIS",
+            "passed": true,
+            "value": "\u03a3 estimate / \u03a3 MODIS = 0.95",
+            "rule": "Held-out total between 0.8\u00d7 and 1.25\u00d7 the MODIS total."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Daily totals better than raw VIIRS",
+            "passed": true,
+            "value": "MAE 19.5 vs 136.9; RMSE 44.9 vs 326.1",
+            "rule": "Held-out daily MAE and RMSE below raw VIIRS."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Daily totals better than a constant",
+            "passed": true,
+            "value": "MAE 19.5 vs 26.0; RMSE 44.9 vs 60.6",
+            "rule": "Held-out daily MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+          },
+          {
+            "id": "roll_years",
+            "label": "Enough rolling-origin years",
+            "passed": true,
+            "value": "8 years",
+            "rule": "At least 3 calendar years predicted from earlier years only."
+          },
+          {
+            "id": "roll_share",
+            "label": "Most years close to MODIS",
+            "passed": true,
+            "value": "7 of 8 years within 0.8\u20131.25\u00d7",
+            "rule": "At least 80% of rolling-origin years within 0.8\u20131.25\u00d7."
+          },
+          {
+            "id": "roll_hard",
+            "label": "No year far off",
+            "passed": true,
+            "value": "worst year 2021: 0.79\u00d7",
+            "rule": "No rolling-origin year outside 0.67\u20131.5\u00d7."
+          },
+          {
+            "id": "high_activity",
+            "label": "High-fire days close to MODIS",
+            "passed": false,
+            "value": "110 days, 0.71\u00d7",
+            "rule": "At least 10 held-out days at or above the training 90th percentile, total within 0.8\u20131.25\u00d7."
+          }
+        ],
+        "label": "Not validated under the project's aggregate rules: the calibrated line is not drawn",
+        "note": "\"Passes\" means the documented PyroSync rules on held-out (later) data; it is not an official or NASA validation."
+      },
+      "held_out": {
+        "day_ratio": {
+          "n": 611,
+          "mae": 19.483536868174152,
+          "rmse": 44.85973781922576,
+          "mbe": -1.220962611900945,
+          "ratio": 0.9476154654959991,
+          "sum_pred": 13494.991844128523,
+          "sum_obs": 14241.0
+        },
+        "raw": {
+          "n": 611,
+          "mae": 136.9443535188216,
+          "rmse": 326.13652468440915,
+          "mbe": 136.82978723404256,
+          "ratio": 6.870584930833509,
+          "sum_pred": 97844.0,
+          "sum_obs": 14241.0
+        },
+        "constant": {
+          "n": 611,
+          "mae": 25.990242318625466,
+          "rmse": 60.57336982812827,
+          "mbe": -9.929554655870449,
+          "ratio": 0.5739795032134792,
+          "sum_pred": 8174.042105263157,
+          "sum_obs": 14241.0,
+          "value": 13.378137651821863
+        }
+      },
+      "rolling_years": [
+        {
+          "year": 2019,
+          "c": 0.13543103088044794,
+          "ratio": 1.05873373928116,
+          "within_level": true,
+          "test_days": 363
+        },
+        {
+          "year": 2020,
+          "c": 0.12914062659385647,
+          "ratio": 0.834065511494535,
+          "within_level": true,
+          "test_days": 349
+        },
+        {
+          "year": 2021,
+          "c": 0.1308924079108289,
+          "ratio": 0.7858592666690372,
+          "within_level": false,
+          "test_days": 358
+        },
+        {
+          "year": 2022,
+          "c": 0.13319621116024327,
+          "ratio": 0.9269387779429655,
+          "within_level": true,
+          "test_days": 344
+        },
+        {
+          "year": 2023,
+          "c": 0.13378717786640862,
+          "ratio": 0.9256009378623001,
+          "within_level": true,
+          "test_days": 356
+        },
+        {
+          "year": 2024,
+          "c": 0.1358396284913799,
+          "ratio": 0.8424777511511308,
+          "within_level": true,
+          "test_days": 361
+        },
+        {
+          "year": 2025,
+          "c": 0.13774916491557065,
+          "ratio": 0.8163625207995711,
+          "within_level": true,
+          "test_days": 359
+        },
+        {
+          "year": 2026,
+          "c": 0.13999767071703095,
+          "ratio": 0.9958882686772593,
+          "within_level": true,
+          "test_days": 316
+        }
+      ]
+    },
+    "N21": {
+      "platform": "N21",
+      "platform_label": "NOAA-21 (VIIRS)",
+      "status": "ok",
+      "reason": null,
+      "c": 0.15579160977565107,
+      "bootstrap": {
+        "n_boot": 500,
+        "seed": 20261115,
+        "blocks": 37,
+        "c_lo": 0.14514052998106555,
+        "c_hi": 0.17332262086539163,
+        "rule": "Month-block bootstrap: whole calendar months of training days resampled with replacement; 2.5th and 97.5th percentiles."
+      },
+      "split": "2026-03-02",
+      "split_rule": "chronological hold-out: the last 20% of days with activity and known coverage of both sensors",
+      "train_days": 1083,
+      "held_out_days": 258,
+      "train_period": [
+        "2023-03-01",
+        "2026-03-01"
+      ],
+      "held_out_period": [
+        "2026-03-02",
+        "2026-11-14"
+      ],
+      "overlap_days": 1341,
+      "eligible": true,
+      "used": true,
+      "gate": {
+        "version": "pyrosync-aggregate-gate-1.0",
+        "status": "passes",
+        "checks": [
+          {
+            "id": "days",
+            "label": "Enough held-out days",
+            "passed": true,
+            "value": "258 days",
+            "rule": "At least 30 held-out days with a known coverage state for both sensors."
+          },
+          {
+            "id": "level",
+            "label": "Total level close to MODIS",
+            "passed": true,
+            "value": "\u03a3 estimate / \u03a3 MODIS = 1.09",
+            "rule": "Held-out total between 0.8\u00d7 and 1.25\u00d7 the MODIS total."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Daily totals better than raw VIIRS",
+            "passed": true,
+            "value": "MAE 35.3 vs 253.5; RMSE 65.9 vs 491.8",
+            "rule": "Held-out daily MAE and RMSE below raw VIIRS."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Daily totals better than a constant",
+            "passed": true,
+            "value": "MAE 35.3 vs 41.0; RMSE 65.9 vs 90.0",
+            "rule": "Held-out daily MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+          },
+          {
+            "id": "roll_years",
+            "label": "Enough rolling-origin years",
+            "passed": true,
+            "value": "3 years",
+            "rule": "At least 3 calendar years predicted from earlier years only."
+          },
+          {
+            "id": "roll_share",
+            "label": "Most years close to MODIS",
+            "passed": true,
+            "value": "3 of 3 years within 0.8\u20131.25\u00d7",
+            "rule": "At least 80% of rolling-origin years within 0.8\u20131.25\u00d7."
+          },
+          {
+            "id": "roll_hard",
+            "label": "No year far off",
+            "passed": true,
+            "value": "worst year 2025: 0.86\u00d7",
+            "rule": "No rolling-origin year outside 0.67\u20131.5\u00d7."
+          },
+          {
+            "id": "high_activity",
+            "label": "High-fire days close to MODIS",
+            "passed": true,
+            "value": "75 days, 0.88\u00d7",
+            "rule": "At least 10 held-out days at or above the training 90th percentile, total within 0.8\u20131.25\u00d7."
+          }
+        ],
+        "label": "Passes the project's aggregate validation rules (chronological hold-out and year-by-year stability)",
+        "note": "\"Passes\" means the documented PyroSync rules on held-out (later) data; it is not an official or NASA validation."
+      },
+      "held_out": {
+        "day_ratio": {
+          "n": 258,
+          "mae": 35.30463545130562,
+          "rmse": 65.94026683107768,
+          "mbe": 3.8852010434057465,
+          "ratio": 1.092130686507232,
+          "sum_pred": 11882.381869198683,
+          "sum_obs": 10880.0
+        },
+        "raw": {
+          "n": 258,
+          "mae": 253.4922480620155,
+          "rmse": 491.7621730915473,
+          "mbe": 253.45348837209303,
+          "ratio": 7.0102022058823525,
+          "sum_pred": 76271.0,
+          "sum_obs": 10880.0
+        },
+        "constant": {
+          "n": 258,
+          "mae": 41.043755860479436,
+          "rmse": 89.96386649371911,
+          "mbe": -30.6867014537568,
+          "ratio": 0.2723190280267232,
+          "sum_pred": 2962.8310249307483,
+          "sum_obs": 10880.0,
+          "value": 11.483841181902124
+        }
+      },
+      "rolling_years": [
+        {
+          "year": 2024,
+          "c": 0.14443332380135354,
+          "ratio": 0.8611316439910502,
+          "within_level": true,
+          "test_days": 360
+        },
+        {
+          "year": 2025,
+          "c": 0.1511948451690372,
+          "ratio": 0.8606697051886156,
+          "within_level": true,
+          "test_days": 359
+        },
+        {
+          "year": 2026,
+          "c": 0.15689581360351829,
+          "ratio": 1.1046734647720227,
+          "within_level": true,
+          "test_days": 316
+        }
+      ]
+    }
+  },
+  "validation": {
+    "reference": "Aqua",
+    "eligible_components": [
+      "SNPP",
+      "N20",
+      "N21"
+    ],
+    "design": "Leave-reference-out: the fused estimate WITHOUT Aqua, with each ratio fitted only on days before the evaluation period, is compared with the observed Aqua totals. Aqua is never an input to its own prediction.",
+    "split": "2022-06-18",
+    "split_rule": "chronological hold-out: the last 20% of days with activity and a known Aqua state",
+    "train_coefficients": {
+      "SNPP": 0.12121468021803854,
+      "N20": 0.13358506204959364,
+      "N21": null
+    },
+    "held_out_days": 1592,
+    "train_days": 7204,
+    "held_out_period": [
+      "2022-06-18",
+      "2026-11-14"
+    ],
+    "status": "ok",
+    "held_out": {
+      "fusion_leave_reference_out": {
+        "n": 1592,
+        "mae": 12.037621491276791,
+        "rmse": 30.69816063730242,
+        "mbe": -2.027946695513044,
+        "ratio": 0.8660654993048427,
+        "sum_pred": 20876.508860743234,
+        "sum_obs": 24105.0
+      },
+      "raw_unadjusted_mean": {
+        "n": 1592,
+        "mae": 87.68718592964824,
+        "rmse": 232.4708612258652,
+        "mbe": 87.62060301507537,
+        "ratio": 6.7868492014104955,
+        "sum_pred": 163597.0,
+        "sum_obs": 24105.0
+      },
+      "constant_train_mean": {
+        "n": 1592,
+        "mae": 39.981354754059026,
+        "rmse": 50.897175619626545,
+        "mbe": 25.942371839765183,
+        "ratio": 2.7133481007635836,
+        "sum_pred": 65405.25596890618,
+        "sum_obs": 24105.0,
+        "value": 41.083703498056636
+      }
+    },
+    "single_sensor_comparison": {
+      "SNPP": {
+        "days": 1528,
+        "single_ratio": {
+          "n": 1528,
+          "mae": 11.974653777822276,
+          "rmse": 31.299134313765514,
+          "mbe": -2.7410703096175917,
+          "ratio": 0.8197548980894401,
+          "sum_pred": 19048.64456690432,
+          "sum_obs": 23237.0
+        },
+        "fusion": {
+          "n": 1528,
+          "mae": 12.0124511547598,
+          "rmse": 31.04826494673299,
+          "mbe": -2.0207645399572995,
+          "ratio": 0.8671201868978461,
+          "sum_pred": 20149.27178294525,
+          "sum_obs": 23237.0
+        }
+      },
+      "N20": {
+        "days": 1586,
+        "single_ratio": {
+          "n": 1586,
+          "mae": 12.306527768168326,
+          "rmse": 31.727143866870264,
+          "mbe": -1.3933965024298989,
+          "ratio": 0.9082141939255797,
+          "sum_pred": 21867.07314714618,
+          "sum_obs": 24077.0
+        },
+        "fusion": {
+          "n": 1586,
+          "mae": 12.029317387347957,
+          "rmse": 30.696819682633695,
+          "mbe": -2.087360699177015,
+          "ratio": 0.8625013885079228,
+          "sum_pred": 20766.445931105256,
+          "sum_obs": 24077.0
+        }
+      }
+    },
+    "contributors_held_out": {
+      "SNPP": 1528,
+      "N20": 1586
+    },
+    "activity": {
+      "threshold": 111.0,
+      "rule": "High-fire days: held-out days with Aqua total \u2265 the training 90th percentile.",
+      "high": {
+        "fusion_leave_reference_out": {
+          "n": 52,
+          "mae": 108.94543707598987,
+          "rmse": 128.8818845868275,
+          "mbe": -98.78509860898026,
+          "ratio": 0.5335671363237108,
+          "sum_pred": 5876.1748723330265,
+          "sum_obs": 11013.0
+        },
+        "raw_unadjusted_mean": {
+          "n": 52,
+          "mae": 674.5288461538462,
+          "rmse": 809.179692057618,
+          "mbe": 674.5288461538462,
+          "ratio": 4.184917824389358,
+          "sum_pred": 46088.5,
+          "sum_obs": 11013.0
+        },
+        "constant_train_mean": {
+          "n": 52,
+          "mae": 170.70475804040495,
+          "rmse": 197.87217235424842,
+          "mbe": -170.70475804040495,
+          "ratio": 0.19398461653490834,
+          "sum_pred": 2136.3525818989456,
+          "sum_obs": 11013.0
+        }
+      },
+      "low": {
+        "fusion_leave_reference_out": {
+          "n": 1540,
+          "mae": 8.765409536468296,
+          "rmse": 20.330327304712345,
+          "mbe": 1.2391779145520823,
+          "ratio": 1.1457633660563862,
+          "sum_pred": 15000.333988410208,
+          "sum_obs": 13092.0
+        },
+        "raw_unadjusted_mean": {
+          "n": 1540,
+          "mae": 67.87175324675324,
+          "rmse": 183.7344361285617,
+          "mbe": 67.80292207792208,
+          "ratio": 8.975595783684692,
+          "sum_pred": 117508.5,
+          "sum_obs": 13092.0
+        },
+        "constant_train_mean": {
+          "n": 1540,
+          "mae": 35.56731775997462,
+          "rmse": 36.822981028455594,
+          "mbe": 32.58240479675794,
+          "ratio": 4.832638511076018,
+          "sum_pred": 63268.90338700723,
+          "sum_obs": 13092.0
+        }
+      }
+    },
+    "monthly": {
+      "months": [
+        {
+          "month": "2022-07",
+          "days": 31,
+          "aqua": 260.0,
+          "fusion": 230.46150156786229,
+          "ratio": 0.8863903906456242
+        },
+        {
+          "month": "2022-08",
+          "days": 31,
+          "aqua": 224.0,
+          "fusion": 179.5489220468446,
+          "ratio": 0.8015576877091277
+        },
+        {
+          "month": "2022-09",
+          "days": 30,
+          "aqua": 106.0,
+          "fusion": 93.74288426853029,
+          "ratio": 0.8843668327219839
+        },
+        {
+          "month": "2022-10",
+          "days": 31,
+          "aqua": 33.0,
+          "fusion": 23.724850501699166,
+          "ratio": 0.7189348636878535
+        },
+        {
+          "month": "2022-11",
+          "days": 30,
+          "aqua": 30.0,
+          "fusion": 43.18486026154539,
+          "ratio": 1.4394953420515129
+        },
+        {
+          "month": "2022-12",
+          "days": 28,
+          "aqua": 23.0,
+          "fusion": 30.662561744936742,
+          "ratio": 1.3331548584755104
+        },
+        {
+          "month": "2023-01",
+          "days": 28,
+          "aqua": 24.0,
+          "fusion": 21.894222262269032,
+          "ratio": 0.9122592609278763
+        },
+        {
+          "month": "2023-02",
+          "days": 27,
+          "aqua": 38.0,
+          "fusion": 68.55599018992211,
+          "ratio": 1.8041050049979503
+        },
+        {
+          "month": "2023-03",
+          "days": 31,
+          "aqua": 69.0,
+          "fusion": 58.5841405797593,
+          "ratio": 0.8490455156486855
+        },
+        {
+          "month": "2023-04",
+          "days": 30,
+          "aqua": 164.0,
+          "fusion": 122.82709072387902,
+          "ratio": 0.7489456751456038
+        },
+        {
+          "month": "2023-05",
+          "days": 31,
+          "aqua": 187.0,
+          "fusion": 132.89914795774303,
+          "ratio": 0.7106906307900697
+        },
+        {
+          "month": "2023-06",
+          "days": 30,
+          "aqua": 289.0,
+          "fusion": 207.35501954042883,
+          "ratio": 0.7174914170949095
+        },
+        {
+          "month": "2023-07",
+          "days": 31,
+          "aqua": 230.0,
+          "fusion": 151.11363347706046,
+          "ratio": 0.6570157977263499
+        },
+        {
+          "month": "2023-08",
+          "days": 31,
+          "aqua": 362.0,
+          "fusion": 290.29478713231265,
+          "ratio": 0.801919301470477
+        },
+        {
+          "month": "2023-09",
+          "days": 30,
+          "aqua": 1802.0,
+          "fusion": 1632.5679881531842,
+          "ratio": 0.9059755761116449
+        },
+        {
+          "month": "2023-10",
+          "days": 31,
+          "aqua": 2482.0,
+          "fusion": 2428.441657823313,
+          "ratio": 0.9784212964638651
+        },
+        {
+          "month": "2023-11",
+          "days": 30,
+          "aqua": 341.0,
+          "fusion": 321.6204088742864,
+          "ratio": 0.9431683544700481
+        },
+        {
+          "month": "2023-12",
+          "days": 31,
+          "aqua": 135.0,
+          "fusion": 101.19509796384214,
+          "ratio": 0.7495933182506825
+        },
+        {
+          "month": "2024-01",
+          "days": 31,
+          "aqua": 58.0,
+          "fusion": 45.06244323587622,
+          "ratio": 0.7769386764806245
+        },
+        {
+          "month": "2024-02",
+          "days": 28,
+          "aqua": 70.0,
+          "fusion": 82.11351645592312,
+          "ratio": 1.173050235084616
+        },
+        {
+          "month": "2024-03",
+          "days": 31,
+          "aqua": 191.0,
+          "fusion": 170.1617245836471,
+          "ratio": 0.8908990815897754
+        },
+        {
+          "month": "2024-04",
+          "days": 30,
+          "aqua": 97.0,
+          "fusion": 56.33672837385858,
+          "ratio": 0.5807910141634904
+        },
+        {
+          "month": "2024-05",
+          "days": 31,
+          "aqua": 100.0,
+          "fusion": 57.370786862858175,
+          "ratio": 0.5737078686285817
+        },
+        {
+          "month": "2024-06",
+          "days": 30,
+          "aqua": 71.0,
+          "fusion": 81.52848776567778,
+          "ratio": 1.1482885600799688
+        },
+        {
+          "month": "2024-07",
+          "days": 31,
+          "aqua": 611.0,
+          "fusion": 514.9269692236858,
+          "ratio": 0.8427609970927754
+        },
+        {
+          "month": "2024-08",
+          "days": 31,
+          "aqua": 403.0,
+          "fusion": 349.4665585033989,
+          "ratio": 0.8671626761870941
+        },
+        {
+          "month": "2024-09",
+          "days": 30,
+          "aqua": 538.0,
+          "fusion": 382.3554500890635,
+          "ratio": 0.7106978626190771
+        },
+        {
+          "month": "2024-10",
+          "days": 31,
+          "aqua": 585.0,
+          "fusion": 431.3635932772697,
+          "ratio": 0.7373736637218286
+        },
+        {
+          "month": "2024-11",
+          "days": 30,
+          "aqua": 61.0,
+          "fusion": 47.254264032190974,
+          "ratio": 0.7746600661014914
+        },
+        {
+          "month": "2024-12",
+          "days": 28,
+          "aqua": 111.0,
+          "fusion": 54.74977406391328,
+          "ratio": 0.4932412077830025
+        },
+        {
+          "month": "2025-01",
+          "days": 27,
+          "aqua": 24.0,
+          "fusion": 21.59985989073723,
+          "ratio": 0.8999941621140511
+        },
+        {
+          "month": "2025-02",
+          "days": 28,
+          "aqua": 99.0,
+          "fusion": 51.68602962011392,
+          "ratio": 0.522081107273878
+        },
+        {
+          "month": "2025-03",
+          "days": 31,
+          "aqua": 43.0,
+          "fusion": 28.622919237746927,
+          "ratio": 0.6656492845987657
+        },
+        {
+          "month": "2025-04",
+          "days": 28,
+          "aqua": 85.0,
+          "fusion": 50.45034896899117,
+          "ratio": 0.5935335172822491
+        },
+        {
+          "month": "2025-05",
+          "days": 31,
+          "aqua": 190.0,
+          "fusion": 146.49008931642044,
+          "ratio": 0.7710004700864234
+        },
+        {
+          "month": "2025-06",
+          "days": 30,
+          "aqua": 473.0,
+          "fusion": 303.9934788376397,
+          "ratio": 0.642692344265623
+        },
+        {
+          "month": "2025-07",
+          "days": 31,
+          "aqua": 887.0,
+          "fusion": 805.5717121133406,
+          "ratio": 0.9081980970838113
+        },
+        {
+          "month": "2025-08",
+          "days": 31,
+          "aqua": 628.0,
+          "fusion": 383.6269973166321,
+          "ratio": 0.6108710148354015
+        },
+        {
+          "month": "2025-09",
+          "days": 30,
+          "aqua": 305.0,
+          "fusion": 173.68434241560675,
+          "ratio": 0.5694568603790385
+        },
+        {
+          "month": "2025-10",
+          "days": 31,
+          "aqua": 259.0,
+          "fusion": 202.29251509640866,
+          "ratio": 0.7810521818394157
+        },
+        {
+          "month": "2025-11",
+          "days": 30,
+          "aqua": 132.0,
+          "fusion": 149.66018892050874,
+          "ratio": 1.133789310003854
+        },
+        {
+          "month": "2025-12",
+          "days": 31,
+          "aqua": 29.0,
+          "fusion": 20.461935379546173,
+          "ratio": 0.7055839786050404
+        },
+        {
+          "month": "2026-01",
+          "days": 29,
+          "aqua": 203.0,
+          "fusion": 193.5550262596638,
+          "ratio": 0.9534730357618907
+        },
+        {
+          "month": "2026-02",
+          "days": 28,
+          "aqua": 140.0,
+          "fusion": 154.8168287602984,
+          "ratio": 1.1058344911449884
+        },
+        {
+          "month": "2026-03",
+          "days": 31,
+          "aqua": 407.0,
+          "fusion": 360.79190862670816,
+          "ratio": 0.8864666059624279
+        },
+        {
+          "month": "2026-04",
+          "days": 30,
+          "aqua": 126.0,
+          "fusion": 112.10826585359588,
+          "ratio": 0.8897481416952054
+        },
+        {
+          "month": "2026-05",
+          "days": 31,
+          "aqua": 189.0,
+          "fusion": 149.13448534699566,
+          "ratio": 0.7890713510423051
+        },
+        {
+          "month": "2026-06",
+          "days": 30,
+          "aqua": 197.0,
+          "fusion": 157.25986620904655,
+          "ratio": 0.7982734325332312
+        },
+        {
+          "month": "2026-07",
+          "days": 31,
+          "aqua": 479.0,
+          "fusion": 341.6140414738742,
+          "ratio": 0.7131817149767729
+        },
+        {
+          "month": "2026-08",
+          "days": 31,
+          "aqua": 2200.0,
+          "fusion": 1656.9542755633668,
+          "ratio": 0.7531610343469849
+        },
+        {
+          "month": "2026-09",
+          "days": 30,
+          "aqua": 3995.0,
+          "fusion": 3190.071389590958,
+          "ratio": 0.7985159923882248
+        },
+        {
+          "month": "2026-10",
+          "days": 31,
+          "aqua": 3084.0,
+          "fusion": 3609.7509273499063,
+          "ratio": 1.1704769543936142
+        }
+      ],
+      "min_days": 20,
+      "share_within_level": 0.4230769230769231,
+      "totals": {
+        "n": 52,
+        "mae": 85.73046594639517,
+        "rmse": 169.4400301014339,
+        "mbe": -61.412259736829064,
+        "ratio": 0.8662098325729979,
+        "sum_pred": 20675.562493684887,
+        "sum_obs": 23869.0
+      }
+    },
+    "rolling_origin": {
+      "years": [
+        {
+          "year": 2013,
+          "coefficients": {
+            "SNPP": 0.15686630416768604
+          },
+          "contributors": [
+            "SNPP"
+          ],
+          "test_days": 362,
+          "ratio": 1.1949611437403949,
+          "mae": 31.257853164760505,
+          "rmse": 98.75743215115017,
+          "mbe": 9.10770138617077,
+          "sum_aqua": 16911.0,
+          "sum_estimate": 20207.98790179382,
+          "constant_mae": 65.62582244607702,
+          "within_level": true
+        },
+        {
+          "year": 2014,
+          "coefficients": {
+            "SNPP": 0.14396405985849353
+          },
+          "contributors": [
+            "SNPP"
+          ],
+          "test_days": 363,
+          "ratio": 1.2486094796116813,
+          "mae": 48.081496584805144,
+          "rmse": 94.09671422977286,
+          "mbe": 17.093785128451664,
+          "sum_aqua": 24959.0,
+          "sum_estimate": 31164.044001627954,
+          "constant_mae": 72.27558924396205,
+          "within_level": true
+        },
+        {
+          "year": 2015,
+          "coefficients": {
+            "SNPP": 0.1308179751571481
+          },
+          "contributors": [
+            "SNPP"
+          ],
+          "test_days": 364,
+          "ratio": 1.4105237626244844,
+          "mae": 53.398978262964405,
+          "rmse": 110.24814874446679,
+          "mbe": 28.187418679323475,
+          "sum_aqua": 24993.0,
+          "sum_estimate": 35253.22039927374,
+          "constant_mae": 75.82967518347378,
+          "within_level": false
+        },
+        {
+          "year": 2016,
+          "coefficients": {
+            "SNPP": 0.11698067404820024
+          },
+          "contributors": [
+            "SNPP"
+          ],
+          "test_days": 366,
+          "ratio": 0.8491088678404698,
+          "mae": 9.630156735805995,
+          "rmse": 19.606220062470314,
+          "mbe": -1.9310766749596722,
+          "sum_aqua": 4684.0,
+          "sum_estimate": 3977.2259369647604,
+          "constant_mae": 45.23436389957508,
+          "within_level": true
+        },
+        {
+          "year": 2017,
+          "coefficients": {
+            "SNPP": 0.11789206552252837
+          },
+          "contributors": [
+            "SNPP"
+          ],
+          "test_days": 362,
+          "ratio": 0.7716656789788714,
+          "mae": 5.328760294101795,
+          "rmse": 9.85164666966132,
+          "mbe": -1.5863558490832543,
+          "sum_aqua": 2515.0,
+          "sum_estimate": 1940.7391826318617,
+          "constant_mae": 45.09713900838291,
+          "within_level": false
+        },
+        {
+          "year": 2018,
+          "coefficients": {
+            "SNPP": 0.11861718717445903
+          },
+          "contributors": [
+            "SNPP"
+          ],
+          "test_days": 364,
+          "ratio": 0.9173770761506239,
+          "mae": 7.857710935357153,
+          "rmse": 16.02878015638182,
+          "mbe": -0.8616390630006366,
+          "sum_aqua": 3796.0,
+          "sum_estimate": 3482.3633810677684,
+          "constant_mae": 42.68546400218999,
+          "within_level": true
+        },
+        {
+          "year": 2019,
+          "coefficients": {
+            "SNPP": 0.11899906125465567,
+            "N20": 0.13543103088044794
+          },
+          "contributors": [
+            "SNPP",
+            "N20"
+          ],
+          "test_days": 363,
+          "ratio": 0.9961032664423268,
+          "mae": 25.18877834531194,
+          "rmse": 54.566778489702735,
+          "mbe": -0.16906241542643657,
+          "sum_aqua": 15749.0,
+          "sum_estimate": 15687.630343200206,
+          "constant_mae": 56.776682724179075,
+          "within_level": true
+        },
+        {
+          "year": 2020,
+          "coefficients": {
+            "SNPP": 0.12010795364343546,
+            "N20": 0.12914062659385647
+          },
+          "contributors": [
+            "SNPP",
+            "N20"
+          ],
+          "test_days": 349,
+          "ratio": 0.8142685448080896,
+          "mae": 3.9091400066427204,
+          "rmse": 6.789219108814135,
+          "mbe": -0.8866149121768561,
+          "sum_aqua": 1666.0,
+          "sum_estimate": 1356.5713956502773,
+          "constant_mae": 41.47398879420054,
+          "within_level": true
+        },
+        {
+          "year": 2021,
+          "coefficients": {
+            "SNPP": 0.12046617217822507,
+            "N20": 0.1308924079108289
+          },
+          "contributors": [
+            "SNPP",
+            "N20"
+          ],
+          "test_days": 358,
+          "ratio": 0.7315955526399696,
+          "mae": 4.103711889560689,
+          "rmse": 7.068348859267249,
+          "mbe": -1.3607655641297636,
+          "sum_aqua": 1815.0,
+          "sum_estimate": 1327.8459280415448,
+          "constant_mae": 39.00962135319678,
+          "within_level": false
+        },
+        {
+          "year": 2022,
+          "coefficients": {
+            "SNPP": 0.12107238050875967,
+            "N20": 0.13319621116024327
+          },
+          "contributors": [
+            "SNPP",
+            "N20"
+          ],
+          "test_days": 344,
+          "ratio": 0.8707575304042555,
+          "mae": 3.717471767832206,
+          "rmse": 8.265458363025855,
+          "mbe": -0.5432692181262985,
+          "sum_aqua": 1446.0,
+          "sum_estimate": 1259.1153889645534,
+          "constant_mae": 38.49922854260489,
+          "within_level": true
+        },
+        {
+          "year": 2023,
+          "coefficients": {
+            "SNPP": 0.12133476653688516,
+            "N20": 0.13378717786640862
+          },
+          "contributors": [
+            "SNPP",
+            "N20"
+          ],
+          "test_days": 361,
+          "ratio": 0.9054894495884925,
+          "mae": 12.245201888847415,
+          "rmse": 28.53511233670305,
+          "mbe": -1.603014127893798,
+          "sum_aqua": 6123.0,
+          "sum_estimate": 5544.31189983034,
+          "constant_mae": 38.19368340174292,
+          "within_level": true
+        },
+        {
+          "year": 2024,
+          "coefficients": {
+            "SNPP": 0.122112723060916,
+            "N20": 0.1358396284913799,
+            "N21": 0.14443332380135354
+          },
+          "contributors": [
+            "SNPP",
+            "N20",
+            "N21"
+          ],
+          "test_days": 362,
+          "ratio": 0.815883215049566,
+          "mae": 7.027125673539439,
+          "rmse": 14.870221421805333,
+          "mbe": -1.4729342796034726,
+          "sum_aqua": 2896.0,
+          "sum_estimate": 2362.797790783543,
+          "constant_mae": 34.73597013341839,
+          "within_level": true
+        },
+        {
+          "year": 2025,
+          "coefficients": {
+            "SNPP": 0.12280954457088003,
+            "N20": 0.13774916491557065,
+            "N21": 0.1511948451690372
+          },
+          "contributors": [
+            "SNPP",
+            "N20",
+            "N21"
+          ],
+          "test_days": 359,
+          "ratio": 0.7924679522592769,
+          "mae": 8.118120023665599,
+          "rmse": 18.140493938954634,
+          "mbe": -1.8232759848864637,
+          "sum_aqua": 3154.0,
+          "sum_estimate": 2499.4439214257595,
+          "constant_mae": 34.26215160049654,
+          "within_level": false
+        },
+        {
+          "year": 2026,
+          "coefficients": {
+            "SNPP": 0.12370961611554541,
+            "N20": 0.13999767071703095,
+            "N21": 0.15689581360351829
+          },
+          "contributors": [
+            "SNPP",
+            "N20",
+            "N21"
+          ],
+          "test_days": 316,
+          "ratio": 0.9898848912237392,
+          "mae": 28.336719215614647,
+          "rmse": 56.508379789240045,
+          "mbe": -0.3592464107467517,
+          "sum_aqua": 11223.0,
+          "sum_estimate": 11109.478134204026,
+          "constant_mae": 46.784542184141394,
+          "within_level": true
+        }
+      ],
+      "rule": "Year Y is predicted without Aqua, from the other platforms with ratios fitted on all known days before 1 January Y; a year needs \u2265 180 earlier Aqua days and \u2265 30 test days."
+    },
+    "seasonal": {
+      "months": [
+        {
+          "month": 1,
+          "days": 413,
+          "aqua": 2002.0,
+          "fusion": 2038.2402710522424,
+          "ratio": 1.0181020334926285
+        },
+        {
+          "month": 2,
+          "days": 391,
+          "aqua": 7776.0,
+          "fusion": 10014.949452310006,
+          "ratio": 1.2879307423238175
+        },
+        {
+          "month": 3,
+          "days": 434,
+          "aqua": 9715.0,
+          "fusion": 12985.524966195688,
+          "ratio": 1.3366469342455674
+        },
+        {
+          "month": 4,
+          "days": 402,
+          "aqua": 2411.0,
+          "fusion": 1941.798993777923,
+          "ratio": 0.8053915361998851
+        },
+        {
+          "month": 5,
+          "days": 434,
+          "aqua": 3153.0,
+          "fusion": 2339.58176704553,
+          "ratio": 0.7420176869792356
+        },
+        {
+          "month": 6,
+          "days": 420,
+          "aqua": 12042.0,
+          "fusion": 13891.33075722039,
+          "ratio": 1.153573389571532
+        },
+        {
+          "month": 7,
+          "days": 434,
+          "aqua": 13347.0,
+          "fusion": 12302.583362461359,
+          "ratio": 0.9217489595011132
+        },
+        {
+          "month": 8,
+          "days": 419,
+          "aqua": 17670.0,
+          "fusion": 17185.370876950743,
+          "ratio": 0.9725733376882141
+        },
+        {
+          "month": 9,
+          "days": 418,
+          "aqua": 27647.0,
+          "fusion": 30746.37078407102,
+          "ratio": 1.112105139222014
+        },
+        {
+          "month": 10,
+          "days": 434,
+          "aqua": 20760.0,
+          "fusion": 28197.511790428907,
+          "ratio": 1.3582616469378086
+        },
+        {
+          "month": 11,
+          "days": 403,
+          "aqua": 4450.0,
+          "fusion": 4723.506434129368,
+          "ratio": 1.0614621200290715
+        },
+        {
+          "month": 12,
+          "days": 391,
+          "aqua": 957.0,
+          "fusion": 806.0061498169778,
+          "ratio": 0.8422216821494021
+        }
+      ],
+      "share_within_level": 0.6666666666666666,
+      "rule": "Rolling-origin (out-of-sample) estimates summed by calendar month over every predicted year."
+    },
+    "transitions": {
+      "platforms": [
+        {
+          "platform": "SNPP",
+          "joins": "2012-01-20",
+          "leave_reference_out": null,
+          "fused": {
+            "before": 1.0,
+            "after": 0.8883659523659144,
+            "step": 0.8883659523659144,
+            "days_before": 363,
+            "days_after": 360
+          }
+        },
+        {
+          "platform": "N20",
+          "joins": "2018-04-01",
+          "leave_reference_out": {
+            "before": 0.8497089902237603,
+            "after": 0.9889121100346293,
+            "step": 1.163824463919361,
+            "days_before": 364,
+            "days_after": 363
+          },
+          "fused": {
+            "before": 0.9248544951118801,
+            "after": 0.9926080733564197,
+            "step": 1.0732586353882005,
+            "days_before": 364,
+            "days_after": 363
+          }
+        },
+        {
+          "platform": "N21",
+          "joins": "2023-03-01",
+          "leave_reference_out": {
+            "before": 0.8846868119275854,
+            "after": 0.970642804845819,
+            "step": 1.0971597991055726,
+            "days_before": 342,
+            "days_after": 364
+          },
+          "fused": {
+            "before": 0.9241888909633639,
+            "after": 0.9766489065443721,
+            "step": 1.0567633046598564,
+            "days_before": 342,
+            "days_after": 364
+          }
+        }
+      ],
+      "rule": "\u03a3 estimate / \u03a3 Aqua over up to 365 known days before and after a platform's first known day (\u2265 60 days each side). 'step' = after / before; a step of 1 means no jump. Uses the production ratios, so it checks discontinuity, not accuracy."
+    },
+    "missing": {
+      "days": 9510,
+      "no_known_platform": 636,
+      "aqua_unknown": 714,
+      "per_platform_known": {
+        "Terra": 9357,
+        "Aqua": 8796,
+        "SNPP": 5348,
+        "N20": 3144,
+        "N21": 1353
+      }
+    },
+    "gate": {
+      "version": "pyrosync-fusion-gate-1.0",
+      "status": "not_validated",
+      "checks": [
+        {
+          "id": "days",
+          "label": "Enough held-out days",
+          "passed": true,
+          "value": "1,592 days",
+          "rule": "At least 30 held-out days with a known Aqua state and a fused estimate."
+        },
+        {
+          "id": "level",
+          "label": "Total level close to Aqua",
+          "passed": true,
+          "value": "\u03a3 fused / \u03a3 Aqua = 0.87",
+          "rule": "Held-out total between 0.8\u00d7 and 1.25\u00d7 the Aqua total."
+        },
+        {
+          "id": "beats_unadjusted",
+          "label": "Better than averaging raw counts",
+          "passed": true,
+          "value": "MAE 12.0 vs 87.7; RMSE 30.7 vs 232.5",
+          "rule": "Held-out daily MAE and RMSE below the uncalibrated mean of the same platforms' raw counts."
+        },
+        {
+          "id": "beats_constant",
+          "label": "Better than a constant",
+          "passed": true,
+          "value": "MAE 12.0 vs 40.0; RMSE 30.7 vs 50.9",
+          "rule": "Held-out daily MAE and RMSE below a constant equal to the training-period mean daily Aqua total."
+        },
+        {
+          "id": "roll_years",
+          "label": "Enough rolling-origin years",
+          "passed": true,
+          "value": "14 years",
+          "rule": "At least 3 calendar years predicted from earlier years only."
+        },
+        {
+          "id": "roll_share",
+          "label": "Most years close to Aqua",
+          "passed": false,
+          "value": "10 of 14 years within 0.8\u20131.25\u00d7",
+          "rule": "At least 80% of rolling-origin years within 0.8\u20131.25\u00d7."
+        },
+        {
+          "id": "roll_hard",
+          "label": "No year far off",
+          "passed": true,
+          "value": "worst year 2015: 1.41\u00d7",
+          "rule": "No rolling-origin year outside 0.67\u20131.5\u00d7."
+        },
+        {
+          "id": "high_activity",
+          "label": "High-fire days close to Aqua",
+          "passed": false,
+          "value": "52 days, 0.53\u00d7",
+          "rule": "At least 10 held-out days at or above the training 90th percentile, total within 0.8\u20131.25\u00d7."
+        },
+        {
+          "id": "transitions",
+          "label": "No jump when a satellite joins",
+          "passed": true,
+          "value": "N20 1.16\u00d7, N21 1.10\u00d7",
+          "rule": "For every platform joining the record, the before/after level step of the fused estimate (without Aqua) is within 0.8\u20131.25\u00d7. A platform without a full year on both sides is not testable and does not fail the check."
+        }
+      ],
+      "label": "Experimental: the fused series does not pass the project's validation rules for this area",
+      "note": "\"Passes\" means the documented PyroSync rules on held-out (later) data with Aqua as the reference scale; it is not an official or NASA validation, and agreement between sensors is not an independent accuracy assessment."
+    }
+  },
+  "gate": {
+    "version": "pyrosync-fusion-gate-1.0",
+    "status": "not_validated",
+    "checks": [
+      {
+        "id": "days",
+        "label": "Enough held-out days",
+        "passed": true,
+        "value": "1,592 days",
+        "rule": "At least 30 held-out days with a known Aqua state and a fused estimate."
+      },
+      {
+        "id": "level",
+        "label": "Total level close to Aqua",
+        "passed": true,
+        "value": "\u03a3 fused / \u03a3 Aqua = 0.87",
+        "rule": "Held-out total between 0.8\u00d7 and 1.25\u00d7 the Aqua total."
+      },
+      {
+        "id": "beats_unadjusted",
+        "label": "Better than averaging raw counts",
+        "passed": true,
+        "value": "MAE 12.0 vs 87.7; RMSE 30.7 vs 232.5",
+        "rule": "Held-out daily MAE and RMSE below the uncalibrated mean of the same platforms' raw counts."
+      },
+      {
+        "id": "beats_constant",
+        "label": "Better than a constant",
+        "passed": true,
+        "value": "MAE 12.0 vs 40.0; RMSE 30.7 vs 50.9",
+        "rule": "Held-out daily MAE and RMSE below a constant equal to the training-period mean daily Aqua total."
+      },
+      {
+        "id": "roll_years",
+        "label": "Enough rolling-origin years",
+        "passed": true,
+        "value": "14 years",
+        "rule": "At least 3 calendar years predicted from earlier years only."
+      },
+      {
+        "id": "roll_share",
+        "label": "Most years close to Aqua",
+        "passed": false,
+        "value": "10 of 14 years within 0.8\u20131.25\u00d7",
+        "rule": "At least 80% of rolling-origin years within 0.8\u20131.25\u00d7."
+      },
+      {
+        "id": "roll_hard",
+        "label": "No year far off",
+        "passed": true,
+        "value": "worst year 2015: 1.41\u00d7",
+        "rule": "No rolling-origin year outside 0.67\u20131.5\u00d7."
+      },
+      {
+        "id": "high_activity",
+        "label": "High-fire days close to Aqua",
+        "passed": false,
+        "value": "52 days, 0.53\u00d7",
+        "rule": "At least 10 held-out days at or above the training 90th percentile, total within 0.8\u20131.25\u00d7."
+      },
+      {
+        "id": "transitions",
+        "label": "No jump when a satellite joins",
+        "passed": true,
+        "value": "N20 1.16\u00d7, N21 1.10\u00d7",
+        "rule": "For every platform joining the record, the before/after level step of the fused estimate (without Aqua) is within 0.8\u20131.25\u00d7. A platform without a full year on both sides is not testable and does not fail the check."
+      }
+    ],
+    "label": "Experimental: the fused series does not pass the project's validation rules for this area",
+    "note": "\"Passes\" means the documented PyroSync rules on held-out (later) data with Aqua as the reference scale; it is not an official or NASA validation, and agreement between sensors is not an independent accuracy assessment."
+  },
+  "coverage": {
+    "status": "not_verified",
+    "note": "Satellite observation coverage (swath, cloud, smoke) is not verified. A day is 'known' when the sensor's record and an imported request interval cover it; a known day with no detection is a reported zero, not proof of a clear-sky observation."
+  },
+  "effective": {
+    "coefficients": {
+      "SNPP": 0.12189804796073941,
+      "N20": 0.1379235501832358,
+      "N21": 0.15579160977565107
+    },
+    "eligible": [
+      "SNPP",
+      "N20",
+      "N21"
+    ],
+    "source": {
+      "aoi": "region:sumatra",
+      "label": "this area's own fit"
+    },
+    "status": "not_validated",
+    "status_label": "Experimental: fails the project's validation rules for this area",
+    "local_gate": {
+      "version": "pyrosync-fusion-gate-1.0",
+      "status": "not_validated",
+      "checks": [
+        {
+          "id": "days",
+          "label": "Enough held-out days",
+          "passed": true,
+          "value": "1,592 days",
+          "rule": "At least 30 held-out days with a known Aqua state and a fused estimate."
+        },
+        {
+          "id": "level",
+          "label": "Total level close to Aqua",
+          "passed": true,
+          "value": "\u03a3 fused / \u03a3 Aqua = 0.87",
+          "rule": "Held-out total between 0.8\u00d7 and 1.25\u00d7 the Aqua total."
+        },
+        {
+          "id": "beats_unadjusted",
+          "label": "Better than averaging raw counts",
+          "passed": true,
+          "value": "MAE 12.0 vs 87.7; RMSE 30.7 vs 232.5",
+          "rule": "Held-out daily MAE and RMSE below the uncalibrated mean of the same platforms' raw counts."
+        },
+        {
+          "id": "beats_constant",
+          "label": "Better than a constant",
+          "passed": true,
+          "value": "MAE 12.0 vs 40.0; RMSE 30.7 vs 50.9",
+          "rule": "Held-out daily MAE and RMSE below a constant equal to the training-period mean daily Aqua total."
+        },
+        {
+          "id": "roll_years",
+          "label": "Enough rolling-origin years",
+          "passed": true,
+          "value": "14 years",
+          "rule": "At least 3 calendar years predicted from earlier years only."
+        },
+        {
+          "id": "roll_share",
+          "label": "Most years close to Aqua",
+          "passed": false,
+          "value": "10 of 14 years within 0.8\u20131.25\u00d7",
+          "rule": "At least 80% of rolling-origin years within 0.8\u20131.25\u00d7."
+        },
+        {
+          "id": "roll_hard",
+          "label": "No year far off",
+          "passed": true,
+          "value": "worst year 2015: 1.41\u00d7",
+          "rule": "No rolling-origin year outside 0.67\u20131.5\u00d7."
+        },
+        {
+          "id": "high_activity",
+          "label": "High-fire days close to Aqua",
+          "passed": false,
+          "value": "52 days, 0.53\u00d7",
+          "rule": "At least 10 held-out days at or above the training 90th percentile, total within 0.8\u20131.25\u00d7."
+        },
+        {
+          "id": "transitions",
+          "label": "No jump when a satellite joins",
+          "passed": true,
+          "value": "N20 1.16\u00d7, N21 1.10\u00d7",
+          "rule": "For every platform joining the record, the before/after level step of the fused estimate (without Aqua) is within 0.8\u20131.25\u00d7. A platform without a full year on both sides is not testable and does not fail the check."
+        }
+      ],
+      "label": "Experimental: the fused series does not pass the project's validation rules for this area",
+      "note": "\"Passes\" means the documented PyroSync rules on held-out (later) data with Aqua as the reference scale; it is not an official or NASA validation, and agreement between sensors is not an independent accuracy assessment."
+    },
+    "national_gate": null
+  },
+  "regional": {
+    "0.5": {
+      "available": true,
+      "grid_deg": 0.5,
+      "min_days": 20,
+      "split": "2022-06-18",
+      "cells": [
+        {
+          "ci": 568,
+          "cj": 168,
+          "aqua": 10.0,
+          "fusion": 12.273683965256796,
+          "ratio": 1.2273683965256796,
+          "active_days": 112,
+          "status": "within",
+          "west": 104.0,
+          "south": -6.0
+        },
+        {
+          "ci": 569,
+          "cj": 168,
+          "aqua": 5.0,
+          "fusion": 5.350794587620276,
+          "ratio": 1.0701589175240551,
+          "active_days": 56,
+          "status": "within",
+          "west": 104.5,
+          "south": -6.0
+        },
+        {
+          "ci": 570,
+          "cj": 168,
+          "aqua": 17.0,
+          "fusion": 9.8110346463526,
+          "ratio": 0.5771196850795647,
+          "active_days": 91,
+          "status": "outside",
+          "west": 105.0,
+          "south": -6.0
+        },
+        {
+          "ci": 571,
+          "cj": 168,
+          "aqua": 13.0,
+          "fusion": 22.08720774970687,
+          "ratio": 1.6990159807466823,
+          "active_days": 167,
+          "status": "outside",
+          "west": 105.5,
+          "south": -6.0
+        },
+        {
+          "ci": 564,
+          "cj": 169,
+          "aqua": 1.0,
+          "fusion": 2.359990211433486,
+          "ratio": 2.359990211433486,
+          "active_days": 28,
+          "status": "outside",
+          "west": 102.0,
+          "south": -5.5
+        },
+        {
+          "ci": 567,
+          "cj": 169,
+          "aqua": 0.0,
+          "fusion": 2.4750197007357473,
+          "ratio": null,
+          "active_days": 25,
+          "status": "outside",
+          "west": 103.5,
+          "south": -5.5
+        },
+        {
+          "ci": 568,
+          "cj": 169,
+          "aqua": 22.0,
+          "fusion": 20.221957502879597,
+          "ratio": 0.9191798864945272,
+          "active_days": 169,
+          "status": "within",
+          "west": 104.0,
+          "south": -5.5
+        },
+        {
+          "ci": 569,
+          "cj": 169,
+          "aqua": 7.0,
+          "fusion": 15.170503562986177,
+          "ratio": 2.167214794712311,
+          "active_days": 134,
+          "status": "outside",
+          "west": 104.5,
+          "south": -5.5
+        },
+        {
+          "ci": 570,
+          "cj": 169,
+          "aqua": 17.0,
+          "fusion": 29.85611075077211,
+          "ratio": 1.7562418088689478,
+          "active_days": 205,
+          "status": "outside",
+          "west": 105.0,
+          "south": -5.5
+        },
+        {
+          "ci": 571,
+          "cj": 169,
+          "aqua": 48.0,
+          "fusion": 43.22442289080959,
+          "ratio": 0.9005088102251998,
+          "active_days": 221,
+          "status": "within",
+          "west": 105.5,
+          "south": -5.5
+        },
+        {
+          "ci": 565,
+          "cj": 170,
+          "aqua": 0.0,
+          "fusion": 0.0,
+          "ratio": null,
+          "active_days": 0,
+          "status": "too_few",
+          "west": 102.5,
+          "south": -5.0
+        },
+        {
+          "ci": 566,
+          "cj": 170,
+          "aqua": 47.0,
+          "fusion": 65.99931843823266,
+          "ratio": 1.4042408178347374,
+          "active_days": 380,
+          "status": "outside",
+          "west": 103.0,
+          "south": -5.0
+        },
+        {
+          "ci": 567,
+          "cj": 170,
+          "aqua": 83.0,
+          "fusion": 46.16823487776761,
+          "ratio": 0.5562437937080434,
+          "active_days": 304,
+          "status": "outside",
+          "west": 103.5,
+          "south": -5.0
+        },
+        {
+          "ci": 568,
+          "cj": 170,
+          "aqua": 212.0,
+          "fusion": 119.90926406963302,
+          "ratio": 0.5656097361775143,
+          "active_days": 428,
+          "status": "outside",
+          "west": 104.0,
+          "south": -5.0
+        },
+        {
+          "ci": 569,
+          "cj": 170,
+          "aqua": 183.0,
+          "fusion": 181.6536983184025,
+          "ratio": 0.9926431602098497,
+          "active_days": 554,
+          "status": "within",
+          "west": 104.5,
+          "south": -5.0
+        },
+        {
+          "ci": 570,
+          "cj": 170,
+          "aqua": 186.0,
+          "fusion": 134.88553757613252,
+          "ratio": 0.7251910622372716,
+          "active_days": 489,
+          "status": "outside",
+          "west": 105.0,
+          "south": -5.0
+        },
+        {
+          "ci": 571,
+          "cj": 170,
+          "aqua": 367.0,
+          "fusion": 278.68789687123905,
+          "ratio": 0.7593675664066459,
+          "active_days": 419,
+          "status": "outside",
+          "west": 105.5,
+          "south": -5.0
+        },
+        {
+          "ci": 564,
+          "cj": 171,
+          "aqua": 4.0,
+          "fusion": 1.9233684488387959,
+          "ratio": 0.48084211220969897,
+          "active_days": 21,
+          "status": "outside",
+          "west": 102.0,
+          "south": -4.5
+        },
+        {
+          "ci": 565,
+          "cj": 171,
+          "aqua": 62.0,
+          "fusion": 50.818971285840284,
+          "ratio": 0.8196608271909723,
+          "active_days": 341,
+          "status": "within",
+          "west": 102.5,
+          "south": -4.5
+        },
+        {
+          "ci": 566,
+          "cj": 171,
+          "aqua": 28.0,
+          "fusion": 36.05416353086992,
+          "ratio": 1.2876486975310686,
+          "active_days": 246,
+          "status": "outside",
+          "west": 103.0,
+          "south": -4.5
+        },
+        {
+          "ci": 567,
+          "cj": 171,
+          "aqua": 224.0,
+          "fusion": 71.47012079135017,
+          "ratio": 0.31906303924709895,
+          "active_days": 319,
+          "status": "outside",
+          "west": 103.5,
+          "south": -4.5
+        },
+        {
+          "ci": 568,
+          "cj": 171,
+          "aqua": 292.0,
+          "fusion": 231.2740624442863,
+          "ratio": 0.792034460425638,
+          "active_days": 522,
+          "status": "outside",
+          "west": 104.0,
+          "south": -4.5
+        },
+        {
+          "ci": 569,
+          "cj": 171,
+          "aqua": 249.0,
+          "fusion": 252.02545722782554,
+          "ratio": 1.0121504306338376,
+          "active_days": 581,
+          "status": "within",
+          "west": 104.5,
+          "south": -4.5
+        },
+        {
+          "ci": 570,
+          "cj": 171,
+          "aqua": 555.0,
+          "fusion": 388.30745276456355,
+          "ratio": 0.6996530680442586,
+          "active_days": 485,
+          "status": "outside",
+          "west": 105.0,
+          "south": -4.5
+        },
+        {
+          "ci": 571,
+          "cj": 171,
+          "aqua": 263.0,
+          "fusion": 199.41059267293622,
+          "ratio": 0.7582151812659171,
+          "active_days": 377,
+          "status": "outside",
+          "west": 105.5,
+          "south": -4.5
+        },
+        {
+          "ci": 564,
+          "cj": 172,
+          "aqua": 118.0,
+          "fusion": 79.03743928462033,
+          "ratio": 0.6698088074967825,
+          "active_days": 449,
+          "status": "outside",
+          "west": 102.0,
+          "south": -4.0
+        },
+        {
+          "ci": 565,
+          "cj": 172,
+          "aqua": 66.0,
+          "fusion": 64.29861686236173,
+          "ratio": 0.9742214676115413,
+          "active_days": 332,
+          "status": "within",
+          "west": 102.5,
+          "south": -4.0
+        },
+        {
+          "ci": 566,
+          "cj": 172,
+          "aqua": 134.0,
+          "fusion": 78.65150596407267,
+          "ratio": 0.5869515370453184,
+          "active_days": 421,
+          "status": "outside",
+          "west": 103.0,
+          "south": -4.0
+        },
+        {
+          "ci": 567,
+          "cj": 172,
+          "aqua": 236.0,
+          "fusion": 383.05562123159496,
+          "ratio": 1.6231170391169278,
+          "active_days": 760,
+          "status": "outside",
+          "west": 103.5,
+          "south": -4.0
+        },
+        {
+          "ci": 568,
+          "cj": 172,
+          "aqua": 157.0,
+          "fusion": 107.4278104056655,
+          "ratio": 0.6842535694628376,
+          "active_days": 509,
+          "status": "outside",
+          "west": 104.0,
+          "south": -4.0
+        },
+        {
+          "ci": 569,
+          "cj": 172,
+          "aqua": 557.0,
+          "fusion": 481.11139492861605,
+          "ratio": 0.863754748525343,
+          "active_days": 392,
+          "status": "within",
+          "west": 104.5,
+          "south": -4.0
+        },
+        {
+          "ci": 570,
+          "cj": 172,
+          "aqua": 943.0,
+          "fusion": 685.2293340622929,
+          "ratio": 0.7266482863863127,
+          "active_days": 348,
+          "status": "outside",
+          "west": 105.0,
+          "south": -4.0
+        },
+        {
+          "ci": 571,
+          "cj": 172,
+          "aqua": 1227.0,
+          "fusion": 1255.6866579505522,
+          "ratio": 1.0233795093321534,
+          "active_days": 341,
+          "status": "within",
+          "west": 105.5,
+          "south": -4.0
+        },
+        {
+          "ci": 560,
+          "cj": 173,
+          "aqua": 0.0,
+          "fusion": 0.12121468021803854,
+          "ratio": null,
+          "active_days": 1,
+          "status": "too_few",
+          "west": 100.0,
+          "south": -3.5
+        },
+        {
+          "ci": 563,
+          "cj": 173,
+          "aqua": 90.0,
+          "fusion": 70.75520309187344,
+          "ratio": 0.7861689232430382,
+          "active_days": 336,
+          "status": "outside",
+          "west": 101.5,
+          "south": -3.5
+        },
+        {
+          "ci": 564,
+          "cj": 173,
+          "aqua": 68.0,
+          "fusion": 67.8311912467115,
+          "ratio": 0.9975175183339926,
+          "active_days": 361,
+          "status": "within",
+          "west": 102.0,
+          "south": -3.5
+        },
+        {
+          "ci": 565,
+          "cj": 173,
+          "aqua": 159.0,
+          "fusion": 91.57207052873267,
+          "ratio": 0.5759249718788219,
+          "active_days": 408,
+          "status": "outside",
+          "west": 102.5,
+          "south": -3.5
+        },
+        {
+          "ci": 566,
+          "cj": 173,
+          "aqua": 405.0,
+          "fusion": 251.48613870343212,
+          "ratio": 0.6209534288973633,
+          "active_days": 625,
+          "status": "outside",
+          "west": 103.0,
+          "south": -3.5
+        },
+        {
+          "ci": 567,
+          "cj": 173,
+          "aqua": 600.0,
+          "fusion": 225.93197984000736,
+          "ratio": 0.3765532997333456,
+          "active_days": 579,
+          "status": "outside",
+          "west": 103.5,
+          "south": -3.5
+        },
+        {
+          "ci": 568,
+          "cj": 173,
+          "aqua": 818.0,
+          "fusion": 836.0152653838039,
+          "ratio": 1.0220235518139413,
+          "active_days": 714,
+          "status": "within",
+          "west": 104.0,
+          "south": -3.5
+        },
+        {
+          "ci": 569,
+          "cj": 173,
+          "aqua": 680.0,
+          "fusion": 624.0317234065383,
+          "ratio": 0.917693710891968,
+          "active_days": 496,
+          "status": "within",
+          "west": 104.5,
+          "south": -3.5
+        },
+        {
+          "ci": 570,
+          "cj": 173,
+          "aqua": 2360.0,
+          "fusion": 2452.5512723851703,
+          "ratio": 1.0392166408411738,
+          "active_days": 358,
+          "status": "within",
+          "west": 105.0,
+          "south": -3.5
+        },
+        {
+          "ci": 571,
+          "cj": 173,
+          "aqua": 443.0,
+          "fusion": 395.7460891633224,
+          "ratio": 0.893332029714046,
+          "active_days": 199,
+          "status": "within",
+          "west": 105.5,
+          "south": -3.5
+        },
+        {
+          "ci": 572,
+          "cj": 173,
+          "aqua": 0.0,
+          "fusion": 0.89798428885249,
+          "ratio": null,
+          "active_days": 4,
+          "status": "too_few",
+          "west": 106.0,
+          "south": -3.5
+        },
+        {
+          "ci": 560,
+          "cj": 174,
+          "aqua": 0.0,
+          "fusion": 0.5702068246442835,
+          "ratio": null,
+          "active_days": 7,
+          "status": "too_few",
+          "west": 100.0,
+          "south": -3.0
+        },
+        {
+          "ci": 562,
+          "cj": 174,
+          "aqua": 28.0,
+          "fusion": 31.355227818847766,
+          "ratio": 1.1198295649588488,
+          "active_days": 205,
+          "status": "within",
+          "west": 101.0,
+          "south": -3.0
+        },
+        {
+          "ci": 563,
+          "cj": 174,
+          "aqua": 113.0,
+          "fusion": 87.49776379054799,
+          "ratio": 0.7743164937216637,
+          "active_days": 305,
+          "status": "outside",
+          "west": 101.5,
+          "south": -3.0
+        },
+        {
+          "ci": 564,
+          "cj": 174,
+          "aqua": 74.0,
+          "fusion": 42.83479351744358,
+          "ratio": 0.5788485610465348,
+          "active_days": 207,
+          "status": "outside",
+          "west": 102.0,
+          "south": -3.0
+        },
+        {
+          "ci": 565,
+          "cj": 174,
+          "aqua": 422.0,
+          "fusion": 239.01087023038042,
+          "ratio": 0.5663764697402379,
+          "active_days": 538,
+          "status": "outside",
+          "west": 102.5,
+          "south": -3.0
+        },
+        {
+          "ci": 566,
+          "cj": 174,
+          "aqua": 444.0,
+          "fusion": 308.7727843772386,
+          "ratio": 0.6954341990478348,
+          "active_days": 609,
+          "status": "outside",
+          "west": 103.0,
+          "south": -3.0
+        },
+        {
+          "ci": 567,
+          "cj": 174,
+          "aqua": 320.0,
+          "fusion": 244.23675408496405,
+          "ratio": 0.7632398565155126,
+          "active_days": 521,
+          "status": "outside",
+          "west": 103.5,
+          "south": -3.0
+        },
+        {
+          "ci": 568,
+          "cj": 174,
+          "aqua": 211.0,
+          "fusion": 201.429152814953,
+          "ratio": 0.9546405346680237,
+          "active_days": 419,
+          "status": "within",
+          "west": 104.0,
+          "south": -3.0
+        },
+        {
+          "ci": 569,
+          "cj": 174,
+          "aqua": 136.0,
+          "fusion": 123.67687570878225,
+          "ratio": 0.90938879197634,
+          "active_days": 357,
+          "status": "within",
+          "west": 104.5,
+          "south": -3.0
+        },
+        {
+          "ci": 570,
+          "cj": 174,
+          "aqua": 463.0,
+          "fusion": 402.3882311203076,
+          "ratio": 0.8690890520956968,
+          "active_days": 294,
+          "status": "within",
+          "west": 105.0,
+          "south": -3.0
+        },
+        {
+          "ci": 571,
+          "cj": 174,
+          "aqua": 83.0,
+          "fusion": 48.89066221513449,
+          "ratio": 0.5890441230739095,
+          "active_days": 52,
+          "status": "outside",
+          "west": 105.5,
+          "south": -3.0
+        },
+        {
+          "ci": 559,
+          "cj": 175,
+          "aqua": 0.0,
+          "fusion": 0.321592273292429,
+          "ratio": null,
+          "active_days": 3,
+          "status": "too_few",
+          "west": 99.5,
+          "south": -2.5
+        },
+        {
+          "ci": 561,
+          "cj": 175,
+          "aqua": 164.0,
+          "fusion": 158.02287024948893,
+          "ratio": 0.9635540868871276,
+          "active_days": 394,
+          "status": "within",
+          "west": 100.5,
+          "south": -2.5
+        },
+        {
+          "ci": 562,
+          "cj": 175,
+          "aqua": 227.0,
+          "fusion": 243.11244452465328,
+          "ratio": 1.0709799318266664,
+          "active_days": 475,
+          "status": "within",
+          "west": 101.0,
+          "south": -2.5
+        },
+        {
+          "ci": 563,
+          "cj": 175,
+          "aqua": 35.0,
+          "fusion": 32.88153713435605,
+          "ratio": 0.9394724895530301,
+          "active_days": 197,
+          "status": "within",
+          "west": 101.5,
+          "south": -2.5
+        },
+        {
+          "ci": 564,
+          "cj": 175,
+          "aqua": 244.0,
+          "fusion": 107.82117348617774,
+          "ratio": 0.4418900552712203,
+          "active_days": 452,
+          "status": "outside",
+          "west": 102.0,
+          "south": -2.5
+        },
+        {
+          "ci": 565,
+          "cj": 175,
+          "aqua": 344.0,
+          "fusion": 188.89942453837998,
+          "ratio": 0.5491262341231976,
+          "active_days": 552,
+          "status": "outside",
+          "west": 102.5,
+          "south": -2.5
+        },
+        {
+          "ci": 566,
+          "cj": 175,
+          "aqua": 466.0,
+          "fusion": 317.9567009116565,
+          "ratio": 0.6823105169778036,
+          "active_days": 494,
+          "status": "outside",
+          "west": 103.0,
+          "south": -2.5
+        },
+        {
+          "ci": 567,
+          "cj": 175,
+          "aqua": 158.0,
+          "fusion": 117.21410428835483,
+          "ratio": 0.7418614195465496,
+          "active_days": 393,
+          "status": "outside",
+          "west": 103.5,
+          "south": -2.5
+        },
+        {
+          "ci": 568,
+          "cj": 175,
+          "aqua": 329.0,
+          "fusion": 425.3782884720779,
+          "ratio": 1.292943126054948,
+          "active_days": 286,
+          "status": "outside",
+          "west": 104.0,
+          "south": -2.5
+        },
+        {
+          "ci": 569,
+          "cj": 175,
+          "aqua": 16.0,
+          "fusion": 32.34350083333943,
+          "ratio": 2.021468802083714,
+          "active_days": 177,
+          "status": "outside",
+          "west": 104.5,
+          "south": -2.5
+        },
+        {
+          "ci": 570,
+          "cj": 175,
+          "aqua": 29.0,
+          "fusion": 49.394076508753976,
+          "ratio": 1.7032440175432406,
+          "active_days": 171,
+          "status": "outside",
+          "west": 105.0,
+          "south": -2.5
+        },
+        {
+          "ci": 571,
+          "cj": 175,
+          "aqua": 0.0,
+          "fusion": 0.20037759307439046,
+          "ratio": null,
+          "active_days": 1,
+          "status": "too_few",
+          "west": 105.5,
+          "south": -2.5
+        },
+        {
+          "ci": 557,
+          "cj": 176,
+          "aqua": 0.0,
+          "fusion": 0.06679253102479682,
+          "ratio": null,
+          "active_days": 1,
+          "status": "too_few",
+          "west": 98.5,
+          "south": -2.0
+        },
+        {
+          "ci": 558,
+          "cj": 176,
+          "aqua": 0.0,
+          "fusion": 0.4972291027037092,
+          "ratio": null,
+          "active_days": 6,
+          "status": "too_few",
+          "west": 99.0,
+          "south": -2.0
+        },
+        {
+          "ci": 561,
+          "cj": 176,
+          "aqua": 24.0,
+          "fusion": 29.8153035524592,
+          "ratio": 1.2423043146858,
+          "active_days": 194,
+          "status": "within",
+          "west": 100.5,
+          "south": -2.0
+        },
+        {
+          "ci": 562,
+          "cj": 176,
+          "aqua": 15.0,
+          "fusion": 15.943539464474355,
+          "ratio": 1.062902630964957,
+          "active_days": 124,
+          "status": "within",
+          "west": 101.0,
+          "south": -2.0
+        },
+        {
+          "ci": 563,
+          "cj": 176,
+          "aqua": 76.0,
+          "fusion": 38.492072086111015,
+          "ratio": 0.506474632711987,
+          "active_days": 208,
+          "status": "outside",
+          "west": 101.5,
+          "south": -2.0
+        },
+        {
+          "ci": 564,
+          "cj": 176,
+          "aqua": 189.0,
+          "fusion": 84.39687054692592,
+          "ratio": 0.44654428860807366,
+          "active_days": 431,
+          "status": "outside",
+          "west": 102.0,
+          "south": -2.0
+        },
+        {
+          "ci": 565,
+          "cj": 176,
+          "aqua": 137.0,
+          "fusion": 105.42399682059346,
+          "ratio": 0.7695182249678355,
+          "active_days": 354,
+          "status": "outside",
+          "west": 102.5,
+          "south": -2.0
+        },
+        {
+          "ci": 566,
+          "cj": 176,
+          "aqua": 82.0,
+          "fusion": 96.75710953067578,
+          "ratio": 1.1799647503740949,
+          "active_days": 417,
+          "status": "within",
+          "west": 103.0,
+          "south": -2.0
+        },
+        {
+          "ci": 567,
+          "cj": 176,
+          "aqua": 347.0,
+          "fusion": 436.4720338131093,
+          "ratio": 1.2578444778475772,
+          "active_days": 548,
+          "status": "outside",
+          "west": 103.5,
+          "south": -2.0
+        },
+        {
+          "ci": 568,
+          "cj": 176,
+          "aqua": 299.0,
+          "fusion": 383.92381117193344,
+          "ratio": 1.2840261243208475,
+          "active_days": 130,
+          "status": "outside",
+          "west": 104.0,
+          "south": -2.0
+        },
+        {
+          "ci": 569,
+          "cj": 176,
+          "aqua": 0.0,
+          "fusion": 0.0,
+          "ratio": null,
+          "active_days": 0,
+          "status": "too_few",
+          "west": 104.5,
+          "south": -2.0
+        },
+        {
+          "ci": 557,
+          "cj": 177,
+          "aqua": 0.0,
+          "fusion": 1.2133913712291413,
+          "ratio": null,
+          "active_days": 12,
+          "status": "too_few",
+          "west": 98.5,
+          "south": -1.5
+        },
+        {
+          "ci": 558,
+          "cj": 177,
+          "aqua": 2.0,
+          "fusion": 0.7705844177186738,
+          "ratio": 0.3852922088593369,
+          "active_days": 10,
+          "status": "too_few",
+          "west": 99.0,
+          "south": -1.5
+        },
+        {
+          "ci": 560,
+          "cj": 177,
+          "aqua": 0.0,
+          "fusion": 3.027915521681454,
+          "ratio": null,
+          "active_days": 17,
+          "status": "too_few",
+          "west": 100.0,
+          "south": -1.5
+        },
+        {
+          "ci": 561,
+          "cj": 177,
+          "aqua": 9.0,
+          "fusion": 21.34630471751834,
+          "ratio": 2.3718116352798155,
+          "active_days": 143,
+          "status": "outside",
+          "west": 100.5,
+          "south": -1.5
+        },
+        {
+          "ci": 562,
+          "cj": 177,
+          "aqua": 59.0,
+          "fusion": 36.593444400935304,
+          "ratio": 0.6202278712022933,
+          "active_days": 229,
+          "status": "outside",
+          "west": 101.0,
+          "south": -1.5
+        },
+        {
+          "ci": 563,
+          "cj": 177,
+          "aqua": 106.0,
+          "fusion": 72.76512655920521,
+          "ratio": 0.6864634581057095,
+          "active_days": 395,
+          "status": "outside",
+          "west": 101.5,
+          "south": -1.5
+        },
+        {
+          "ci": 564,
+          "cj": 177,
+          "aqua": 94.0,
+          "fusion": 68.23564248567854,
+          "ratio": 0.7259110902731759,
+          "active_days": 279,
+          "status": "outside",
+          "west": 102.0,
+          "south": -1.5
+        },
+        {
+          "ci": 565,
+          "cj": 177,
+          "aqua": 231.0,
+          "fusion": 146.22295684664948,
+          "ratio": 0.6329998131889588,
+          "active_days": 385,
+          "status": "outside",
+          "west": 102.5,
+          "south": -1.5
+        },
+        {
+          "ci": 566,
+          "cj": 177,
+          "aqua": 17.0,
+          "fusion": 91.08973860028601,
+          "ratio": 5.358219917663883,
+          "active_days": 586,
+          "status": "outside",
+          "west": 103.0,
+          "south": -1.5
+        },
+        {
+          "ci": 567,
+          "cj": 177,
+          "aqua": 96.0,
+          "fusion": 86.69376428015288,
+          "ratio": 0.9030600445849258,
+          "active_days": 245,
+          "status": "within",
+          "west": 103.5,
+          "south": -1.5
+        },
+        {
+          "ci": 568,
+          "cj": 177,
+          "aqua": 260.0,
+          "fusion": 408.36629443717493,
+          "ratio": 1.5706395939891344,
+          "active_days": 125,
+          "status": "outside",
+          "west": 104.0,
+          "south": -1.5
+        },
+        {
+          "ci": 556,
+          "cj": 178,
+          "aqua": 0.0,
+          "fusion": 0.0,
+          "ratio": null,
+          "active_days": 0,
+          "status": "too_few",
+          "west": 98.0,
+          "south": -1.0
+        },
+        {
+          "ci": 557,
+          "cj": 178,
+          "aqua": 0.0,
+          "fusion": 0.5887623973916163,
+          "ratio": null,
+          "active_days": 9,
+          "status": "too_few",
+          "west": 98.5,
+          "south": -1.0
+        },
+        {
+          "ci": 560,
+          "cj": 178,
+          "aqua": 1.0,
+          "fusion": 5.321113202090146,
+          "ratio": 5.321113202090146,
+          "active_days": 57,
+          "status": "outside",
+          "west": 100.0,
+          "south": -1.0
+        },
+        {
+          "ci": 561,
+          "cj": 178,
+          "aqua": 32.0,
+          "fusion": 41.272617625489346,
+          "ratio": 1.289769300796542,
+          "active_days": 235,
+          "status": "outside",
+          "west": 100.5,
+          "south": -1.0
+        },
+        {
+          "ci": 562,
+          "cj": 178,
+          "aqua": 117.0,
+          "fusion": 80.05290454654451,
+          "ratio": 0.6842128593721754,
+          "active_days": 418,
+          "status": "outside",
+          "west": 101.0,
+          "south": -1.0
+        },
+        {
+          "ci": 563,
+          "cj": 178,
+          "aqua": 93.0,
+          "fusion": 91.08600489313967,
+          "ratio": 0.9794194074531147,
+          "active_days": 363,
+          "status": "within",
+          "west": 101.5,
+          "south": -1.0
+        },
+        {
+          "ci": 564,
+          "cj": 178,
+          "aqua": 238.0,
+          "fusion": 203.25725426195777,
+          "ratio": 0.854022076730915,
+          "active_days": 354,
+          "status": "within",
+          "west": 102.0,
+          "south": -1.0
+        },
+        {
+          "ci": 565,
+          "cj": 178,
+          "aqua": 124.0,
+          "fusion": 104.6089091517434,
+          "ratio": 0.8436202350947049,
+          "active_days": 226,
+          "status": "within",
+          "west": 102.5,
+          "south": -1.0
+        },
+        {
+          "ci": 566,
+          "cj": 178,
+          "aqua": 51.0,
+          "fusion": 48.48617332183941,
+          "ratio": 0.9507092808203805,
+          "active_days": 318,
+          "status": "within",
+          "west": 103.0,
+          "south": -1.0
+        },
+        {
+          "ci": 567,
+          "cj": 178,
+          "aqua": 2.0,
+          "fusion": 0.5219698663668194,
+          "ratio": 0.2609849331834097,
+          "active_days": 7,
+          "status": "too_few",
+          "west": 103.5,
+          "south": -1.0
+        },
+        {
+          "ci": 556,
+          "cj": 179,
+          "aqua": 0.0,
+          "fusion": 0.06679253102479682,
+          "ratio": null,
+          "active_days": 1,
+          "status": "too_few",
+          "west": 98.0,
+          "south": -0.5
+        },
+        {
+          "ci": 557,
+          "cj": 179,
+          "aqua": 0.0,
+          "fusion": 0.13358506204959364,
+          "ratio": null,
+          "active_days": 2,
+          "status": "too_few",
+          "west": 98.5,
+          "south": -0.5
+        },
+        {
+          "ci": 559,
+          "cj": 179,
+          "aqua": 10.0,
+          "fusion": 10.483900578467594,
+          "ratio": 1.0483900578467593,
+          "active_days": 92,
+          "status": "within",
+          "west": 99.5,
+          "south": -0.5
+        },
+        {
+          "ci": 560,
+          "cj": 179,
+          "aqua": 20.0,
+          "fusion": 23.24368783364526,
+          "ratio": 1.162184391682263,
+          "active_days": 199,
+          "status": "within",
+          "west": 100.0,
+          "south": -0.5
+        },
+        {
+          "ci": 561,
+          "cj": 179,
+          "aqua": 32.0,
+          "fusion": 23.580101972538767,
+          "ratio": 0.7368781866418365,
+          "active_days": 146,
+          "status": "outside",
+          "west": 100.5,
+          "south": -0.5
+        },
+        {
+          "ci": 562,
+          "cj": 179,
+          "aqua": 63.0,
+          "fusion": 38.52424260973866,
+          "ratio": 0.6114959144402962,
+          "active_days": 214,
+          "status": "outside",
+          "west": 101.0,
+          "south": -0.5
+        },
+        {
+          "ci": 563,
+          "cj": 179,
+          "aqua": 47.0,
+          "fusion": 37.34302176213715,
+          "ratio": 0.7945323779178116,
+          "active_days": 178,
+          "status": "outside",
+          "west": 101.5,
+          "south": -0.5
+        },
+        {
+          "ci": 564,
+          "cj": 179,
+          "aqua": 118.0,
+          "fusion": 77.5370399931678,
+          "ratio": 0.6570935592641338,
+          "active_days": 264,
+          "status": "outside",
+          "west": 102.0,
+          "south": -0.5
+        },
+        {
+          "ci": 565,
+          "cj": 179,
+          "aqua": 161.0,
+          "fusion": 100.86856506868273,
+          "ratio": 0.6265128265135573,
+          "active_days": 184,
+          "status": "outside",
+          "west": 102.5,
+          "south": -0.5
+        },
+        {
+          "ci": 566,
+          "cj": 179,
+          "aqua": 54.0,
+          "fusion": 70.03410020148101,
+          "ratio": 1.2969277815089075,
+          "active_days": 219,
+          "status": "outside",
+          "west": 103.0,
+          "south": -0.5
+        },
+        {
+          "ci": 567,
+          "cj": 179,
+          "aqua": 2.0,
+          "fusion": 2.80404173399271,
+          "ratio": 1.402020866996355,
+          "active_days": 14,
+          "status": "too_few",
+          "west": 103.5,
+          "south": -0.5
+        },
+        {
+          "ci": 557,
+          "cj": 180,
+          "aqua": 0.0,
+          "fusion": 0.1273998711338161,
+          "ratio": null,
+          "active_days": 2,
+          "status": "too_few",
+          "west": 98.5,
+          "south": 0.0
+        },
+        {
+          "ci": 558,
+          "cj": 180,
+          "aqua": 110.0,
+          "fusion": 95.97170324735592,
+          "ratio": 0.8724700295214174,
+          "active_days": 354,
+          "status": "within",
+          "west": 99.0,
+          "south": 0.0
+        },
+        {
+          "ci": 559,
+          "cj": 180,
+          "aqua": 10.0,
+          "fusion": 15.902732266161426,
+          "ratio": 1.5902732266161426,
+          "active_days": 136,
+          "status": "outside",
+          "west": 99.5,
+          "south": 0.0
+        },
+        {
+          "ci": 560,
+          "cj": 180,
+          "aqua": 38.0,
+          "fusion": 29.132518722282168,
+          "ratio": 0.7666452295337413,
+          "active_days": 185,
+          "status": "outside",
+          "west": 100.0,
+          "south": 0.0
+        },
+        {
+          "ci": 561,
+          "cj": 180,
+          "aqua": 103.0,
+          "fusion": 62.22061864062856,
+          "ratio": 0.6040836761226074,
+          "active_days": 293,
+          "status": "outside",
+          "west": 100.5,
+          "south": 0.0
+        },
+        {
+          "ci": 562,
+          "cj": 180,
+          "aqua": 30.0,
+          "fusion": 24.009331629496902,
+          "ratio": 0.8003110543165634,
+          "active_days": 136,
+          "status": "within",
+          "west": 101.0,
+          "south": 0.0
+        },
+        {
+          "ci": 563,
+          "cj": 180,
+          "aqua": 58.0,
+          "fusion": 50.10778729350992,
+          "ratio": 0.8639273671294814,
+          "active_days": 155,
+          "status": "within",
+          "west": 101.5,
+          "south": 0.0
+        },
+        {
+          "ci": 564,
+          "cj": 180,
+          "aqua": 125.0,
+          "fusion": 37.41603713840575,
+          "ratio": 0.299328297107246,
+          "active_days": 111,
+          "status": "outside",
+          "west": 102.0,
+          "south": 0.0
+        },
+        {
+          "ci": 565,
+          "cj": 180,
+          "aqua": 107.0,
+          "fusion": 34.87912787418422,
+          "ratio": 0.3259731577026563,
+          "active_days": 140,
+          "status": "outside",
+          "west": 102.5,
+          "south": 0.0
+        },
+        {
+          "ci": 566,
+          "cj": 180,
+          "aqua": 79.0,
+          "fusion": 71.96120235746608,
+          "ratio": 0.9109012956641276,
+          "active_days": 216,
+          "status": "within",
+          "west": 103.0,
+          "south": 0.0
+        },
+        {
+          "ci": 567,
+          "cj": 180,
+          "aqua": 6.0,
+          "fusion": 15.090096081081064,
+          "ratio": 2.515016013513511,
+          "active_days": 113,
+          "status": "outside",
+          "west": 103.5,
+          "south": 0.0
+        },
+        {
+          "ci": 554,
+          "cj": 181,
+          "aqua": 0.0,
+          "fusion": 0.06060734010901927,
+          "ratio": null,
+          "active_days": 1,
+          "status": "too_few",
+          "west": 97.0,
+          "south": 0.5
+        },
+        {
+          "ci": 555,
+          "cj": 181,
+          "aqua": 2.0,
+          "fusion": 15.077725699249507,
+          "ratio": 7.538862849624754,
+          "active_days": 106,
+          "status": "outside",
+          "west": 97.5,
+          "south": 0.5
+        },
+        {
+          "ci": 557,
+          "cj": 181,
+          "aqua": 0.0,
+          "fusion": 0.5095994845352643,
+          "ratio": null,
+          "active_days": 5,
+          "status": "too_few",
+          "west": 98.5,
+          "south": 0.5
+        },
+        {
+          "ci": 558,
+          "cj": 181,
+          "aqua": 45.0,
+          "fusion": 39.31956779112045,
+          "ratio": 0.87376817313601,
+          "active_days": 216,
+          "status": "within",
+          "west": 99.0,
+          "south": 0.5
+        },
+        {
+          "ci": 559,
+          "cj": 181,
+          "aqua": 41.0,
+          "fusion": 35.41716417520085,
+          "ratio": 0.8638332725658745,
+          "active_days": 147,
+          "status": "within",
+          "west": 99.5,
+          "south": 0.5
+        },
+        {
+          "ci": 560,
+          "cj": 181,
+          "aqua": 238.0,
+          "fusion": 183.810859452992,
+          "ratio": 0.7723145355167731,
+          "active_days": 405,
+          "status": "outside",
+          "west": 100.0,
+          "south": 0.5
+        },
+        {
+          "ci": 561,
+          "cj": 181,
+          "aqua": 7.0,
+          "fusion": 10.920522341062282,
+          "ratio": 1.5600746201517546,
+          "active_days": 89,
+          "status": "outside",
+          "west": 100.5,
+          "south": 0.5
+        },
+        {
+          "ci": 562,
+          "cj": 181,
+          "aqua": 29.0,
+          "fusion": 48.142367077309345,
+          "ratio": 1.6600816233554947,
+          "active_days": 349,
+          "status": "outside",
+          "west": 101.0,
+          "south": 0.5
+        },
+        {
+          "ci": 563,
+          "cj": 181,
+          "aqua": 93.0,
+          "fusion": 19.076603231724008,
+          "ratio": 0.20512476593251622,
+          "active_days": 205,
+          "status": "outside",
+          "west": 101.5,
+          "south": 0.5
+        },
+        {
+          "ci": 564,
+          "cj": 181,
+          "aqua": 147.0,
+          "fusion": 22.905991471375007,
+          "ratio": 0.1558230712338436,
+          "active_days": 189,
+          "status": "outside",
+          "west": 102.0,
+          "south": 0.5
+        },
+        {
+          "ci": 565,
+          "cj": 181,
+          "aqua": 106.0,
+          "fusion": 28.559822759540392,
+          "ratio": 0.26943229018434334,
+          "active_days": 108,
+          "status": "outside",
+          "west": 102.5,
+          "south": 0.5
+        },
+        {
+          "ci": 566,
+          "cj": 181,
+          "aqua": 60.0,
+          "fusion": 66.64872583006117,
+          "ratio": 1.110812097167686,
+          "active_days": 158,
+          "status": "within",
+          "west": 103.0,
+          "south": 0.5
+        },
+        {
+          "ci": 554,
+          "cj": 182,
+          "aqua": 19.0,
+          "fusion": 20.45695710335115,
+          "ratio": 1.0766819528079552,
+          "active_days": 123,
+          "status": "within",
+          "west": 97.0,
+          "south": 1.0
+        },
+        {
+          "ci": 555,
+          "cj": 182,
+          "aqua": 1.0,
+          "fusion": 2.061894132755411,
+          "ratio": 2.061894132755411,
+          "active_days": 28,
+          "status": "outside",
+          "west": 97.5,
+          "south": 1.0
+        },
+        {
+          "ci": 557,
+          "cj": 182,
+          "aqua": 26.0,
+          "fusion": 17.666530320238753,
+          "ratio": 0.6794819353937982,
+          "active_days": 124,
+          "status": "outside",
+          "west": 98.5,
+          "south": 1.0
+        },
+        {
+          "ci": 558,
+          "cj": 182,
+          "aqua": 85.0,
+          "fusion": 62.34556702799285,
+          "ratio": 0.7334772591528571,
+          "active_days": 288,
+          "status": "outside",
+          "west": 99.0,
+          "south": 1.0
+        },
+        {
+          "ci": 559,
+          "cj": 182,
+          "aqua": 160.0,
+          "fusion": 124.21491200979891,
+          "ratio": 0.7763432000612431,
+          "active_days": 285,
+          "status": "outside",
+          "west": 99.5,
+          "south": 1.0
+        },
+        {
+          "ci": 560,
+          "cj": 182,
+          "aqua": 13.0,
+          "fusion": 11.85561777540944,
+          "ratio": 0.9119705981084185,
+          "active_days": 123,
+          "status": "within",
+          "west": 100.0,
+          "south": 1.0
+        },
+        {
+          "ci": 561,
+          "cj": 182,
+          "aqua": 43.0,
+          "fusion": 44.38957730376123,
+          "ratio": 1.0323157512502612,
+          "active_days": 216,
+          "status": "within",
+          "west": 100.5,
+          "south": 1.0
+        },
+        {
+          "ci": 562,
+          "cj": 182,
+          "aqua": 75.0,
+          "fusion": 102.28606774013281,
+          "ratio": 1.363814236535104,
+          "active_days": 351,
+          "status": "outside",
+          "west": 101.0,
+          "south": 1.0
+        },
+        {
+          "ci": 563,
+          "cj": 182,
+          "aqua": 102.0,
+          "fusion": 32.2222861531214,
+          "ratio": 0.3159047662070726,
+          "active_days": 137,
+          "status": "outside",
+          "west": 101.5,
+          "south": 1.0
+        },
+        {
+          "ci": 564,
+          "cj": 182,
+          "aqua": 83.0,
+          "fusion": 91.03776793486205,
+          "ratio": 1.0968405775284584,
+          "active_days": 106,
+          "status": "within",
+          "west": 102.0,
+          "south": 1.0
+        },
+        {
+          "ci": 565,
+          "cj": 182,
+          "aqua": 28.0,
+          "fusion": 14.519889256436771,
+          "ratio": 0.5185674734441704,
+          "active_days": 61,
+          "status": "outside",
+          "west": 102.5,
+          "south": 1.0
+        },
+        {
+          "ci": 566,
+          "cj": 182,
+          "aqua": 3.0,
+          "fusion": 4.810269148506123,
+          "ratio": 1.603423049502041,
+          "active_days": 11,
+          "status": "too_few",
+          "west": 103.0,
+          "south": 1.0
+        },
+        {
+          "ci": 554,
+          "cj": 183,
+          "aqua": 0.0,
+          "fusion": 0.31540708237665144,
+          "ratio": null,
+          "active_days": 1,
+          "status": "too_few",
+          "west": 97.0,
+          "south": 1.5
+        },
+        {
+          "ci": 556,
+          "cj": 183,
+          "aqua": 1.0,
+          "fusion": 0.06060734010901927,
+          "ratio": 0.06060734010901927,
+          "active_days": 2,
+          "status": "too_few",
+          "west": 98.0,
+          "south": 1.5
+        },
+        {
+          "ci": 557,
+          "cj": 183,
+          "aqua": 78.0,
+          "fusion": 80.68620784939537,
+          "ratio": 1.0344385621717356,
+          "active_days": 270,
+          "status": "within",
+          "west": 98.5,
+          "south": 1.5
+        },
+        {
+          "ci": 558,
+          "cj": 183,
+          "aqua": 64.0,
+          "fusion": 50.084253444567494,
+          "ratio": 0.7825664600713671,
+          "active_days": 242,
+          "status": "outside",
+          "west": 99.0,
+          "south": 1.5
+        },
+        {
+          "ci": 559,
+          "cj": 183,
+          "aqua": 164.0,
+          "fusion": 76.70837502776568,
+          "ratio": 0.467733994071742,
+          "active_days": 338,
+          "status": "outside",
+          "west": 99.5,
+          "south": 1.5
+        },
+        {
+          "ci": 560,
+          "cj": 183,
+          "aqua": 42.0,
+          "fusion": 33.28847751142064,
+          "ratio": 0.7925827978909675,
+          "active_days": 91,
+          "status": "outside",
+          "west": 100.0,
+          "south": 1.5
+        },
+        {
+          "ci": 561,
+          "cj": 183,
+          "aqua": 103.0,
+          "fusion": 158.25538071186276,
+          "ratio": 1.5364600069112888,
+          "active_days": 291,
+          "status": "outside",
+          "west": 100.5,
+          "south": 1.5
+        },
+        {
+          "ci": 562,
+          "cj": 183,
+          "aqua": 114.0,
+          "fusion": 91.67227815243369,
+          "ratio": 0.8041427908108219,
+          "active_days": 284,
+          "status": "within",
+          "west": 101.0,
+          "south": 1.5
+        },
+        {
+          "ci": 563,
+          "cj": 183,
+          "aqua": 212.0,
+          "fusion": 149.5822705767012,
+          "ratio": 0.7055767480033076,
+          "active_days": 181,
+          "status": "outside",
+          "west": 101.5,
+          "south": 1.5
+        },
+        {
+          "ci": 564,
+          "cj": 183,
+          "aqua": 9.0,
+          "fusion": 12.365217259944695,
+          "ratio": 1.373913028882744,
+          "active_days": 24,
+          "status": "outside",
+          "west": 102.0,
+          "south": 1.5
+        },
+        {
+          "ci": 552,
+          "cj": 184,
+          "aqua": 0.0,
+          "fusion": 0.26098493318340976,
+          "ratio": null,
+          "active_days": 4,
+          "status": "too_few",
+          "west": 96.0,
+          "south": 2.0
+        },
+        {
+          "ci": 554,
+          "cj": 184,
+          "aqua": 0.0,
+          "fusion": 0.13358506204959364,
+          "ratio": null,
+          "active_days": 2,
+          "status": "too_few",
+          "west": 97.0,
+          "south": 2.0
+        },
+        {
+          "ci": 555,
+          "cj": 184,
+          "aqua": 2.0,
+          "fusion": 6.242593685556989,
+          "ratio": 3.1212968427784946,
+          "active_days": 53,
+          "status": "outside",
+          "west": 97.5,
+          "south": 2.0
+        },
+        {
+          "ci": 556,
+          "cj": 184,
+          "aqua": 115.0,
+          "fusion": 89.17621374085311,
+          "ratio": 0.7754453368769836,
+          "active_days": 259,
+          "status": "outside",
+          "west": 98.0,
+          "south": 2.0
+        },
+        {
+          "ci": 557,
+          "cj": 184,
+          "aqua": 60.0,
+          "fusion": 93.01186248007602,
+          "ratio": 1.550197708001267,
+          "active_days": 256,
+          "status": "outside",
+          "west": 98.5,
+          "south": 2.0
+        },
+        {
+          "ci": 558,
+          "cj": 184,
+          "aqua": 49.0,
+          "fusion": 65.8262084012468,
+          "ratio": 1.3433920081887103,
+          "active_days": 257,
+          "status": "outside",
+          "west": 99.0,
+          "south": 2.0
+        },
+        {
+          "ci": 559,
+          "cj": 184,
+          "aqua": 57.0,
+          "fusion": 37.4419848167896,
+          "ratio": 0.6568769266103438,
+          "active_days": 228,
+          "status": "outside",
+          "west": 99.5,
+          "south": 2.0
+        },
+        {
+          "ci": 560,
+          "cj": 184,
+          "aqua": 63.0,
+          "fusion": 83.7674139142053,
+          "ratio": 1.3296414907016716,
+          "active_days": 236,
+          "status": "outside",
+          "west": 100.0,
+          "south": 2.0
+        },
+        {
+          "ci": 561,
+          "cj": 184,
+          "aqua": 43.0,
+          "fusion": 36.56255610068447,
+          "ratio": 0.8502920023414993,
+          "active_days": 102,
+          "status": "within",
+          "west": 100.5,
+          "south": 2.0
+        },
+        {
+          "ci": 562,
+          "cj": 184,
+          "aqua": 27.0,
+          "fusion": 21.8113632965944,
+          "ratio": 0.8078282702442371,
+          "active_days": 126,
+          "status": "within",
+          "west": 101.0,
+          "south": 2.0
+        },
+        {
+          "ci": 563,
+          "cj": 184,
+          "aqua": 0.0,
+          "fusion": 0.321592273292429,
+          "ratio": null,
+          "active_days": 4,
+          "status": "too_few",
+          "west": 101.5,
+          "south": 2.0
+        },
+        {
+          "ci": 551,
+          "cj": 185,
+          "aqua": 1.0,
+          "fusion": 0.7643992268028965,
+          "ratio": 0.7643992268028965,
+          "active_days": 12,
+          "status": "too_few",
+          "west": 95.5,
+          "south": 2.5
+        },
+        {
+          "ci": 552,
+          "cj": 185,
+          "aqua": 0.0,
+          "fusion": 0.06679253102479682,
+          "ratio": null,
+          "active_days": 1,
+          "status": "too_few",
+          "west": 96.0,
+          "south": 2.5
+        },
+        {
+          "ci": 554,
+          "cj": 185,
+          "aqua": 10.0,
+          "fusion": 11.162951701498354,
+          "ratio": 1.1162951701498354,
+          "active_days": 51,
+          "status": "within",
+          "west": 97.0,
+          "south": 2.5
+        },
+        {
+          "ci": 555,
+          "cj": 185,
+          "aqua": 243.0,
+          "fusion": 237.4672875655013,
+          "ratio": 0.9772316360720218,
+          "active_days": 425,
+          "status": "within",
+          "west": 97.5,
+          "south": 2.5
+        },
+        {
+          "ci": 556,
+          "cj": 185,
+          "aqua": 45.0,
+          "fusion": 57.17289840788129,
+          "ratio": 1.2705088535084732,
+          "active_days": 274,
+          "status": "outside",
+          "west": 98.0,
+          "south": 2.5
+        },
+        {
+          "ci": 557,
+          "cj": 185,
+          "aqua": 32.0,
+          "fusion": 72.74042344987006,
+          "ratio": 2.2731382328084395,
+          "active_days": 205,
+          "status": "outside",
+          "west": 98.5,
+          "south": 2.5
+        },
+        {
+          "ci": 558,
+          "cj": 185,
+          "aqua": 18.0,
+          "fusion": 23.2560582154768,
+          "ratio": 1.2920032341931555,
+          "active_days": 158,
+          "status": "outside",
+          "west": 99.0,
+          "south": 2.5
+        },
+        {
+          "ci": 559,
+          "cj": 185,
+          "aqua": 19.0,
+          "fusion": 25.515878457537106,
+          "ratio": 1.3429409714493215,
+          "active_days": 131,
+          "status": "outside",
+          "west": 99.5,
+          "south": 2.5
+        },
+        {
+          "ci": 560,
+          "cj": 185,
+          "aqua": 81.0,
+          "fusion": 84.27327969159434,
+          "ratio": 1.0404108603900535,
+          "active_days": 209,
+          "status": "within",
+          "west": 100.0,
+          "south": 2.5
+        },
+        {
+          "ci": 554,
+          "cj": 186,
+          "aqua": 15.0,
+          "fusion": 14.209422795927146,
+          "ratio": 0.9472948530618097,
+          "active_days": 117,
+          "status": "within",
+          "west": 97.0,
+          "south": 3.0
+        },
+        {
+          "ci": 555,
+          "cj": 186,
+          "aqua": 44.0,
+          "fusion": 62.49027790282526,
+          "ratio": 1.4202335887005741,
+          "active_days": 383,
+          "status": "outside",
+          "west": 97.5,
+          "south": 3.0
+        },
+        {
+          "ci": 556,
+          "cj": 186,
+          "aqua": 40.0,
+          "fusion": 71.43798792205041,
+          "ratio": 1.7859496980512604,
+          "active_days": 365,
+          "status": "outside",
+          "west": 98.0,
+          "south": 3.0
+        },
+        {
+          "ci": 557,
+          "cj": 186,
+          "aqua": 10.0,
+          "fusion": 25.355063493726888,
+          "ratio": 2.535506349372689,
+          "active_days": 181,
+          "status": "outside",
+          "west": 98.5,
+          "south": 3.0
+        },
+        {
+          "ci": 558,
+          "cj": 186,
+          "aqua": 2.0,
+          "fusion": 2.4577086970371704,
+          "ratio": 1.2288543485185852,
+          "active_days": 34,
+          "status": "within",
+          "west": 99.0,
+          "south": 3.0
+        },
+        {
+          "ci": 559,
+          "cj": 186,
+          "aqua": 2.0,
+          "fusion": 1.8627611087297768,
+          "ratio": 0.9313805543648884,
+          "active_days": 23,
+          "status": "within",
+          "west": 99.5,
+          "south": 3.0
+        },
+        {
+          "ci": 552,
+          "cj": 187,
+          "aqua": 31.0,
+          "fusion": 30.985398587277906,
+          "ratio": 0.9995289866863841,
+          "active_days": 80,
+          "status": "within",
+          "west": 96.0,
+          "south": 3.5
+        },
+        {
+          "ci": 553,
+          "cj": 187,
+          "aqua": 25.0,
+          "fusion": 25.665529954236526,
+          "ratio": 1.026621198169461,
+          "active_days": 160,
+          "status": "within",
+          "west": 96.5,
+          "south": 3.5
+        },
+        {
+          "ci": 554,
+          "cj": 187,
+          "aqua": 18.0,
+          "fusion": 14.88228872804214,
+          "ratio": 0.8267938182245633,
+          "active_days": 112,
+          "status": "within",
+          "west": 97.0,
+          "south": 3.5
+        },
+        {
+          "ci": 555,
+          "cj": 187,
+          "aqua": 1.0,
+          "fusion": 3.865292470424926,
+          "ratio": 3.865292470424926,
+          "active_days": 50,
+          "status": "outside",
+          "west": 97.5,
+          "south": 3.5
+        },
+        {
+          "ci": 556,
+          "cj": 187,
+          "aqua": 21.0,
+          "fusion": 15.743161871399964,
+          "ratio": 0.7496743748285697,
+          "active_days": 129,
+          "status": "outside",
+          "west": 98.0,
+          "south": 3.5
+        },
+        {
+          "ci": 557,
+          "cj": 187,
+          "aqua": 13.0,
+          "fusion": 19.826142938597833,
+          "ratio": 1.5250879183536794,
+          "active_days": 209,
+          "status": "outside",
+          "west": 98.5,
+          "south": 3.5
+        },
+        {
+          "ci": 558,
+          "cj": 187,
+          "aqua": 0.0,
+          "fusion": 0.3698292315698931,
+          "ratio": null,
+          "active_days": 6,
+          "status": "too_few",
+          "west": 99.0,
+          "south": 3.5
+        },
+        {
+          "ci": 551,
+          "cj": 188,
+          "aqua": 47.0,
+          "fusion": 26.904869003849512,
+          "ratio": 0.5724440213585003,
+          "active_days": 178,
+          "status": "outside",
+          "west": 95.5,
+          "south": 4.0
+        },
+        {
+          "ci": 552,
+          "cj": 188,
+          "aqua": 140.0,
+          "fusion": 112.67715280053565,
+          "ratio": 0.8048368057181118,
+          "active_days": 299,
+          "status": "within",
+          "west": 96.0,
+          "south": 4.0
+        },
+        {
+          "ci": 553,
+          "cj": 188,
+          "aqua": 46.0,
+          "fusion": 39.9021449975963,
+          "ratio": 0.8674379347303544,
+          "active_days": 220,
+          "status": "within",
+          "west": 96.5,
+          "south": 4.0
+        },
+        {
+          "ci": 554,
+          "cj": 188,
+          "aqua": 66.0,
+          "fusion": 52.433117843218255,
+          "ratio": 0.7944411794427009,
+          "active_days": 248,
+          "status": "outside",
+          "west": 97.0,
+          "south": 4.0
+        },
+        {
+          "ci": 555,
+          "cj": 188,
+          "aqua": 18.0,
+          "fusion": 19.220069537507655,
+          "ratio": 1.0677816409726475,
+          "active_days": 124,
+          "status": "within",
+          "west": 97.5,
+          "south": 4.0
+        },
+        {
+          "ci": 556,
+          "cj": 188,
+          "aqua": 11.0,
+          "fusion": 14.026356206551334,
+          "ratio": 1.2751232915046666,
+          "active_days": 111,
+          "status": "outside",
+          "west": 98.0,
+          "south": 4.0
+        },
+        {
+          "ci": 557,
+          "cj": 188,
+          "aqua": 0.0,
+          "fusion": 0.06060734010901927,
+          "ratio": null,
+          "active_days": 1,
+          "status": "too_few",
+          "west": 98.5,
+          "south": 4.0
+        },
+        {
+          "ci": 550,
+          "cj": 189,
+          "aqua": 9.0,
+          "fusion": 9.167850099767742,
+          "ratio": 1.0186500110853047,
+          "active_days": 85,
+          "status": "within",
+          "west": 95.0,
+          "south": 4.5
+        },
+        {
+          "ci": 551,
+          "cj": 189,
+          "aqua": 62.0,
+          "fusion": 48.94753584809728,
+          "ratio": 0.7894763846467303,
+          "active_days": 296,
+          "status": "outside",
+          "west": 95.5,
+          "south": 4.5
+        },
+        {
+          "ci": 552,
+          "cj": 189,
+          "aqua": 6.0,
+          "fusion": 3.488033478890499,
+          "ratio": 0.5813389131484165,
+          "active_days": 36,
+          "status": "outside",
+          "west": 96.0,
+          "south": 4.5
+        },
+        {
+          "ci": 553,
+          "cj": 189,
+          "aqua": 31.0,
+          "fusion": 54.75599690915707,
+          "ratio": 1.7663224809405507,
+          "active_days": 198,
+          "status": "outside",
+          "west": 96.5,
+          "south": 4.5
+        },
+        {
+          "ci": 554,
+          "cj": 189,
+          "aqua": 34.0,
+          "fusion": 38.0060064505181,
+          "ratio": 1.1178237191328853,
+          "active_days": 221,
+          "status": "within",
+          "west": 97.0,
+          "south": 4.5
+        },
+        {
+          "ci": 555,
+          "cj": 189,
+          "aqua": 42.0,
+          "fusion": 31.592716557416804,
+          "ratio": 0.7522075370813525,
+          "active_days": 232,
+          "status": "outside",
+          "west": 97.5,
+          "south": 4.5
+        },
+        {
+          "ci": 550,
+          "cj": 190,
+          "aqua": 19.0,
+          "fusion": 26.60556601045069,
+          "ratio": 1.4002929479184574,
+          "active_days": 165,
+          "status": "outside",
+          "west": 95.0,
+          "south": 5.0
+        },
+        {
+          "ci": 551,
+          "cj": 190,
+          "aqua": 74.0,
+          "fusion": 86.29549823210165,
+          "ratio": 1.166155381514887,
+          "active_days": 335,
+          "status": "within",
+          "west": 95.5,
+          "south": 5.0
+        },
+        {
+          "ci": 552,
+          "cj": 190,
+          "aqua": 23.0,
+          "fusion": 27.394706000916706,
+          "ratio": 1.1910741739529003,
+          "active_days": 155,
+          "status": "within",
+          "west": 96.0,
+          "south": 5.0
+        },
+        {
+          "ci": 553,
+          "cj": 190,
+          "aqua": 29.0,
+          "fusion": 43.75631165523837,
+          "ratio": 1.508838332939254,
+          "active_days": 255,
+          "status": "outside",
+          "west": 96.5,
+          "south": 5.0
+        },
+        {
+          "ci": 554,
+          "cj": 190,
+          "aqua": 13.0,
+          "fusion": 18.486596265283648,
+          "ratio": 1.4220458665602806,
+          "active_days": 181,
+          "status": "outside",
+          "west": 97.0,
+          "south": 5.0
+        },
+        {
+          "ci": 555,
+          "cj": 190,
+          "aqua": 3.0,
+          "fusion": 2.8881452687160833,
+          "ratio": 0.9627150895720278,
+          "active_days": 30,
+          "status": "within",
+          "west": 97.5,
+          "south": 5.0
+        },
+        {
+          "ci": 550,
+          "cj": 191,
+          "aqua": 2.0,
+          "fusion": 9.705886400784383,
+          "ratio": 4.8529432003921915,
+          "active_days": 81,
+          "status": "outside",
+          "west": 95.0,
+          "south": 5.5
+        },
+        {
+          "ci": 551,
+          "cj": 191,
+          "aqua": 14.0,
+          "fusion": 20.917075060560176,
+          "ratio": 1.4940767900400125,
+          "active_days": 134,
+          "status": "outside",
+          "west": 95.5,
+          "south": 5.5
+        }
+      ],
+      "summary": {
+        "within": 64,
+        "outside": 114,
+        "too_few": 31,
+        "share_within": 0.3595505617977528
+      },
+      "definition": "Per region cell, over held-out days with a known Aqua state: \u03a3 fused estimate without Aqua (training ratios of the AOI) / \u03a3 Aqua detections. The AOI-level result does not make every region accurate; this shows where it holds."
+    },
+    "1.0": {
+      "available": true,
+      "grid_deg": 1.0,
+      "min_days": 20,
+      "split": "2022-06-18",
+      "cells": [
+        {
+          "ci": 282,
+          "cj": 84,
+          "aqua": 1.0,
+          "fusion": 2.359990211433486,
+          "ratio": 2.359990211433486,
+          "active_days": 28,
+          "status": "outside",
+          "west": 102.0,
+          "south": -6.0
+        },
+        {
+          "ci": 283,
+          "cj": 84,
+          "aqua": 0.0,
+          "fusion": 2.475019700735747,
+          "ratio": null,
+          "active_days": 25,
+          "status": "outside",
+          "west": 103.0,
+          "south": -6.0
+        },
+        {
+          "ci": 284,
+          "cj": 84,
+          "aqua": 44.0,
+          "fusion": 53.01693961874285,
+          "ratio": 1.2049304458805195,
+          "active_days": 315,
+          "status": "within",
+          "west": 104.0,
+          "south": -6.0
+        },
+        {
+          "ci": 285,
+          "cj": 84,
+          "aqua": 95.0,
+          "fusion": 104.97877603764152,
+          "ratio": 1.1050397477646476,
+          "active_days": 389,
+          "status": "within",
+          "west": 105.0,
+          "south": -6.0
+        },
+        {
+          "ci": 282,
+          "cj": 85,
+          "aqua": 66.0,
+          "fusion": 52.7423397346791,
+          "ratio": 0.79912635961635,
+          "active_days": 352,
+          "status": "outside",
+          "west": 102.0,
+          "south": -5.0
+        },
+        {
+          "ci": 283,
+          "cj": 85,
+          "aqua": 382.0,
+          "fusion": 219.69183763822025,
+          "ratio": 0.575109522613142,
+          "active_days": 659,
+          "status": "outside",
+          "west": 103.0,
+          "south": -5.0
+        },
+        {
+          "ci": 284,
+          "cj": 85,
+          "aqua": 936.0,
+          "fusion": 784.8624820601515,
+          "ratio": 0.8385282927993072,
+          "active_days": 853,
+          "status": "within",
+          "west": 104.0,
+          "south": -5.0
+        },
+        {
+          "ci": 285,
+          "cj": 85,
+          "aqua": 1371.0,
+          "fusion": 1001.2914798848759,
+          "ratio": 0.7303366009371816,
+          "active_days": 760,
+          "status": "outside",
+          "west": 105.0,
+          "south": -5.0
+        },
+        {
+          "ci": 280,
+          "cj": 86,
+          "aqua": 0.0,
+          "fusion": 0.12121468021803854,
+          "ratio": null,
+          "active_days": 1,
+          "status": "too_few",
+          "west": 100.0,
+          "south": -4.0
+        },
+        {
+          "ci": 281,
+          "cj": 86,
+          "aqua": 90.0,
+          "fusion": 70.75520309187341,
+          "ratio": 0.7861689232430379,
+          "active_days": 336,
+          "status": "outside",
+          "west": 101.0,
+          "south": -4.0
+        },
+        {
+          "ci": 282,
+          "cj": 86,
+          "aqua": 411.0,
+          "fusion": 302.7393179224262,
+          "ratio": 0.7365920144097962,
+          "active_days": 759,
+          "status": "outside",
+          "west": 102.0,
+          "south": -4.0
+        },
+        {
+          "ci": 283,
+          "cj": 86,
+          "aqua": 1375.0,
+          "fusion": 939.1252457391141,
+          "ratio": 0.6830001787193557,
+          "active_days": 1025,
+          "status": "outside",
+          "west": 103.0,
+          "south": -4.0
+        },
+        {
+          "ci": 284,
+          "cj": 86,
+          "aqua": 2212.0,
+          "fusion": 2048.5861941246244,
+          "ratio": 0.926123957560861,
+          "active_days": 942,
+          "status": "within",
+          "west": 104.0,
+          "south": -4.0
+        },
+        {
+          "ci": 285,
+          "cj": 86,
+          "aqua": 4973.0,
+          "fusion": 4789.213353561319,
+          "ratio": 0.9630431034710073,
+          "active_days": 554,
+          "status": "within",
+          "west": 105.0,
+          "south": -4.0
+        },
+        {
+          "ci": 286,
+          "cj": 86,
+          "aqua": 0.0,
+          "fusion": 0.8979842888524902,
+          "ratio": null,
+          "active_days": 4,
+          "status": "too_few",
+          "west": 106.0,
+          "south": -4.0
+        },
+        {
+          "ci": 279,
+          "cj": 87,
+          "aqua": 0.0,
+          "fusion": 0.321592273292429,
+          "ratio": null,
+          "active_days": 3,
+          "status": "too_few",
+          "west": 99.0,
+          "south": -3.0
+        },
+        {
+          "ci": 280,
+          "cj": 87,
+          "aqua": 164.0,
+          "fusion": 158.5930770741331,
+          "ratio": 0.9670309577691043,
+          "active_days": 396,
+          "status": "within",
+          "west": 100.0,
+          "south": -3.0
+        },
+        {
+          "ci": 281,
+          "cj": 87,
+          "aqua": 403.0,
+          "fusion": 394.846973268405,
+          "ratio": 0.9797691644377295,
+          "active_days": 631,
+          "status": "within",
+          "west": 101.0,
+          "south": -3.0
+        },
+        {
+          "ci": 282,
+          "cj": 87,
+          "aqua": 1084.0,
+          "fusion": 578.5662617723837,
+          "ratio": 0.533732713812162,
+          "active_days": 805,
+          "status": "outside",
+          "west": 102.0,
+          "south": -3.0
+        },
+        {
+          "ci": 283,
+          "cj": 87,
+          "aqua": 1388.0,
+          "fusion": 988.1803436622247,
+          "ratio": 0.7119454925520351,
+          "active_days": 918,
+          "status": "outside",
+          "west": 103.0,
+          "south": -3.0
+        },
+        {
+          "ci": 284,
+          "cj": 87,
+          "aqua": 692.0,
+          "fusion": 782.8278178291588,
+          "ratio": 1.1312540720074549,
+          "active_days": 645,
+          "status": "within",
+          "west": 104.0,
+          "south": -3.0
+        },
+        {
+          "ci": 285,
+          "cj": 87,
+          "aqua": 575.0,
+          "fusion": 500.8733474372708,
+          "ratio": 0.8710840824996015,
+          "active_days": 367,
+          "status": "within",
+          "west": 105.0,
+          "south": -3.0
+        },
+        {
+          "ci": 278,
+          "cj": 88,
+          "aqua": 0.0,
+          "fusion": 1.2801839022539383,
+          "ratio": null,
+          "active_days": 13,
+          "status": "too_few",
+          "west": 98.0,
+          "south": -2.0
+        },
+        {
+          "ci": 279,
+          "cj": 88,
+          "aqua": 2.0,
+          "fusion": 1.2678135204223833,
+          "ratio": 0.6339067602111916,
+          "active_days": 16,
+          "status": "too_few",
+          "west": 99.0,
+          "south": -2.0
+        },
+        {
+          "ci": 280,
+          "cj": 88,
+          "aqua": 33.0,
+          "fusion": 54.18952379165908,
+          "ratio": 1.6421067815654267,
+          "active_days": 267,
+          "status": "outside",
+          "west": 100.0,
+          "south": -2.0
+        },
+        {
+          "ci": 281,
+          "cj": 88,
+          "aqua": 256.0,
+          "fusion": 163.7941825107259,
+          "ratio": 0.6398210254325231,
+          "active_days": 554,
+          "status": "outside",
+          "west": 101.0,
+          "south": -2.0
+        },
+        {
+          "ci": 282,
+          "cj": 88,
+          "aqua": 651.0,
+          "fusion": 404.27946669984686,
+          "ratio": 0.6210130056833285,
+          "active_days": 702,
+          "status": "outside",
+          "west": 102.0,
+          "south": -2.0
+        },
+        {
+          "ci": 283,
+          "cj": 88,
+          "aqua": 542.0,
+          "fusion": 711.0126462242288,
+          "ratio": 1.311831450598208,
+          "active_days": 945,
+          "status": "outside",
+          "west": 103.0,
+          "south": -2.0
+        },
+        {
+          "ci": 284,
+          "cj": 88,
+          "aqua": 559.0,
+          "fusion": 792.2901056091092,
+          "ratio": 1.4173347148642383,
+          "active_days": 183,
+          "status": "outside",
+          "west": 104.0,
+          "south": -2.0
+        },
+        {
+          "ci": 278,
+          "cj": 89,
+          "aqua": 0.0,
+          "fusion": 0.7891399904660066,
+          "ratio": null,
+          "active_days": 12,
+          "status": "too_few",
+          "west": 98.0,
+          "south": -1.0
+        },
+        {
+          "ci": 279,
+          "cj": 89,
+          "aqua": 10.0,
+          "fusion": 10.48390057846759,
+          "ratio": 1.048390057846759,
+          "active_days": 92,
+          "status": "within",
+          "west": 99.0,
+          "south": -1.0
+        },
+        {
+          "ci": 280,
+          "cj": 89,
+          "aqua": 85.0,
+          "fusion": 93.41752063376381,
+          "ratio": 1.0990296545148683,
+          "active_days": 431,
+          "status": "within",
+          "west": 100.0,
+          "south": -1.0
+        },
+        {
+          "ci": 281,
+          "cj": 89,
+          "aqua": 320.0,
+          "fusion": 247.00617381155945,
+          "ratio": 0.7718942931611232,
+          "active_days": 664,
+          "status": "outside",
+          "west": 101.0,
+          "south": -1.0
+        },
+        {
+          "ci": 282,
+          "cj": 89,
+          "aqua": 641.0,
+          "fusion": 486.27176847555216,
+          "ratio": 0.7586143033939972,
+          "active_days": 594,
+          "status": "outside",
+          "west": 102.0,
+          "south": -1.0
+        },
+        {
+          "ci": 283,
+          "cj": 89,
+          "aqua": 109.0,
+          "fusion": 121.84628512368033,
+          "ratio": 1.1178558268227554,
+          "active_days": 450,
+          "status": "within",
+          "west": 103.0,
+          "south": -1.0
+        },
+        {
+          "ci": 277,
+          "cj": 90,
+          "aqua": 2.0,
+          "fusion": 15.138333039358526,
+          "ratio": 7.569166519679263,
+          "active_days": 106,
+          "status": "outside",
+          "west": 97.0,
+          "south": 0.0
+        },
+        {
+          "ci": 278,
+          "cj": 90,
+          "aqua": 0.0,
+          "fusion": 0.6369993556690803,
+          "ratio": null,
+          "active_days": 7,
+          "status": "too_few",
+          "west": 98.0,
+          "south": 0.0
+        },
+        {
+          "ci": 279,
+          "cj": 90,
+          "aqua": 206.0,
+          "fusion": 186.61116747983834,
+          "ratio": 0.9058794537856231,
+          "active_days": 506,
+          "status": "within",
+          "west": 99.0,
+          "south": 0.0
+        },
+        {
+          "ci": 280,
+          "cj": 90,
+          "aqua": 386.0,
+          "fusion": 286.08451915696475,
+          "ratio": 0.7411516040335874,
+          "active_days": 553,
+          "status": "outside",
+          "west": 100.0,
+          "south": 0.0
+        },
+        {
+          "ci": 281,
+          "cj": 90,
+          "aqua": 210.0,
+          "fusion": 141.33608923204056,
+          "ratio": 0.6730289963430504,
+          "active_days": 555,
+          "status": "outside",
+          "west": 101.0,
+          "south": 0.0
+        },
+        {
+          "ci": 282,
+          "cj": 90,
+          "aqua": 485.0,
+          "fusion": 123.76097924350566,
+          "ratio": 0.2551772767907333,
+          "active_days": 371,
+          "status": "outside",
+          "west": 102.0,
+          "south": 0.0
+        },
+        {
+          "ci": 283,
+          "cj": 90,
+          "aqua": 145.0,
+          "fusion": 153.70002426860825,
+          "ratio": 1.0600001673697121,
+          "active_days": 341,
+          "status": "within",
+          "west": 103.0,
+          "south": 0.0
+        },
+        {
+          "ci": 277,
+          "cj": 91,
+          "aqua": 20.0,
+          "fusion": 22.83425831848321,
+          "ratio": 1.1417129159241606,
+          "active_days": 139,
+          "status": "within",
+          "west": 97.0,
+          "south": 1.0
+        },
+        {
+          "ci": 278,
+          "cj": 91,
+          "aqua": 105.0,
+          "fusion": 98.41334550974338,
+          "ratio": 0.9372699572356512,
+          "active_days": 324,
+          "status": "within",
+          "west": 98.0,
+          "south": 1.0
+        },
+        {
+          "ci": 279,
+          "cj": 91,
+          "aqua": 473.0,
+          "fusion": 313.3531075101243,
+          "ratio": 0.6624801427275355,
+          "active_days": 621,
+          "status": "outside",
+          "west": 99.0,
+          "south": 1.0
+        },
+        {
+          "ci": 280,
+          "cj": 91,
+          "aqua": 201.0,
+          "fusion": 247.78905330245388,
+          "ratio": 1.232781359713701,
+          "active_days": 494,
+          "status": "within",
+          "west": 100.0,
+          "south": 1.0
+        },
+        {
+          "ci": 281,
+          "cj": 91,
+          "aqua": 503.0,
+          "fusion": 375.76290262238854,
+          "ratio": 0.7470435439808917,
+          "active_days": 604,
+          "status": "outside",
+          "west": 101.0,
+          "south": 1.0
+        },
+        {
+          "ci": 282,
+          "cj": 91,
+          "aqua": 120.0,
+          "fusion": 117.92287445124359,
+          "ratio": 0.9826906204270299,
+          "active_days": 163,
+          "status": "within",
+          "west": 102.0,
+          "south": 1.0
+        },
+        {
+          "ci": 283,
+          "cj": 91,
+          "aqua": 3.0,
+          "fusion": 4.810269148506123,
+          "ratio": 1.603423049502041,
+          "active_days": 11,
+          "status": "too_few",
+          "west": 103.0,
+          "south": 1.0
+        },
+        {
+          "ci": 275,
+          "cj": 92,
+          "aqua": 1.0,
+          "fusion": 0.7643992268028963,
+          "ratio": 0.7643992268028963,
+          "active_days": 12,
+          "status": "too_few",
+          "west": 95.0,
+          "south": 2.0
+        },
+        {
+          "ci": 276,
+          "cj": 92,
+          "aqua": 0.0,
+          "fusion": 0.3277774642082066,
+          "ratio": null,
+          "active_days": 5,
+          "status": "too_few",
+          "west": 96.0,
+          "south": 2.0
+        },
+        {
+          "ci": 277,
+          "cj": 92,
+          "aqua": 255.0,
+          "fusion": 255.00641801460623,
+          "ratio": 1.0000251686847303,
+          "active_days": 443,
+          "status": "within",
+          "west": 97.0,
+          "south": 2.0
+        },
+        {
+          "ci": 278,
+          "cj": 92,
+          "aqua": 252.0,
+          "fusion": 312.1013980786797,
+          "ratio": 1.2384976114233321,
+          "active_days": 507,
+          "status": "within",
+          "west": 98.0,
+          "south": 2.0
+        },
+        {
+          "ci": 279,
+          "cj": 92,
+          "aqua": 143.0,
+          "fusion": 152.04012989105033,
+          "ratio": 1.0632176915458065,
+          "active_days": 456,
+          "status": "within",
+          "west": 99.0,
+          "south": 2.0
+        },
+        {
+          "ci": 280,
+          "cj": 92,
+          "aqua": 187.0,
+          "fusion": 204.6032497064838,
+          "ratio": 1.0941350251683626,
+          "active_days": 389,
+          "status": "within",
+          "west": 100.0,
+          "south": 2.0
+        },
+        {
+          "ci": 281,
+          "cj": 92,
+          "aqua": 27.0,
+          "fusion": 22.132955569886843,
+          "ratio": 0.8197390951809942,
+          "active_days": 128,
+          "status": "within",
+          "west": 101.0,
+          "south": 2.0
+        },
+        {
+          "ci": 276,
+          "cj": 93,
+          "aqua": 56.0,
+          "fusion": 56.6509285415145,
+          "ratio": 1.011623723955616,
+          "active_days": 199,
+          "status": "within",
+          "west": 96.0,
+          "south": 3.0
+        },
+        {
+          "ci": 277,
+          "cj": 93,
+          "aqua": 78.0,
+          "fusion": 95.44728189721967,
+          "ratio": 1.223683101246406,
+          "active_days": 468,
+          "status": "within",
+          "west": 97.0,
+          "south": 3.0
+        },
+        {
+          "ci": 278,
+          "cj": 93,
+          "aqua": 84.0,
+          "fusion": 132.3623562257757,
+          "ratio": 1.5757423360211393,
+          "active_days": 568,
+          "status": "outside",
+          "west": 98.0,
+          "south": 3.0
+        },
+        {
+          "ci": 279,
+          "cj": 93,
+          "aqua": 4.0,
+          "fusion": 4.690299037336843,
+          "ratio": 1.1725747593342108,
+          "active_days": 60,
+          "status": "within",
+          "west": 99.0,
+          "south": 3.0
+        },
+        {
+          "ci": 275,
+          "cj": 94,
+          "aqua": 118.0,
+          "fusion": 85.02025495171465,
+          "ratio": 0.7205106351840225,
+          "active_days": 383,
+          "status": "outside",
+          "west": 95.0,
+          "south": 4.0
+        },
+        {
+          "ci": 276,
+          "cj": 94,
+          "aqua": 223.0,
+          "fusion": 210.82332818617925,
+          "ratio": 0.9453960905209832,
+          "active_days": 446,
+          "status": "within",
+          "west": 96.0,
+          "south": 4.0
+        },
+        {
+          "ci": 277,
+          "cj": 94,
+          "aqua": 160.0,
+          "fusion": 141.25191038866114,
+          "ratio": 0.8828244399291322,
+          "active_days": 513,
+          "status": "within",
+          "west": 97.0,
+          "south": 4.0
+        },
+        {
+          "ci": 278,
+          "cj": 94,
+          "aqua": 11.0,
+          "fusion": 14.086963546660353,
+          "ratio": 1.2806330496963958,
+          "active_days": 112,
+          "status": "outside",
+          "west": 98.0,
+          "south": 4.0
+        },
+        {
+          "ci": 275,
+          "cj": 95,
+          "aqua": 109.0,
+          "fusion": 143.52402570389697,
+          "ratio": 1.3167341807696968,
+          "active_days": 454,
+          "status": "outside",
+          "west": 95.0,
+          "south": 5.0
+        },
+        {
+          "ci": 276,
+          "cj": 95,
+          "aqua": 52.0,
+          "fusion": 71.15101765615532,
+          "ratio": 1.36828880107991,
+          "active_days": 310,
+          "status": "outside",
+          "west": 96.0,
+          "south": 5.0
+        },
+        {
+          "ci": 277,
+          "cj": 95,
+          "aqua": 16.0,
+          "fusion": 21.374741533999714,
+          "ratio": 1.3359213458749821,
+          "active_days": 204,
+          "status": "outside",
+          "west": 97.0,
+          "south": 5.0
+        }
+      ],
+      "summary": {
+        "within": 28,
+        "outside": 29,
+        "too_few": 10,
+        "share_within": 0.49122807017543857
+      },
+      "definition": "Per region cell, over held-out days with a known Aqua state: \u03a3 fused estimate without Aqua (training ratios of the AOI) / \u03a3 Aqua detections. The AOI-level result does not make every region accurate; this shows where it holds."
+    },
+    "2.0": {
+      "available": true,
+      "grid_deg": 2.0,
+      "min_days": 20,
+      "split": "2022-06-18",
+      "cells": [
+        {
+          "ci": 141,
+          "cj": 42,
+          "aqua": 449.0,
+          "fusion": 277.26918728506826,
+          "ratio": 0.6175260295881253,
+          "active_days": 747,
+          "status": "outside",
+          "west": 102.0,
+          "south": -6.0
+        },
+        {
+          "ci": 142,
+          "cj": 42,
+          "aqua": 2446.0,
+          "fusion": 1944.1496776014094,
+          "ratio": 0.7948281592810341,
+          "active_days": 1030,
+          "status": "outside",
+          "west": 104.0,
+          "south": -6.0
+        },
+        {
+          "ci": 139,
+          "cj": 43,
+          "aqua": 0.0,
+          "fusion": 0.321592273292429,
+          "ratio": null,
+          "active_days": 3,
+          "status": "too_few",
+          "west": 98.0,
+          "south": -4.0
+        },
+        {
+          "ci": 140,
+          "cj": 43,
+          "aqua": 657.0,
+          "fusion": 624.3164681146328,
+          "ratio": 0.9502533761257729,
+          "active_days": 751,
+          "status": "within",
+          "west": 100.0,
+          "south": -4.0
+        },
+        {
+          "ci": 141,
+          "cj": 43,
+          "aqua": 4258.0,
+          "fusion": 2808.6111690961434,
+          "ratio": 0.6596080716524526,
+          "active_days": 1264,
+          "status": "outside",
+          "west": 102.0,
+          "south": -4.0
+        },
+        {
+          "ci": 142,
+          "cj": 43,
+          "aqua": 8452.0,
+          "fusion": 8121.500712952318,
+          "ratio": 0.9608969135059534,
+          "active_days": 1086,
+          "status": "within",
+          "west": 104.0,
+          "south": -4.0
+        },
+        {
+          "ci": 143,
+          "cj": 43,
+          "aqua": 0.0,
+          "fusion": 0.8979842888524902,
+          "ratio": null,
+          "active_days": 4,
+          "status": "too_few",
+          "west": 106.0,
+          "south": -4.0
+        },
+        {
+          "ci": 139,
+          "cj": 44,
+          "aqua": 12.0,
+          "fusion": 13.821037991609922,
+          "ratio": 1.1517531659674936,
+          "active_days": 128,
+          "status": "within",
+          "west": 98.0,
+          "south": -2.0
+        },
+        {
+          "ci": 140,
+          "cj": 44,
+          "aqua": 694.0,
+          "fusion": 558.4074007477092,
+          "ratio": 0.8046216149102438,
+          "active_days": 945,
+          "status": "within",
+          "west": 100.0,
+          "south": -2.0
+        },
+        {
+          "ci": 141,
+          "cj": 44,
+          "aqua": 1943.0,
+          "fusion": 1723.4101665233068,
+          "ratio": 0.8869841309950112,
+          "active_days": 1161,
+          "status": "within",
+          "west": 102.0,
+          "south": -2.0
+        },
+        {
+          "ci": 142,
+          "cj": 44,
+          "aqua": 559.0,
+          "fusion": 792.2901056091089,
+          "ratio": 1.4173347148642377,
+          "active_days": 183,
+          "status": "outside",
+          "west": 104.0,
+          "south": -2.0
+        },
+        {
+          "ci": 138,
+          "cj": 45,
+          "aqua": 22.0,
+          "fusion": 37.97259135784169,
+          "ratio": 1.7260268799018947,
+          "active_days": 202,
+          "status": "outside",
+          "west": 96.0,
+          "south": 0.0
+        },
+        {
+          "ci": 139,
+          "cj": 45,
+          "aqua": 784.0,
+          "fusion": 599.0146198553774,
+          "ratio": 0.764049260019614,
+          "active_days": 840,
+          "status": "outside",
+          "west": 98.0,
+          "south": 0.0
+        },
+        {
+          "ci": 140,
+          "cj": 45,
+          "aqua": 1300.0,
+          "fusion": 1050.9725643138584,
+          "ratio": 0.8084404340875834,
+          "active_days": 1041,
+          "status": "within",
+          "west": 100.0,
+          "south": 0.0
+        },
+        {
+          "ci": 141,
+          "cj": 45,
+          "aqua": 753.0,
+          "fusion": 400.19414711186323,
+          "ratio": 0.5314663308258476,
+          "active_days": 577,
+          "status": "outside",
+          "west": 102.0,
+          "south": 0.0
+        },
+        {
+          "ci": 137,
+          "cj": 46,
+          "aqua": 1.0,
+          "fusion": 0.7643992268028965,
+          "ratio": 0.7643992268028965,
+          "active_days": 12,
+          "status": "too_few",
+          "west": 94.0,
+          "south": 2.0
+        },
+        {
+          "ci": 138,
+          "cj": 46,
+          "aqua": 389.0,
+          "fusion": 407.432405917549,
+          "ratio": 1.0473840769088663,
+          "active_days": 672,
+          "status": "within",
+          "west": 96.0,
+          "south": 2.0
+        },
+        {
+          "ci": 139,
+          "cj": 46,
+          "aqua": 483.0,
+          "fusion": 601.194183232845,
+          "ratio": 1.2447084538982298,
+          "active_days": 866,
+          "status": "within",
+          "west": 98.0,
+          "south": 2.0
+        },
+        {
+          "ci": 140,
+          "cj": 46,
+          "aqua": 214.0,
+          "fusion": 226.73620527637075,
+          "ratio": 1.0595149779269661,
+          "active_days": 431,
+          "status": "within",
+          "west": 100.0,
+          "south": 2.0
+        },
+        {
+          "ci": 137,
+          "cj": 47,
+          "aqua": 227.0,
+          "fusion": 228.54428065561115,
+          "ratio": 1.0068029984828686,
+          "active_days": 623,
+          "status": "within",
+          "west": 94.0,
+          "south": 4.0
+        },
+        {
+          "ci": 138,
+          "cj": 47,
+          "aqua": 451.0,
+          "fusion": 444.60099776499464,
+          "ratio": 0.9858115249778152,
+          "active_days": 791,
+          "status": "within",
+          "west": 96.0,
+          "south": 4.0
+        },
+        {
+          "ci": 139,
+          "cj": 47,
+          "aqua": 11.0,
+          "fusion": 14.086963546660353,
+          "ratio": 1.2806330496963958,
+          "active_days": 112,
+          "status": "outside",
+          "west": 98.0,
+          "south": 4.0
+        }
+      ],
+      "summary": {
+        "within": 11,
+        "outside": 8,
+        "too_few": 3,
+        "share_within": 0.5789473684210527
+      },
+      "definition": "Per region cell, over held-out days with a known Aqua state: \u03a3 fused estimate without Aqua (training ratios of the AOI) / \u03a3 Aqua detections. The AOI-level result does not make every region accurate; this shows where it holds."
+    }
+  }
+}

@@ -15,6 +15,14 @@ from .db import cursor, get_revision
 from .query import Filters, cell_sql, daily, envelope, filtered_sql, inventory
 
 KNOWN = {"detections", "zero_reported"}
+
+
+def _daily_for(f: Filters, series: str) -> dict:
+    """Per-sensor daily series, or (1.5) the harmonized multi-sensor series 'FUSED' in the same shape."""
+    if series == "FUSED":
+        from . import fusion
+        return fusion.daily_like(f)
+    return daily(f)
 METRIC_LABEL = {
     "cells": ("Occupied cells", "cells/day"),
     "detections": ("Detections", "detections/day"),
@@ -30,6 +38,9 @@ ELEVATED_DEFAULTS = {"min_consecutive_days": 3, "min_activity": 1, "mode": "rang
 
 
 def series_values(d: dict, series: str, metric: str) -> tuple[list[date], list[float | None], list[str]]:
+    if series == "FUSED" and metric != "detections":
+        raise ValueError("The harmonized series is defined for detections only (MODIS-Aqua-equivalent detections per day); "
+                         "choose Detections / day as the metric.")
     if series not in d["series"]:
         raise ValueError(f"series '{series}' is not selected by the current platform filter")
     s = d["series"][series]
@@ -56,7 +67,7 @@ def iso_weeks(f: Filters, series: str, metric: str) -> dict:
 
 
 def _iso_weeks(f: Filters, series: str, metric: str) -> dict:
-    d = daily(f)
+    d = _daily_for(f, series)
     dates, vals, sts = series_values(d, series, metric)
     weeks: "OrderedDict[tuple[int, int], dict]" = OrderedDict()
     for dt, v, st in zip(dates, vals, sts):
@@ -111,7 +122,7 @@ def _iso_weeks(f: Filters, series: str, metric: str) -> dict:
 
 # ------------------------------------------------------------------ rankings & year comparison
 def rankings(f: Filters, series: str, metric: str, top: int = 10) -> dict:
-    d = daily(f)
+    d = _daily_for(f, series)
     dates, vals, _ = series_values(d, series, metric)
     days = sorted([(v, dt) for dt, v in zip(dates, vals) if v is not None and v > 0], key=lambda x: (-x[0], x[1]))[:top]
     wk = iso_weeks(f, series, metric)
@@ -132,7 +143,7 @@ def year_compare(f: Filters, series: str, metric: str, year: int, reference_year
     if year == reference_year:
         raise ValueError("choose two different years")
     full = f.model_copy(update={"start": date(min(year, reference_year), 1, 1), "end": date(max(year, reference_year), 12, 31)})
-    d = daily(full)
+    d = _daily_for(full, series)
     dates, vals, _ = series_values(d, series, metric)
     by = {dt: v for dt, v in zip(dates, vals)}
     pairs = []
@@ -247,7 +258,7 @@ def _baseline(f: Filters, series: str, metric: str, cfg: dict | None) -> dict:
         raise ValueError("no data imported")
     lo = min(date.fromisoformat(inv["date_range"][0]), f.start)
     full = f.model_copy(update={"start": lo, "end": f.end})
-    d = daily(full)
+    d = _daily_for(full, series)
     dates, vals, sts = series_values(d, series, metric)
     values = dict(zip(dates, vals))
     eval_dates = [dt for dt in dates if f.start <= dt <= f.end]
@@ -327,7 +338,7 @@ def elevated(f: Filters, series: str, metric: str, mode: str = "range_percentile
 def _elevated(f, series, metric, mode, percentile, fixed_threshold, min_days, min_activity, baseline_cfg) -> dict:
     if min_days < 1 or min_days > 60:
         raise ValueError("min_days must be 1–60")
-    d = daily(f)
+    d = _daily_for(f, series)
     dates, vals, sts = series_values(d, series, metric)
     label, unit = METRIC_LABEL[metric]
     known = [v for v in vals if v is not None]

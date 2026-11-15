@@ -12,10 +12,11 @@ import HarmonizationSeries from '../components/HarmonizationSeries'
 import { AggregatePanel, AggregateSeries } from '../components/HarmonizationAggregate'
 import { ErrorComparison, MatchingProcess, PipelineCards, StatusBadge, ValidityChecks } from '../components/HarmonizationParts'
 import { ErrorNote, Icon, Loading, Panel, Seg } from '../components/ui'
+import { FusionPanel } from '../components/FusionParts'
 
 const VIIRS_PLATFORM: Record<string, string> = { VIIRS_SNPP: 'SNPP', VIIRS_N20: 'N20', VIIRS_N21: 'N21' }
 const STEPS = [
-  ['h-settings', 'Choose region'], ['h-compare', 'Compare sensors'], ['h-harmonize', 'Harmonize'],
+  ['h-fusion', 'Multi-sensor fusion'], ['h-settings', 'Choose region'], ['h-compare', 'Compare sensors'], ['h-harmonize', 'Harmonize'],
   ['h-validity', 'Evaluate errors'], ['h-aggregate', 'Validate daily totals'], ['h-map', 'View on map'], ['h-history', 'Historical patterns'],
 ] as const
 
@@ -70,8 +71,8 @@ export default function HarmonizationPage({ regions }: { regions: Region[] }) {
       <section className="panel p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <h1 className="flex items-center gap-2 text-lg font-semibold"><Icon name="harmonize" className="h-5 w-5" />Harmonization</h1>
-            <p className="text-sm text-muted">Cross-sensor MODIS–VIIRS comparison and calibration, from one reproducible run.</p>
+            <h1 className="flex items-center gap-2 text-lg font-semibold"><Icon name="harmonize" className="h-5 w-5" />Harmonization diagnostics</h1>
+            <p className="text-sm text-muted">Multi-sensor fusion validation, then the cross-sensor MODIS–VIIRS comparison and calibration from one reproducible run.</p>
           </div>
           <StatusBadge r={h.run && r ? r : null} />
         </div>
@@ -80,8 +81,13 @@ export default function HarmonizationPage({ regions }: { regions: Region[] }) {
             <li key={id}><button className="rounded-full border border-line px-2 py-0.5 hover:bg-soft" onClick={() => go(id)}><b>{i + 1}</b> {label}</button>{i < STEPS.length - 1 && <span className="mx-0.5 text-muted">→</span>}</li>))}
         </ol>
         <p className="mt-2 text-[11px] text-muted">MODIS is used as the reference scale for continuity with the long MODIS record, not as ground truth. Satellite coverage is not verified (FIRMS lists detections only).
-          Calibrated values are estimates on the grid, shown only here and only when the run passes the validation rules; the calendar, history, Explore map and Sensor Workbench keep showing original observations.</p>
+          The pairwise calibrated values below are shown only here and only when the run passes its validation rules. The harmonized multi-sensor series (fusion) can be chosen as "Harmonized (all sensors)" in the calendar, history, Insights and the Explore heatmap, always labelled with its validation status; original observations stay available everywhere.</p>
       </section>
+
+      <Panel id="h-fusion" title="Multi-sensor historical fusion (1.5): all satellites on the MODIS Aqua scale"
+        info="Every eligible satellite is calibrated to MODIS Aqua with the 1.4 day-level ratio and the calibrated estimates are averaged, never summed. Validated leave-reference-out: Aqua is predicted from the other sensors with ratios fitted on earlier years only. Uses the top-bar AOI and quality filters over the whole imported record.">
+        <FusionPanel />
+      </Panel>
 
       <Panel id="h-settings" title="1 · Region, period and sensors" info="The AOI, dates and quality filters come from the top bar and apply to both sensors. The sensor pair and matching settings below are specific to harmonization.">
         <div className="grid gap-2 text-xs md:grid-cols-3">

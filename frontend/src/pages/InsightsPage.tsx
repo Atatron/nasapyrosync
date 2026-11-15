@@ -13,9 +13,10 @@ import { SERIES_COLOR, addDays, cls, fmtNum, type ISODate } from '../util'
 import InsightsMap, { recurColor } from '../components/InsightsMap'
 import Briefing from '../components/InsightsBriefing'
 import { ModisEquivalentComparison } from '../components/HarmonizationAggregate'
+import { FusionBanner } from '../components/FusionParts'
 import { EChart, Empty, ErrorNote, Icon, Info, Loading, Panel, Seg } from '../components/ui'
 
-const SERIES_NAME: Record<InsSeries, string> = { MODIS: 'MODIS (Terra + Aqua)', VIIRS_SNPP: 'VIIRS S-NPP', VIIRS_N20: 'VIIRS NOAA-20', VIIRS_N21: 'VIIRS NOAA-21' }
+const SERIES_NAME: Record<InsSeries, string> = { MODIS: 'MODIS (Terra + Aqua)', VIIRS_SNPP: 'VIIRS S-NPP', VIIRS_N20: 'VIIRS NOAA-20', VIIRS_N21: 'VIIRS NOAA-21', FUSED: 'Harmonized (all sensors)' }
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DOY_LABEL = (() => { const out: string[] = []; for (let k = 0; k < 365; k++) { const d = new Date(Date.UTC(2001, 0, 1 + k)); out.push(`${String(d.getUTCDate()).padStart(2, '0')} ${MON[d.getUTCMonth()]}`) } return out })()
 
@@ -47,7 +48,9 @@ export default function InsightsPage({ regions }: { regions: Region[] }) {
   const s = useApp()
   const ins = useIns()
   const inv = useInventory()
-  const avail = (inv.data?.available_series ?? []).filter((x): x is InsSeries => ['MODIS', 'VIIRS_SNPP', 'VIIRS_N20', 'VIIRS_N21'].includes(x))
+  const sensorSeries = (inv.data?.available_series ?? []).filter((x): x is InsSeries => ['MODIS', 'VIIRS_SNPP', 'VIIRS_N20', 'VIIRS_N21'].includes(x))
+  // 1.5: the harmonized multi-sensor series is offered first whenever MODIS (its reference) is imported
+  const avail: InsSeries[] = sensorSeries.includes('MODIS') ? ['FUSED', ...sensorSeries] : sensorSeries
 
   useEffect(() => {
     if (avail.length && !avail.includes(ins.series)) ins.set({ series: avail.includes('MODIS') ? 'MODIS' : avail[0], asOf: null })
@@ -86,7 +89,7 @@ export default function InsightsPage({ regions }: { regions: Region[] }) {
             </div>
           </div>
           <div>
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Sensor series<Info>Each sensor series is analysed on its own. MODIS and VIIRS are never added together, because they detect different numbers of fires.</Info></div>
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Sensor series<Info>Each sensor series is analysed on its own, or as the harmonized series: every eligible satellite calibrated to MODIS Aqua and averaged. Raw MODIS and VIIRS detections are never added together. Cell maps (recurrence, cell anomaly) of the harmonized series use the MODIS Aqua reference sensor.</Info></div>
             <Seg label="Sensor series" value={ins.series} onChange={(v) => ins.set({ series: v, asOf: null })}
               options={avail.map((x) => ({ value: x, label: SERIES_NAME[x] }))} />
           </div>
@@ -98,6 +101,7 @@ export default function InsightsPage({ regions }: { regions: Region[] }) {
         </div>
         <p className="text-[12px] text-muted"><b className="text-ink">{role.label}:</b> {role.hint}</p>
       </header>
+      {ins.series === 'FUSED' && <FusionBanner force />}
 
       {ins.methodOpen && <MethodDrawer qs={qsYear} series={ins.series} asOf={asOf} aoi={s.aoi} />}
 
@@ -132,7 +136,9 @@ export default function InsightsPage({ regions }: { regions: Region[] }) {
 function NowSection({ asOf, lastArchive }: { asOf: ISODate; lastArchive: ISODate }) {
   const s = useApp()
   const ins = useIns()
-  const qs = insQS(s, ins.series, asOf, lastArchive, { days: 10 })
+  // near-real-time data come from one FIRMS sensor; the harmonized series uses S-NPP VIIRS for this live view
+  const nowSeries: InsSeries = ins.series === 'FUSED' ? 'VIIRS_SNPP' : ins.series
+  const qs = insQS(s, nowSeries, asOf, lastArchive, { days: 10 })
   const q = useApi<NowRes>(ins.nowRun ? `/api/insights/now?${qs}&_run=${ins.nowRun}` : null)
   const d = q.data
   return (

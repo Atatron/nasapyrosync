@@ -1,10 +1,15 @@
 # Test results
 
-Every result below was produced by actually running the tests on **2026-11-14** (version 1.3.0, after adding the AOI Insights tab); the 1.4 rows and the section "Day-level ratio (1.4)" were run on **2026-11-15** (version 1.4.0) in the development container: Linux 6.18, 4 vCPU Intel Xeon @ 2.30 GHz, 15 GB RAM, Python 3.13.18, Node 22.23.4, Chromium via Playwright 1.63. Nothing is reported as passed unless it was executed.
+Every result below was produced by actually running the tests on **2026-11-14** (version 1.3.0, after adding the AOI Insights tab); the 1.4 rows and the section "Day-level ratio (1.4)" were run on **2026-11-15** (version 1.4.0), and the 1.5 rows and the section "Multi-sensor fusion and map (1.5)" on **2026-11-15** (version 1.5.0), in the development container: Linux 6.18, 4 vCPU Intel Xeon @ 2.30 GHz, 15 GB RAM, Python 3.13.18, Node 22.23.4, Chromium via Playwright 1.63. Nothing is reported as passed unless it was executed.
 
 ## Summary
 | Suite | Command | Result |
 |---|---|---|
+| Backend unit/integration (pytest), 1.5 | `cd backend && ../.venv/bin/python -m pytest -q` | **135 passed, 0 failed** (35 s): the tests of 1.4 unchanged, plus 13 tests in `test_fusion.py` (SYNTHETIC TEST FIXTURES) covering coefficients, eligibility and gate; calibrated mean, never a raw sum; platform availability; missing is not zero; model independent of the display range; held-out data never used in the fit, and drift caught; map cells adding up to the fused total; per-platform gap days; geodesic circle geometry and invalid circles; circle AOI filtering; the 0.25° grid; and the fusion, FUSED-series and circle API contracts |
+| Browser-level checks, 1.5 | `cd frontend && npm run build && npm run e2e` | **20 of 20 passed**, 0 uncaught page errors. Flows 1–18 are unchanged, except that flow 3 now clicks "Harmonized Calendar". Flow 19 covers navigation, the adaptive grid with unchanged region statistics, the harmonized layer status, Analyze Location, a shared circle and the hotspot popup; flow 20 covers the Harmonized Calendar and Insights with the fused series |
+| TypeScript type check and build, 1.5 | `npx tsc --noEmit -p . && npm run build` | **passed** |
+| HTTP 5xx sweep, 1.5 (full archive) | 2,320 GET requests over 8 AOIs (regions, circles, an unknown region and an unknown custom id) × 5 date ranges (including an inverted range and the Terra-only period) × daily, frame, history, fusion, observations, analysis and Insights endpoints, with all 7 series values | **0 responses ≥ 500**. Bad input returns 422 with a message |
+| Fusion validation runs, 1.5 | `python -m pyrosync.cli harmonize-fusion --out ../docs/harmonization/FUSION` | **completed** on the full archive in 2–6 s per run: [FUSION.md](harmonization/FUSION/FUSION.md) |
 | Backend unit/integration (pytest), 1.4 | `cd backend && ../.venv/bin/python -m pytest -q` | **121 passed, 0 failed** (24 s): the 115 tests of 1.3 with Blob (one assertion in `test_api_and_export` extended to the two added ZIP files) plus 6 day-level ratio tests (`test_aggregate.py`) |
 | Browser-level checks, 1.4 | `cd frontend && npm run build && npm run e2e` | **18 of 18 passed** (flows 1–17, flow 15 now selects the 1.0 event model before reading its series, plus flow 18), 0 uncaught page errors |
 | Backend unit/integration (pytest), 1.3 | `cd backend && ../.venv/bin/python -m pytest -v` | **112 passed, 0 failed** (18 s): the 98 tests of 1.2 (one assertion updated for the new default type filter), plus 14 AOI Insights tests (`test_insights.py`: regime and tracker, insufficient history, recurrence, critical periods and readiness with a hand-computed threshold, anomaly score with a hand-computed z, guard rail against count noise, cell anomaly, years and NOAA phases, analog groups exclude the focus year, climate file checksums, API/compare/exports, NRT rows without a type, demo refuses areas outside its data, near-real-time view with a mocked FIRMS: nothing stored, key not leaked) |
@@ -124,3 +129,24 @@ PASS  18. Day-level ratio (1.4): gate badge, series, map views and the off-by-de
 18/18 browser checks passed.
 ```
 Full archive, through the API (`TestClient`, same container): `/api/harmonization/aggregate/series` for Indonesia, Aqua–S-NPP, 2012-01-20 → 2026-11-14 returns `passes` with a calibrated line (0.9 s warm). 2024-01-01 → 2026-11-14 returns `not_validated` (enough rolling-origin years fails). Kalimantan with Aqua–NOAA-20 from 2018-04-01 returns `not_validated` (most years close to MODIS fails). The generated reports and every gate check are in [`harmonization/AGGREGATE/`](harmonization/AGGREGATE/AGGREGATE.md). The live preview and production checks are reported with the deployment, not here.
+
+## Multi-sensor fusion and map (added in 1.5)
+Browser checks 19 and 20, final run 2026-11-15T08:28Z, version 1.5.0, on the sample data. The sample spans only two years, so the fusion correctly reports "insufficient": no pair can pass three rolling-origin years.
+```
+PASS  19. 1.5 map: 4 destinations, adaptive grid with fixed region statistics, harmonized layer status, Analyze Location, shared circle, hotspot popup — nav 4+advanced; grid 0.25→0.1→0.05 with zoom, region N20 384 unchanged; harmonized status insufficient (= API); circle 35.6 → 17.8 km on zoom (= 2 N20 detections, = API); shared link restored 17.8 km; popup + Analyze around → circle at -0.8681, 117.0530
+PASS  20. Harmonized Calendar and Insights show the fused series with the API validation status — sample: fusion status insufficient (Insufficient validation data); eligible none; calendar and Insights banners = API (4 Insights requests for FUSED); fusion.zip OK
+
+20/20 browser checks passed.
+```
+Full archive, through the API (`TestClient`, same container, cold cache):
+
+- `/api/fusion` for Kalimantan takes 4.4 s, which includes the Indonesia-wide eligibility model. It returns `not_validated`.
+- `/api/fusion` for a 50 km circle at -2.2°, 113.9° takes 1.6 s. It returns `not_validated`, with the circle's own coefficients.
+- Once the model is cached, `/api/fusion/series` and `/api/fusion/map` take 0.0–0.1 s. The first harmonized map frame takes 3.9 s.
+- Every FUSED path of `/api/weeks`, `/rankings`, `/elevated`, `/baseline`, `/compare`, `/insights/*` and `/history` returns 200 for detections. With the cells metric they return 422, as does `/api/insights/now?series=FUSED`.
+
+Defects found by the 1.5 tests and fixed:
+
+- The inventory check reset `series=FUSED` to a single sensor if the user pressed Harmonized Calendar, or opened a shared FUSED link, before the inventory had loaded. FUSED is now kept whenever MODIS is present.
+- Leaving Explore could raise `Cannot read properties of undefined (reading '_leaflet_pos')`, because `map.stop()` fired a final `moveend` after the debounce timer was cleared. The handlers are now removed first, and a late call is ignored.
+- A shared Analyze Location link recomputed the circle for the recipient's screen size on load. The radius in the link is now kept; only a later zoom changes it.

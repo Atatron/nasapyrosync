@@ -5,7 +5,7 @@ import type { Envelope, Inventory } from './api'
 import { filterParams, type AppState } from './state'
 import { addDays, type ISODate } from './util'
 
-export type InsSeries = 'MODIS' | 'VIIRS_SNPP' | 'VIIRS_N20' | 'VIIRS_N21'
+export type InsSeries = 'MODIS' | 'VIIRS_SNPP' | 'VIIRS_N20' | 'VIIRS_N21' | 'FUSED'
 export type Role = 'warning' | 'responder' | 'manager' | 'scientist' | 'all'
 export type SectionId = 'now' | 'tracker' | 'regime' | 'anomaly' | 'critical' | 'map' | 'years' | 'compare'
 export type Lang = 'en' | 'id'
@@ -66,7 +66,7 @@ export const useIns = create<InsState>((set) => ({
   set: (p) => set(p),
 }))
 
-export const INS_SERIES_PLATFORMS: Record<InsSeries, string[]> = { MODIS: ['Terra', 'Aqua'], VIIRS_SNPP: ['SNPP'], VIIRS_N20: ['N20'], VIIRS_N21: ['N21'] }
+export const INS_SERIES_PLATFORMS: Record<InsSeries, string[]> = { MODIS: ['Terra', 'Aqua'], VIIRS_SNPP: ['SNPP'], VIIRS_N20: ['N20'], VIIRS_N21: ['N21'], FUSED: ['Terra', 'Aqua', 'SNPP', 'N20', 'N21'] }
 
 /** Last imported day of one sensor series (the default "as of" day). */
 export function seriesLastDay(inv: Inventory | null, series: InsSeries): ISODate | null {

@@ -222,3 +222,28 @@ def insights_zip(f: Filters, series: str, metric: str) -> bytes:
     files["README.txt"] = ("PyroSync AOI Insights package. Historical description of satellite fire detections; not a forecast, "
                            "not a fire-danger rating and not an official warning. Definitions are in each JSON file and in docs/METHODOLOGY.md §17.\n")
     return _zip(files)
+
+
+def fusion_zip(f: Filters) -> bytes:
+    """1.5: the multi-sensor fusion report (model, validation, regional check) and the fused daily series for the range."""
+    from . import fusion
+    rep = fusion.report(f)
+    reg = fusion.regional(f)
+    ser = fusion.series(f, "day")
+    out = io.StringIO()
+    w = csv.writer(out)
+    plats = list(ser["calibrated"].keys())
+    w.writerow(["date_utc", "fused_modis_aqua_equivalent_detections", "n_platforms", "contributors", "aqua_observed"]
+               + [f"{p}_observed" for p in fusion.PLATFORMS] + [f"{p}_calibrated" for p in plats])
+    for i, d in enumerate(ser["dates"]):
+        w.writerow([d, "" if ser["fused"][i] is None else ser["fused"][i], ser["n_platforms"][i], "+".join(ser["contributors"][i]),
+                    "" if ser["aqua_observed"][i] is None else ser["aqua_observed"][i]]
+                   + ["" if ser["observed"][p][i] is None else ser["observed"][p][i] for p in fusion.PLATFORMS]
+                   + ["" if ser["calibrated"][p][i] is None else ser["calibrated"][p][i] for p in plats])
+    man = manifest(f, "fusion", {"fusion": {"method_version": fusion.FUSION_VERSION, "gate_version": fusion.GATE_VERSION,
+                                            "reference": fusion.REFERENCE, "validation_status": ser["validation_status"],
+                                            "coefficient_source": ser["coefficient_source"], "coefficients": ser["coefficients"],
+                                            "note": "Empty cells are days with no known platform (unknown coverage), not zero."}})
+    md = fusion.report_markdown(rep, f"PyroSync multi-sensor fusion — {A.describe(f.aoi)['name']}", reg)
+    return _zip({"fusion_report.json": json.dumps(rep | {"regional": reg}, indent=1, default=str), "FUSION_REPORT.md": md,
+                 "fused_daily.csv": out.getvalue(), "manifest.json": json.dumps(man, indent=1, default=str)})

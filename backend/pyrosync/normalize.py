@@ -25,6 +25,7 @@ SERIES_LABEL = {
     "VIIRS_N21": "VIIRS NOAA-21",
     "VIIRS_SNPP": "VIIRS Suomi NPP",
     "UNION": "Cells with detections from any selected sensor",
+    "FUSED": "Harmonized activity (all sensors, MODIS-Aqua-equivalent detections)",
 }
 PLATFORM_SERIES = {"Terra": "MODIS", "Aqua": "MODIS", "N20": "VIIRS_N20", "N21": "VIIRS_N21", "SNPP": "VIIRS_SNPP"}
 PLATFORM_LABEL = {"Terra": "Terra (MODIS)", "Aqua": "Aqua (MODIS)", "N20": "NOAA-20 (VIIRS)", "N21": "NOAA-21 (VIIRS)", "SNPP": "Suomi NPP (VIIRS)"}

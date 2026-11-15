@@ -11,7 +11,7 @@ import { useApp } from '../state'
 import { addDays, type ISODate } from '../util'
 import { Loading } from './ui'
 
-const SERIES_NAME: Record<string, string> = { MODIS: 'MODIS (Terra + Aqua)', VIIRS_SNPP: 'VIIRS S-NPP', VIIRS_N20: 'VIIRS NOAA-20', VIIRS_N21: 'VIIRS NOAA-21' }
+const SERIES_NAME: Record<string, string> = { MODIS: 'MODIS (Terra + Aqua)', VIIRS_SNPP: 'VIIRS S-NPP', VIIRS_N20: 'VIIRS NOAA-20', VIIRS_N21: 'VIIRS NOAA-21', FUSED: 'Harmonized (all sensors, MODIS-Aqua scale)' }
 
 function fmtDate(iso: string, lang: Lang) { return dayLabel(fmtDay(iso), lang) }
 function n(v: number | null | undefined, lang: Lang, d = 0) {

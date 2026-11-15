@@ -94,6 +94,10 @@ def _history_filters(f: Filters, series: str) -> Filters:
     if not inv["date_range"]:
         raise ValueError("no data imported")
     lo = date.fromisoformat(inv["date_range"][0])
+    if series == "FUSED":
+        # 1.5: the harmonized daily values come from fusion.daily_like; cell-level parts (recurrence, cell anomaly) use the
+        # reference sensor (MODIS Aqua), so they never mix raw detections of different satellites either.
+        return f.model_copy(update={"start": min(lo, f.end), "end": f.end, "platforms": ["Aqua"]})
     plats = [p for p in f.platforms if N.PLATFORM_SERIES[p] == series]
     if not plats:
         raise ValueError(f"series '{series}' is not selected by the current platform filter")
@@ -102,6 +106,10 @@ def _history_filters(f: Filters, series: str) -> Filters:
 
 def _history(f: Filters, series: str, metric: str):
     h = _history_filters(f, series)
+    if series == "FUSED":
+        from . import fusion
+        dates, vals, sts = series_values(fusion.daily_like(h), series, metric)
+        return h, dates, vals
     dates, vals, sts = series_values(daily(h), series, metric)
     return h, dates, vals
 
@@ -549,7 +557,7 @@ def _cell_anomaly(f: Filters, series: str, limit: int) -> dict:
     if len(ref_years) < MIN_YEARS:
         return envelope(f, {"metric": "detections"}, available=False, cells=[],
                         reason=f"Insufficient history: {len(ref_years)} earlier year(s) with ≥ 80 % known days in this window; {MIN_YEARS} are needed.", **base)
-    plats = [p for p in f.platforms if N.PLATFORM_SERIES[p] == series]
+    plats = ["Aqua"] if series == "FUSED" else [p for p in f.platforms if N.PLATFORM_SERIES[p] == series]
     hs = f.model_copy(update={"platforms": plats})
     ci, cj, _ = cell_sql(f.grid)
     parts, params = [], []

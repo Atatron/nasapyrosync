@@ -28,7 +28,16 @@ export interface AppState {
   basemap: 'light' | 'dark' | 'none'
   imagery: string // GIBS layer id or 'off'
   imageryOverride: ISODate | null // explicit nearest-date substitution
-  mapLayer: 'cells' | 'points'
+  mapLayer: 'cells' | 'points' | 'harmonized'
+  // 1.5: adaptive display grid, Click-to-Analyze and a restorable map view
+  gridMode: 'auto' | 'manual'
+  analyzeMode: 'region' | 'click'
+  clickAt: string // 'lat,lon' of the Click-to-Analyze centre ('' = none)
+  circleFrac: number // circle diameter as a fraction of the shortest visible map side
+  lastRegionAoi: string // Region AOI to return to from Click-to-Analyze
+  view: string // 'lat,lon,zoom' of the Explore map ('' = fit the AOI)
+  mapZoom: number
+  mapBbox: string | null
   elevatedMode: ElevatedMode
   percentile: number
   threshold: number | null
@@ -49,7 +58,7 @@ export interface AppState {
 const SHARED_KEYS = [
   'page', 'aoi', 'start', 'end', 'date', 'frameMode', 'metric', 'series', 'grid', 'platforms', 'modisMinConf', 'viirsConf', 'types',
   'daynight', 'basemap', 'imagery', 'mapLayer', 'elevatedMode', 'percentile', 'threshold', 'minDays', 'minActivity', 'baselineWindow',
-  'baselineMinYears', 'calendarScale', 'theme',
+  'baselineMinYears', 'calendarScale', 'theme', 'gridMode', 'analyzeMode', 'clickAt', 'circleFrac', 'lastRegionAoi', 'view',
 ] as const
 export type SharedKey = (typeof SHARED_KEYS)[number]
 
@@ -61,10 +70,13 @@ function readHash(): Partial<AppState> {
       const v = h.get(k)
       if (v === null) continue
       if (['platforms', 'viirsConf', 'types', 'daynight'].includes(k)) out[k] = v ? v.split(',') : []
-      else if (['frameMode', 'grid', 'modisMinConf', 'percentile', 'minDays', 'minActivity', 'baselineWindow', 'baselineMinYears'].includes(k)) out[k] = Number(v)
+      else if (['frameMode', 'grid', 'modisMinConf', 'percentile', 'minDays', 'minActivity', 'baselineWindow', 'baselineMinYears', 'circleFrac'].includes(k)) out[k] = Number(v)
       else if (k === 'threshold') out[k] = v === '' ? null : Number(v)
       else out[k] = v
     }
+    // links made before 1.5 name a grid but no grid mode: they keep that manual grid
+    if (h.has('grid') && !h.has('gridMode')) out.gridMode = 'manual'
+    if (out.circleFrac !== undefined && !(Number(out.circleFrac) >= 0.05 && Number(out.circleFrac) <= 0.8)) delete out.circleFrac
   } catch { /* ignore malformed hash */ }
   return out as Partial<AppState>
 }
@@ -91,6 +103,14 @@ export const useApp = create<AppState>((set, get) => ({
   imagery: 'off',
   imageryOverride: null,
   mapLayer: 'cells',
+  gridMode: 'auto',
+  analyzeMode: 'region',
+  clickAt: '',
+  circleFrac: 0.22,
+  lastRegionAoi: 'region:kalimantan',
+  view: '',
+  mapZoom: 5,
+  mapBbox: null,
   elevatedMode: 'range_percentile',
   percentile: 90,
   threshold: null,
@@ -165,8 +185,36 @@ export function filterParams(s: AppState): URLSearchParams {
 }
 
 export function selectedSeries(platforms: string[]): string[] {
-  const order = ['MODIS', 'VIIRS_N20', 'VIIRS_N21', 'VIIRS_SNPP']
+  const order = ['MODIS', 'VIIRS_N20', 'VIIRS_N21', 'VIIRS_SNPP']  // the harmonized series (FUSED) is never a per-sensor column
   const map: Record<string, string> = { Terra: 'MODIS', Aqua: 'MODIS', N20: 'VIIRS_N20', N21: 'VIIRS_N21', SNPP: 'VIIRS_SNPP' }
   const set_ = new Set(platforms.map((p) => map[p]))
   return order.filter((x) => set_.has(x))
+}
+
+// ---- 1.5: adaptive display grid (presentation only; analysis statistics keep the analysis grid `grid`)
+export const GRID_CHOICES = [0.25, 0.1, 0.05, 0.01] as const
+export function gridForZoom(z: number): number {
+  if (z <= 5) return 0.25
+  if (z <= 7) return 0.1
+  if (z <= 10) return 0.05
+  return 0.01
+}
+export function displayGrid(s: Pick<AppState, 'gridMode' | 'grid' | 'mapZoom'>): number {
+  return s.gridMode === 'auto' ? gridForZoom(Math.round(s.mapZoom)) : s.grid
+}
+/** Bounding box for map requests on fine grids: the viewport snapped outward to 0.5° (better cache reuse), or null when the grid is coarse. */
+export function displayBbox(s: Pick<AppState, 'mapBbox'>, grid: number): string | null {
+  if (grid > 0.05 || !s.mapBbox) return null
+  const [w, so, e, n] = s.mapBbox.split(',').map(Number)
+  const f = (x: number) => Math.floor(x * 2) / 2, c = (x: number) => Math.ceil(x * 2) / 2
+  return [Math.max(-180, f(w)), Math.max(-90, f(so)), Math.min(180, c(e)), Math.min(90, c(n))].join(',')
+}
+export function circleKm(aoi: string): number | null {
+  if (!aoi.startsWith('circle:')) return null
+  const r = Number(aoi.split(',')[2])
+  return Number.isFinite(r) ? r : null
+}
+export function circleId(lat: number, lon: number, km: number): string {
+  const r = Math.min(2000, Math.max(0.1, Number(km.toPrecision(3))))
+  return `circle:${lat.toFixed(4)},${lon.toFixed(4)},${r}`
 }

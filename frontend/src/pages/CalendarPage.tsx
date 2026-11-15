@@ -5,6 +5,7 @@ import { useApp } from '../state'
 import { MON3, MONTHS, METRIC_INFO, RAMP, SERIES_COLOR, SERIES_SHORT, STATUS_LABEL, addDays, cls, daysInMonth, fmtDate, fmtNum, isoWeekday, rampBins, rampColor } from '../util'
 import { Empty, ErrorNote, Icon, Loading, Panel, Seg, StatusSwatch } from '../components/ui'
 import Timeline from '../components/Timeline'
+import { FusionBanner, FusionHistory } from '../components/FusionParts'
 
 type DayInfo = { date: string; inRange: boolean; value: number | null; status: string; i: number }
 
@@ -97,6 +98,7 @@ export default function CalendarPage() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
+      <FusionBanner />
       <Timeline daily={daily.data} elevated={el.data} compact />
       {daily.error && <ErrorNote msg={daily.error} />}
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -150,7 +152,7 @@ export default function CalendarPage() {
             <div className="flex items-center gap-1.5"><StatusSwatch status={sel.status} color={SERIES_COLOR[s.series]} />{STATUS_LABEL[sel.status]}{ser && sel.i >= 0 && ser.status_origin[sel.i] ? ` (${ser.status_origin[sel.i]})` : ''}</div>
             {daily.data && sel.i >= 0 && (
               <table className="data"><thead><tr><th>Sensor</th><th>Det.</th><th>Cells</th><th>Status</th></tr></thead><tbody>
-                {Object.entries(daily.data.series).map(([k, v]) => <tr key={k}><td>{SERIES_SHORT[k]}</td><td className="num">{k === 'UNION' ? '—' : fmtNum(v.detections[sel.i])}</td><td className="num">{fmtNum(v.cells[sel.i])}</td><td>{v.status[sel.i].replace('_', ' ')}</td></tr>)}
+                {Object.entries(daily.data.series).map(([k, v]) => <tr key={k}><td>{SERIES_SHORT[k]}</td><td className="num">{k === 'UNION' ? '—' : fmtNum(v.detections[sel.i], k === 'FUSED' ? 1 : 0)}</td><td className="num">{fmtNum(v.cells[sel.i])}</td><td>{v.status[sel.i].replace('_', ' ')}</td></tr>)}
               </tbody></table>
             )}
             {flagged.get(sel.date) && <p className="rounded-md border border-red-200 bg-red-50 p-2 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100"><b>Elevated observed activity.</b> {flagged.get(sel.date)}</p>}
@@ -161,6 +163,9 @@ export default function CalendarPage() {
       </div>
       <YearOverview look={look} max={rangeMax} year={y} flagged={flagged} />
       <WeeklyOverview />
+      {s.series === 'FUSED' && <Panel title="Historical activity timeline · whole record (harmonized)" info="The harmonized series over the whole imported record (2000 → today where eligible sensors exist), with the observed MODIS Aqua reference. Monthly or yearly sums of known days.">
+        <FusionHistory range="record" />
+      </Panel>}
     </div>
   )
 }

@@ -50,6 +50,7 @@ export const SERIES_COLOR: Record<string, string> = {
   VIIRS_N21: '#7c3aed',
   VIIRS_SNPP: '#2563eb',
   UNION: '#334155',
+  FUSED: '#a21caf',
 }
 export const SERIES_SHORT: Record<string, string> = {
   MODIS: 'MODIS',
@@ -57,6 +58,7 @@ export const SERIES_SHORT: Record<string, string> = {
   VIIRS_N21: 'VIIRS NOAA-21',
   VIIRS_SNPP: 'VIIRS S-NPP',
   UNION: 'Any selected sensor',
+  FUSED: 'Harmonized (all sensors)',
 }
 export const PLATFORM_SERIES: Record<string, string> = { Terra: 'MODIS', Aqua: 'MODIS', N20: 'VIIRS_N20', N21: 'VIIRS_N21', SNPP: 'VIIRS_SNPP' }
 export const PLATFORM_LABEL: Record<string, string> = { Terra: 'Terra (MODIS)', Aqua: 'Aqua (MODIS)', N20: 'NOAA-20 (VIIRS)', N21: 'NOAA-21 (VIIRS)', SNPP: 'Suomi NPP (VIIRS)' }

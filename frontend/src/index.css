@@ -90,3 +90,6 @@ table.data th.text-right { text-align: right; }
   body.printing-briefing .briefing-sheet { box-shadow: none !important; border: 0 !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
   body.printing-briefing .briefing-sheet section { break-inside: avoid; }
 }
+/* 1.5: Analyze Location mode */
+.analyze-mode.leaflet-container, .analyze-mode .leaflet-interactive { cursor: crosshair; }
+.hotspot-pop table.data th, .hotspot-pop table.data td { padding: 1px 4px; font-size: 11px; }

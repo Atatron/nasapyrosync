@@ -1,5 +1,5 @@
 // PyroSync browser-level checks (13 required flows + harmonization flows added in v1.1/v1.2 + AOI Insights flow added in v1.3
-// + day-level ratio flow added in v1.4).
+// + day-level ratio flow added in v1.4 + multi-sensor fusion / adaptive map flow added in v1.5).
 //
 // Starts its OWN backend on 127.0.0.1:8765 with a fresh, temporary data directory, so it never
 // touches your real database. The only synthetic rows used (flow 11) are a clearly labelled
@@ -118,7 +118,7 @@ try {
     const cust = await api(`/api/frame?start=2023-01-01&end=2024-12-31&aoi=${aoiId}&date=2023-09-15&mode=1`)
     await page.waitForFunction((n) => { const el = document.querySelector('[data-testid="det-VIIRS_N20"]'); return el && Number(el.textContent.replace(/[^\d]/g, '')) === n }, cust.summary.VIIRS_N20.detections, { timeout: 15000 })
     // the calendar follows the AOI
-    await page.getByRole('button', { name: 'Burning Calendar' }).click()
+    await page.getByRole('button', { name: 'Harmonized Calendar' }).click()
     const calReq = page.waitForRequest((r) => r.url().includes('/api/daily?') && r.url().includes('aoi=region%3Aprov-id-ri'), { timeout: 15000 })
     await page.getByLabel('Area of interest').selectOption('region:prov-id-ri')
     await calReq
@@ -482,6 +482,134 @@ try {
     await page.getByTestId('ins-meq-status').waitFor({ timeout: 60000 })
     const ib = await page.getByTestId('ins-meq-gate').getAttribute('data-status')
     return `sample Kalimantan Aqua–N20: aggregate gate ${g.status} (UI = API); series line ${sr.calibrated ? 'drawn' : 'withheld'}; map ratio layer ${m.ratio_model.available ? 'on' : 'withheld'}; ${within} regions within 0.8–1.25×; history gate ${hb}; insights gate ${ib}; nothing requested before the toggle`
+  })
+
+  await check('19. 1.5 map: 4 destinations, adaptive grid with fixed region statistics, harmonized layer status, Analyze Location, shared circle, hotspot popup', async () => {
+    const qs0 = 'start=2023-01-01&end=2024-12-31'
+    // navigation: four main destinations, advanced tools one click away
+    await open(page, 'page=explore')
+    for (const n of ['Explore', 'Harmonized Calendar', 'Insights', 'Methods & Data']) await page.getByRole('button', { name: n, exact: true }).first().waitFor({ timeout: 15000 })
+    await page.getByTestId('nav-advanced').click()
+    await page.getByRole('button', { name: 'Harmonization diagnostics' }).waitFor()
+    // old bookmark with a grid but no gridMode keeps that grid as a manual choice
+    await open(page, `page=explore&aoi=region:kalimantan&date=2023-09-15&frameMode=1&grid=0.05&view=-1.5,113.5,5`)
+    await page.getByTestId('grid-label').getByText('0.05° (manual)').waitFor({ timeout: 15000 })
+    assert(await page.getByTestId('grid-mode').inputValue() === '0.05', 'old bookmarked grid not preserved')
+    // auto grid: 0.25° at zoom 5, finer when zooming in; the region statistics stay the same
+    const obs = await api(`/api/observations?${qs0}&aoi=region:kalimantan&platforms=N20&window_start=2023-09-15&window_end=2023-09-15&limit=20`)
+    const r = obs.records[0]
+    assert(r, 'no NOAA-20 detection in Kalimantan on 2023-09-15')
+    const frames = []
+    const fh = (q) => { if (q.url().includes('/api/frame?')) frames.push(new URL(q.url()).searchParams) }
+    page.on('request', fh)
+    await open(page, `page=explore&aoi=region:kalimantan&date=2023-09-15&frameMode=1&series=VIIRS_N20&view=${r.lat},${r.lon},5`)
+    await waitMapIdle(page)
+    await page.getByTestId('grid-label').getByText('0.25° (auto, zoom 5)').waitFor({ timeout: 15000 })
+    const det0 = num(await page.getByTestId('det-VIIRS_N20').innerText())
+    const apiK = await api(`/api/frame?${qs0}&aoi=region:kalimantan&date=2023-09-15&mode=1`)
+    assert(det0 === apiK.summary.VIIRS_N20.detections, `region card ${det0} vs API ${apiK.summary.VIIRS_N20.detections}`)
+    for (const [z, g] of [[6, '0.1'], [7, '0.1'], [8, '0.05']]) {
+      await page.locator('.leaflet-control-zoom-in').click()
+      await page.getByTestId('grid-label').getByText(`${g}° (auto, zoom ${z})`).waitFor({ timeout: 15000 })
+    }
+    await waitMapIdle(page)
+    await sleep(800)
+    page.off('request', fh)
+    const grids = new Set(frames.map((p) => p.get('grid')))
+    assert(grids.has('0.25') && grids.has('0.05'), `display grids requested: ${[...grids].join(',')}`)
+    assert(frames.some((p) => p.get('grid') === '0.05' && p.get('bbox')), 'fine display grid without a viewport bbox')
+    const det1 = num(await page.getByTestId('det-VIIRS_N20').innerText())
+    assert(det1 === det0, `region statistics changed with zoom: ${det0} → ${det1}`)
+    // harmonized layer: status label equals the API for the same request
+    const fz = page.waitForRequest((r) => r.url().includes('/api/fusion/map?'), { timeout: 15000 })
+    await page.getByTestId('layer-harmonized').click()
+    const fzUrl = new URL((await fz).url())
+    await page.getByTestId('harm-status').waitFor({ timeout: 120000 })
+    const fzApi = await api(fzUrl.pathname + fzUrl.search)
+    const hs = await page.getByTestId('harm-status').getAttribute('data-status')
+    assert(hs === fzApi.validation_status, `harmonized status UI ${hs} vs API ${fzApi.validation_status}`)
+    assert(fzApi.label === 'Experimental Harmonized Activity Index' && fzApi.cells_validated === false, 'cells must be labelled experimental')
+    await page.getByTestId('harm-legend').getByText('Experimental Harmonized Activity Index').first().waitFor()
+    // Analyze Location: click → circle AOI; zoom in → smaller radius; statistics follow the circle
+    await page.getByRole('button', { name: /cells$/ }).click()
+    await page.getByTestId('analyze-toggle').click()
+    const mb = await page.locator('.leaflet-container').first().boundingBox()
+    await page.mouse.click(mb.x + mb.width / 2, mb.y + mb.height / 2)
+    await page.waitForFunction(() => decodeURIComponent(location.hash).includes('aoi=circle:'), null, { timeout: 15000 })
+    const km1 = num(await page.getByTestId('circle-km').innerText())
+    assert(km1 > 0, 'no radius shown')
+    await page.locator('.leaflet-control-zoom-in').click()
+    await page.waitForFunction((k) => { const el = document.querySelector('[data-testid="circle-km"]'); return el && Number(el.textContent) < k * 0.7 }, km1, { timeout: 15000 })
+    const km2 = num(await page.getByTestId('circle-km').innerText())
+    await waitMapIdle(page)
+    await page.waitForFunction((k) => { const m = decodeURIComponent(location.hash).match(/aoi=circle:[-\d.]+,[-\d.]+,([\d.]+)/); return m && Number(m[1]) === k }, km2, { timeout: 10000 })
+    const circ = decodeURIComponent(await page.evaluate(() => location.hash)).match(/aoi=(circle:[-\d.,]+)/)[1]
+    const cApi = await api(`/api/frame?${qs0}&aoi=${encodeURIComponent(circ)}&date=2023-09-15&mode=1`)
+    assert(cApi.summary.VIIRS_N20.detections > 0, 'the circle around a detection must contain it')
+    await page.waitForFunction((n) => { const el = document.querySelector('[data-testid="det-VIIRS_N20"]'); return el && Number(el.textContent.replace(/[^\d]/g, '')) === n }, cApi.summary.VIIRS_N20.detections, { timeout: 20000 })
+    // shared link restores the same circle and view in a fresh page
+    const hash = (await page.evaluate(() => location.hash)).slice(1)
+    const p2 = await ctx.newPage()
+    await p2.goto(`${BASE}/?r=share#${hash}`)
+    await p2.getByTestId('circle-km').waitFor({ timeout: 20000 })
+    const km3 = num(await p2.getByTestId('circle-km').innerText())
+    const h2 = decodeURIComponent(await p2.evaluate(() => location.hash))
+    await p2.close()
+    assert(km3 === km2 && h2.includes(`aoi=${circ}`), `shared circle ${km3} km / ${h2.match(/aoi=[^&]+/)?.[0]} vs ${km2} km / ${circ}`)
+    // back to the region: the original region and its statistics return
+    await page.getByTestId('back-to-region').click()
+    await page.waitForFunction(() => decodeURIComponent(location.hash).includes('aoi=region:kalimantan'), null, { timeout: 15000 })
+    await page.waitForFunction((n) => { const el = document.querySelector('[data-testid="det-VIIRS_N20"]'); return el && Number(el.textContent.replace(/[^\d]/g, '')) === n }, det0, { timeout: 20000 })
+    // hotspot popup (FIRMS-style attributes) and "Analyze around this detection"
+    await open(page, `page=explore&aoi=region:kalimantan&date=2023-09-15&frameMode=1&platforms=N20&mapLayer=points&view=${r.lat},${r.lon},12`)
+    await page.waitForFunction(() => !document.querySelector('[data-testid="map-loading"]'), null, { timeout: 30000 })
+    await sleep(1200)
+    const mb2 = await page.locator('.leaflet-container').first().boundingBox()
+    await page.mouse.click(mb2.x + mb2.width / 2, mb2.y + mb2.height / 2)
+    const pop = page.getByTestId('hotspot-popup')
+    await pop.waitFor({ timeout: 15000 })
+    for (const k of ['Latitude', 'Longitude', 'Acquired', 'Satellite', 'Confidence', 'FRP', 'Scan × track', 'Source product']) await pop.getByText(k, { exact: true }).waitFor()
+    const latTxt = await pop.locator('tr', { hasText: 'Latitude' }).locator('td').innerText()
+    await pop.getByRole('button', { name: 'Analyze around this detection' }).click()
+    await page.waitForFunction(() => decodeURIComponent(location.hash).includes('aoi=circle:'), null, { timeout: 15000 })
+    const c2 = decodeURIComponent(await page.evaluate(() => location.hash)).match(/aoi=circle:([-\d.]+),([-\d.]+),([\d.]+)/)
+    assert(Math.abs(Number(c2[1]) - num(latTxt)) < 1e-4, `circle centre ${c2[1]} vs detection latitude ${latTxt}`)
+    return `nav 4+advanced; grid 0.25→0.1→0.05 with zoom, region N20 ${det0} unchanged; harmonized status ${hs} (= API); circle ${km1} → ${km2} km on zoom (= ${cApi.summary.VIIRS_N20.detections} N20 detections, = API); shared link restored ${km3} km; popup + Analyze around → circle at ${c2[1]}, ${c2[2]}`
+  })
+
+  await check('20. Harmonized Calendar and Insights show the fused series with the API validation status', async () => {
+    await open(page, 'page=explore&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31&date=2023-09-15')
+    await page.getByRole('button', { name: 'Harmonized Calendar', exact: true }).first().click()
+    await page.waitForFunction(() => location.hash.includes('series=FUSED'), null, { timeout: 15000 })
+    await page.getByTestId('fusion-banner-status').waitFor({ timeout: 120000 })
+    const ser = await api('/api/fusion/series?start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&agg=year')
+    const st = await page.getByTestId('fusion-banner-status').getAttribute('data-status')
+    assert(st === ser.validation_status, `calendar banner ${st} vs API ${ser.validation_status}`)
+    const d = await api('/api/daily?start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&fused=true')
+    assert('FUSED' in d.series && d.series.FUSED.detections.length === d.dates.length, 'daily fused series missing')
+    await page.getByTestId('calendar-grid').waitFor({ timeout: 30000 })
+    // Methods: the fusion panel lists every pair and the gate checks of the API
+    await open(page, 'page=harmonization&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31')
+    await page.getByTestId('fusion-panel').waitFor({ timeout: 120000 })
+    const fr = await api('/api/fusion?start=2023-01-01&end=2024-12-31&aoi=region:kalimantan')
+    const g = await page.getByTestId('fusion-gate').getAttribute('data-status')
+    assert(g === fr.effective.status, `fusion gate UI ${g} vs API ${fr.effective.status}`)
+    // AOI Insights: the harmonized series is selectable; its banner states the API status; the live NRT view is not offered for it
+    const insReq = []
+    const ih = (q) => { const u = q.url(); if (u.includes('/api/insights/') && u.includes('series=FUSED')) insReq.push(u) }
+    page.on('request', ih)
+    await open(page, 'page=insights&aoi=region:kalimantan')
+    await page.getByRole('group', { name: 'Sensor series' }).getByRole('button', { name: 'Harmonized (all sensors)' }).click()
+    await page.getByTestId('fusion-banner-status').waitFor({ timeout: 120000 })
+    const ist = await page.getByTestId('fusion-banner-status').getAttribute('data-status')
+    await sleep(1500)
+    page.off('request', ih)
+    assert(ist === ser.validation_status, `insights banner ${ist} vs API ${ser.validation_status}`)
+    assert(insReq.length > 0, 'Insights did not query the harmonized series')
+    assert(!insReq.some((u) => u.includes('/api/insights/now')), 'NRT requested for the harmonized series')
+    const zr = await fetch(`${BASE}/api/export/fusion.zip?start=2023-01-01&end=2024-12-31&aoi=region:kalimantan`)
+    assert(zr.ok && (await zr.arrayBuffer()).byteLength > 200, 'fusion.zip missing')
+    return `sample: fusion status ${fr.effective.status} (${fr.effective.status_label}); eligible ${fr.eligible.join(', ') || 'none'}; calendar and Insights banners = API (${insReq.length} Insights requests for FUSED); fusion.zip OK`
   })
 
 } finally {
