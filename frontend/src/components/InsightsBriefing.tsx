@@ -61,9 +61,9 @@ export default function Briefing({ asOf, aoiName, onClose }: { asOf: ISODate; ao
         </div>
       </div>
       <article className="briefing-sheet mx-auto max-w-[820px] rounded-lg p-8 text-[13px] leading-relaxed shadow-xl" lang={lang}>
-        <header className="border-b border-slate-300 pb-3">
+        <header className="border-b border-zinc-300 pb-3">
           <h1 className="text-xl font-bold">{t.title}: {aoiName}</h1>
-          <p className="text-[12px] text-slate-600">{t.sensor}: {SERIES_NAME[ins.series]} · {t.asof}: {fmtDate(asOf, lang)}
+          <p className="text-[12px] text-zinc-600">{t.sensor}: {SERIES_NAME[ins.series]} · {t.asof}: {fmtDate(asOf, lang)}
             {r?.history && <> · {t.history}: {fmtDate(r.history.start, lang)} – {fmtDate(r.history.end, lang)}</>}</p>
         </header>
         <section className="mt-3 rounded border border-amber-300 bg-amber-50 p-3 text-[12px]">
@@ -84,7 +84,7 @@ export default function Briefing({ asOf, aoiName, onClose }: { asOf: ISODate; ao
                 {r.peak_week && <tr><td>{t.peakweek}</td><td><b>{dayLabel(r.peak_week.label, lang)}</b></td></tr>}
               </tbody></table>
             ) : <p>{t.nodata}</p>}
-            <p className="text-[11px] text-slate-600">{lang === 'id' ? 'Rentang dalam kurung: persentil ke-10 sampai ke-90 dari tahun-tahun lengkap.' : 'Range in brackets: 10th to 90th percentile of complete years.'}</p>
+            <p className="text-[11px] text-zinc-600">{lang === 'id' ? 'Rentang dalam kurung: persentil ke-10 sampai ke-90 dari tahun-tahun lengkap.' : 'Range in brackets: 10th to 90th percentile of complete years.'}</p>
           </section>
           <section>
             <h2>{t.unusual}</h2>
@@ -111,12 +111,12 @@ export default function Briefing({ asOf, aoiName, onClose }: { asOf: ISODate; ao
             {y ? <>
               <p>{t.enso}: {y.climate_latest.oni.season} {y.climate_latest.oni.year} = <b>{y.climate_latest.oni.value.toFixed(2)} °C</b> · {t.iod}: {y.climate_latest.dmi.year}-{String(y.climate_latest.dmi.month).padStart(2, '0')} = <b>{y.climate_latest.dmi.value.toFixed(2)} °C</b></p>
               <p className="mt-1">{t.analog}: {ensoGroup.map((g) => `${phaseText(g.phase, lang)} ${g.enough ? n(g.median_total, lang) : '—'} (${g.n_years} ${t.years})`).join(' · ')}</p>
-              <p className="text-[11px] text-slate-600">{lang === 'id'
+              <p className="text-[11px] text-zinc-600">{lang === 'id'
                 ? 'Tahun analog menunjukkan apa yang terjadi pada musim-musim lalu dengan latar iklim serupa. Ini pola dari sedikit musim, bukan prakiraan.'
                 : 'Analog years show what happened in past seasons with a similar climate background. A pattern from a handful of seasons, not a forecast.'}</p>
             </> : <p>{t.nodata}</p>}
           </section>
-          <footer className="mt-4 border-t border-slate-300 pt-2 text-[11px] text-slate-600">
+          <footer className="mt-4 border-t border-zinc-300 pt-2 text-[11px] text-zinc-600">
             {t.sources} {r && <>{lang === 'id' ? 'Versi metode' : 'Method version'} {r.method_version}, {lang === 'id' ? 'revisi data' : 'dataset revision'} {r.dataset_revision}. </>}
             {t.generated}: {new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC.
           </footer>

@@ -41,6 +41,24 @@ function assert(c, msg) { if (!c) throw new Error(msg) }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 async function api(p) { const r = await fetch(BASE + p); if (!r.ok) throw new Error(`${p} → HTTP ${r.status}`); return r.json() }
 function num(t) { return Number(String(t).replace(/[^\d.-]/g, '')) }
+// UI 1.6: a choice with 2-3 options is a segmented pill (buttons); with 4 or more it is a dropdown (<select>).
+async function pick(scope, name) {
+  // polls like Playwright's auto-wait: the control may still be rendering
+  for (let t = 0; t < 60; t++) {
+    const btn = scope.getByRole('button', { name, exact: typeof name === 'string' })
+    if (await btn.count()) return btn.first().click()
+    const sels = scope.locator('select')
+    const n = await sels.count()
+    for (let i = 0; i < n; i++) {
+      const sel = sels.nth(i)
+      const labels = await sel.locator('option').allInnerTexts()
+      const hit = labels.find((l) => (typeof name === 'string' ? l.trim() === name : name.test(l.trim())))
+      if (hit !== undefined) { await sel.selectOption({ label: hit }); return }
+    }
+    await sleep(250)
+  }
+  throw new Error(`no button or dropdown option named ${name}`)
+}
 
 async function startServer() {
   const env = { ...process.env, PYROSYNC_DATA_DIR: dataDir, PYROSYNC_OFFLINE: '1', FIRMS_MAP_KEY: '', PYTHONPATH: path.join(root, 'backend') }
@@ -118,7 +136,7 @@ try {
     const cust = await api(`/api/frame?start=2023-01-01&end=2024-12-31&aoi=${aoiId}&date=2023-09-15&mode=1`)
     await page.waitForFunction((n) => { const el = document.querySelector('[data-testid="det-VIIRS_N20"]'); return el && Number(el.textContent.replace(/[^\d]/g, '')) === n }, cust.summary.VIIRS_N20.detections, { timeout: 15000 })
     // the calendar follows the AOI
-    await page.getByRole('button', { name: 'Harmonized Calendar' }).click()
+    await page.getByTestId('nav-calendar').click()
     const calReq = page.waitForRequest((r) => r.url().includes('/api/daily?') && r.url().includes('aoi=region%3Aprov-id-ri'), { timeout: 15000 })
     await page.getByLabel('Area of interest').selectOption('region:prov-id-ri')
     await calReq
@@ -295,8 +313,8 @@ try {
     // Real sample: MODIS (Terra+Aqua) and VIIRS NOAA-20, 2023-2024, Kalimantan
     await open(page, 'page=workbench&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31')
     const ctl = page.getByTestId('harmonization-controls')
-    await ctl.getByRole('button', { name: 'NOAA-20' }).click()
-    await ctl.getByRole('button', { name: '±60 min' }).click()
+    await pick(ctl, 'NOAA-20')
+    await pick(ctl, '±60 min')
     await page.getByTestId('harmonization-run').click()
     await page.getByTestId('harmonization-result').waitFor({ timeout: 120000 })
     const q = 'start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&viirs_series=VIIRS_N20&modis_platforms=Aqua&tolerance_min=60&unit_grid=0.1&metric=detections&unit_set=matched&test_fraction=0.2'
@@ -316,8 +334,8 @@ try {
     await open(page, 'page=harmonization&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31&date=2024-09-15&frameMode=1')
     await page.getByTestId('h-notrun').waitFor()
     const ctl = page.getByTestId('h-controls')
-    await ctl.getByRole('button', { name: /^NOAA-20/ }).click()
-    await ctl.getByRole('button', { name: '±60 min' }).click()
+    await pick(ctl, /^NOAA-20/)
+    await pick(ctl, '±60 min')
     await page.getByTestId('h-run').click()
     await page.getByTestId('hpipeline').waitFor({ timeout: 180000 })
     const q = 'start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&viirs_series=VIIRS_N20&modis_platforms=Aqua&tolerance_min=60&unit_grid=0.1&metric=detections&unit_set=matched&test_fraction=0.2'
@@ -341,11 +359,11 @@ try {
     const i = d.dates.indexOf('2024-09-15')
     assert(d.series.MODIS.detections[i] === m.totals.modis && d.series.VIIRS_N20.detections[i] === m.totals.viirs, 'map totals differ from the daily series')
     const ctl2 = page.getByTestId('hmap-controls')
-    await ctl2.getByRole('button', { name: 'Experimental calibrated' }).click()
+    await pick(ctl2, 'Experimental calibrated')
     await page.waitForTimeout(500)
     const unavailable = await page.getByTestId('hmap-cal-unavailable').count()
     assert((unavailable === 0) === (h.validity.status === 'passes'), 'calibrated layer availability does not follow the validity status')
-    await ctl2.getByRole('button', { name: 'Calibration error' }).click()
+    await pick(ctl2, 'Calibration error')
     let errNote = 'not fitted'
     if (h.stage3.status === 'ok') {
       await page.getByTestId('herr-validated').waitFor({ timeout: 60000 })
@@ -355,7 +373,7 @@ try {
       errNote = `${v} validated 0.5° regions`
     }
     // 1.4: the history panel opens on the day-level ratio; the 1.0 event-model series is one click away and unchanged
-    await page.getByRole('button', { name: 'Event model (1.0 baseline)' }).click()
+    await pick(page, 'Event model (1.0 baseline)')
     await page.getByTestId('hseries-status').waitFor({ timeout: 60000 })
     const sr = await api(`/api/harmonization/series?${q}&agg=month&scope=domain`)
     const st = await page.getByTestId('hseries-status').innerText()
@@ -402,10 +420,10 @@ try {
       assert((await tracker.locator('canvas').count()) === 0, 'a tracker chart is drawn without enough history')
     }
     // role presets change the sections shown
-    await page.getByRole('button', { name: 'Land manager', exact: true }).click()
+    await page.getByTestId('role-select').selectOption('manager')
     await page.locator('#ins-map').waitFor()
     assert((await page.locator('#ins-now').count()) === 0, 'land manager view should not show the NRT section')
-    await page.getByRole('button', { name: 'Early warning', exact: true }).click()
+    await page.getByTestId('role-select').selectOption('warning')
     await page.locator('#ins-now').waitFor()
     await page.waitForTimeout(800)
     assert(nowCalls.length === 0, 'FIRMS NRT was requested without pressing the button')
@@ -417,7 +435,7 @@ try {
     await dlg.getByText('Bukan prakiraan, bukan peringkat bahaya kebakaran').waitFor()
     await dlg.getByRole('button', { name: 'Tutup' }).click()
     // method drawer and exports
-    await page.getByRole('button', { name: /Method & data/ }).click()
+    await page.getByRole('button', { name: /Method and data/ }).click()
     await page.getByText('python -m pyrosync.cli insights --aoi region:kalimantan').waitFor()
     for (const f of ['csv', 'geojson', 'kml']) {
       const r = await fetch(`${BASE}/api/export/hotspots.${f}?${qs}&top=50`)
@@ -432,8 +450,8 @@ try {
     const q = 'start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&viirs_series=VIIRS_N20&modis_platforms=Aqua&tolerance_min=60&unit_grid=0.1&metric=detections&unit_set=matched&test_fraction=0.2'
     await open(page, 'page=harmonization&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31&date=2024-09-15&frameMode=1')
     const ctl = page.getByTestId('h-controls')
-    await ctl.getByRole('button', { name: /^NOAA-20/ }).click()
-    await ctl.getByRole('button', { name: '±60 min' }).click()
+    await pick(ctl, /^NOAA-20/)
+    await pick(ctl, '±60 min')
     await page.getByTestId('h-run').click()
     await page.getByTestId('hagg').waitFor({ timeout: 180000 })
     const a = await api(`/api/harmonization/aggregate?${q}&events=true`)
@@ -442,20 +460,20 @@ try {
     assert(badge === g.status, `aggregate badge ${badge} != API ${g.status}`)
     assert(a.coverage.status === 'not_verified', 'coverage must not be claimed as verified')
     // the history panel defaults to the ratio series; a calibrated line exists only if the gate passes
-    await page.getByRole('button', { name: 'Day-level ratio (1.4)' }).click()
+    await pick(page, 'Day-level ratio (1.4)')
     await page.getByTestId('hagg-series-status').waitFor({ timeout: 60000 })
     const sr = await api(`/api/harmonization/aggregate/series?${q}&agg=month&quantity=detections`)
     assert((sr.calibrated !== null) === (sr.gate.status === 'passes'), 'ratio series drawn without passing the gate')
     assert((await page.getByTestId('hagg-series-status').innerText()).includes(sr.gate.label), 'series status differs from the API')
     // map: ratio estimate note and regional ratio error view
     const mc = page.getByTestId('hmap-controls')
-    await mc.getByRole('button', { name: 'Experimental calibrated' }).click()
-    await mc.getByRole('button', { name: 'Day-level ratio index (1.4)' }).click()
+    await pick(mc, 'Experimental calibrated')
+    await pick(mc, 'Day-level ratio index (1.4)')
     await page.getByTestId('hmap-ratio-note').waitFor({ timeout: 60000 })
     const m = await api(`/api/harmonization/map?${q}&date=2024-09-15&mode=1&scope=domain&err_grid=0.5&min_n=20`)
     assert(m.ratio_model.available === (g.status === 'passes'), 'map ratio layer availability does not follow the gate')
-    await mc.getByRole('button', { name: 'Calibration error' }).click()
-    await mc.getByRole('button', { name: 'Regional daily totals (1.4)' }).click()
+    await pick(mc, 'Calibration error')
+    await pick(mc, 'Regional daily totals (1.4)')
     await page.getByTestId('hratio-within').waitFor({ timeout: 60000 })
     const rr = await api(`/api/harmonization/aggregate/regions?${q}&err_grid=0.5&min_days=20`)
     const within = num(await page.getByTestId('hratio-within').innerText())
@@ -486,11 +504,19 @@ try {
 
   await check('19. 1.5 map: 4 destinations, adaptive grid with fixed region statistics, harmonized layer status, Analyze Location, shared circle, hotspot popup', async () => {
     const qs0 = 'start=2023-01-01&end=2024-12-31'
-    // navigation: four main destinations, advanced tools one click away
+    // navigation (UI 1.6): five single-word workspaces in a fixed order; old page ids map onto them
     await open(page, 'page=explore')
-    for (const n of ['Explore', 'Harmonized Calendar', 'Insights', 'Methods & Data']) await page.getByRole('button', { name: n, exact: true }).first().waitFor({ timeout: 15000 })
-    await page.getByTestId('nav-advanced').click()
-    await page.getByRole('button', { name: 'Harmonization diagnostics' }).waitFor()
+    const navNames = await page.getByTestId('sidebar').locator('[data-testid^="nav-"]').allInnerTexts()
+    assert(JSON.stringify(navNames.map((t) => t.trim())) === JSON.stringify(['Explore', 'Calendar', 'Insights', 'Harmonization', 'Methods']), `sidebar order ${navNames}`)
+    assert(navNames.every((t) => !t.includes('&')), 'ampersand in navigation')
+    await page.getByTestId('nav-harmonization').click()
+    await page.getByTestId('harmonization-page').waitFor({ timeout: 15000 })
+    const navAfter = await page.getByTestId('sidebar').locator('[data-testid^="nav-"]').allInnerTexts()
+    assert(JSON.stringify(navAfter) === JSON.stringify(navNames), 'sidebar reordered after switching workspace')
+    await open(page, 'page=history')
+    await page.getByTestId('ws-tabs').getByRole('button', { name: 'Seasonal History' }).and(page.locator('[aria-pressed="true"]')).waitFor({ timeout: 15000 })
+    await open(page, 'page=workbench')
+    await page.getByTestId('ws-tabs').getByRole('button', { name: 'Sensor Workbench' }).and(page.locator('[aria-pressed="true"]')).waitFor({ timeout: 15000 })
     // old bookmark with a grid but no gridMode keeps that grid as a manual choice
     await open(page, `page=explore&aoi=region:kalimantan&date=2023-09-15&frameMode=1&grid=0.05&view=-1.5,113.5,5`)
     await page.getByTestId('grid-label').getByText('0.05° (manual)').waitFor({ timeout: 15000 })
@@ -579,7 +605,7 @@ try {
 
   await check('20. Harmonized Calendar and Insights show the fused series with the API validation status', async () => {
     await open(page, 'page=explore&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31&date=2023-09-15')
-    await page.getByRole('button', { name: 'Harmonized Calendar', exact: true }).first().click()
+    await page.getByTestId('nav-calendar').click()
     await page.waitForFunction(() => location.hash.includes('series=FUSED'), null, { timeout: 15000 })
     await page.getByTestId('fusion-banner-status').waitFor({ timeout: 120000 })
     const ser = await api('/api/fusion/series?start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&agg=year')
@@ -599,7 +625,7 @@ try {
     const ih = (q) => { const u = q.url(); if (u.includes('/api/insights/') && u.includes('series=FUSED')) insReq.push(u) }
     page.on('request', ih)
     await open(page, 'page=insights&aoi=region:kalimantan')
-    await page.getByRole('group', { name: 'Sensor series' }).getByRole('button', { name: 'Harmonized (all sensors)' }).click()
+    await pick(page.locator('#main header').first(), 'Harmonized (all sensors)')
     await page.getByTestId('fusion-banner-status').waitFor({ timeout: 120000 })
     const ist = await page.getByTestId('fusion-banner-status').getAttribute('data-status')
     await sleep(1500)

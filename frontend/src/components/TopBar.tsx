@@ -10,7 +10,7 @@ export function AoiSelect({ regions, id = 'aoi-select' }: { regions: Region[]; i
   const custom = aoi.startsWith('custom:')
   const circle = aoi.startsWith('circle:')
   return (
-    <select id={id} className="field max-w-[220px]" value={aoi} aria-label="Area of interest"
+    <select id={id} className="field w-auto max-w-[190px]" value={aoi} aria-label="Area of interest"
       onChange={(e) => { const v = e.target.value; if (v.startsWith('circle:')) set({ aoi: v }); else set({ aoi: v, analyzeMode: 'region', clickAt: '', lastRegionAoi: v }) }}>
       <option value="none">All imported observations (no AOI)</option>
       <optgroup label="Named regions (boundaries)">
@@ -30,14 +30,14 @@ export function SeriesMetric() {
   return (
     <>
       <label className="sr-only" htmlFor="series-select">Sensor for calendar, timeline and flags</label>
-      <select id="series-select" className="field" value={series} onChange={(e) => set({ series: e.target.value, ...(e.target.value === 'FUSED' ? { metric: 'detections' } : {}) })}>
+      <select id="series-select" className="field w-auto max-w-[170px]" value={series} onChange={(e) => set({ series: e.target.value, ...(e.target.value === 'FUSED' ? { metric: 'detections' } : {}) })}>
         <option value="FUSED" title="Multi-sensor fusion: every eligible satellite calibrated to MODIS Aqua and averaged (detections only)">Harmonized (all sensors)</option>
         {opts.map((o) => <option key={o} value={o}>{SERIES_SHORT[o]}</option>)}
         <option value="UNION" disabled={metric !== 'cells'}>Any selected sensor (union)</option>
         {!opts.includes(series) && series !== 'UNION' && series !== 'FUSED' && <option value={series}>{SERIES_SHORT[series] ?? series} (not selected)</option>}
       </select>
       <label className="sr-only" htmlFor="metric-select">Metric</label>
-      <select id="metric-select" className="field" value={metric} onChange={(e) => {
+      <select id="metric-select" className="field w-auto max-w-[170px]" value={metric} onChange={(e) => {
         const m = e.target.value as Metric
         set({ metric: m, ...((series === 'UNION' && m !== 'cells') || (series === 'FUSED' && m !== 'detections') ? { series: opts[0] ?? 'VIIRS_N20' } : {}) })
       }}>
@@ -124,7 +124,7 @@ function ExportMenu({ onClose }: { onClose: () => void }) {
         ? <a role="menuitem" className={item} href={`/api/export/aoi.geojson?aoi=${encodeURIComponent(s.aoi)}`} download onClick={() => setTimeout(onClose, 0)}><Icon name="download" /><span><b>AOI GeoJSON</b><br /><span className="text-xs text-muted">Selected area boundary (lon/lat)</span></span></a>
         : <div className={cls(item, 'cursor-not-allowed text-muted')} aria-disabled="true"><Icon name="download" /><span><b>AOI GeoJSON</b><br /><span className="text-xs">Select an AOI first</span></span></div>}
       <button role="menuitem" className={item} onClick={() => { downloadBlob(JSON.stringify(viewConfig(useApp.getState()), null, 2), 'pyrosync_view.json', 'application/json'); onClose() }}>
-        <Icon name="download" /><span><b>View configuration (.json)</b><br /><span className="text-xs text-muted">Restores these settings via Data &amp; Methods → Exports</span></span></button>
+        <Icon name="download" /><span><b>View configuration (.json)</b><br /><span className="text-xs text-muted">Restores these settings via Methods, Exports</span></span></button>
       <button role="menuitem" className={item} onClick={async () => {
         const url = `${location.origin}${location.pathname}#${serializeState(useApp.getState())}`
         try { await navigator.clipboard.writeText(url) } catch { window.prompt('Copy this local view URL', url) }
@@ -137,6 +137,7 @@ function ExportMenu({ onClose }: { onClose: () => void }) {
 export default function TopBar({ regions, inventory }: { regions: Region[]; inventory?: Inventory | null }) {
   const s = useApp()
   const [open, setOpen] = useState<'filters' | 'export' | null>(null)
+  const [more, setMore] = useState(false) // phones: dates and sensor controls fold into one row toggle
   const wrap = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const h = (e: MouseEvent) => { if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(null) }
@@ -146,9 +147,11 @@ export default function TopBar({ regions, inventory }: { regions: Region[]; inve
   const dr = s.dataRange
   const nf = (s.modisMinConf !== 30 ? 1 : 0) + (s.viirsConf.join() !== 'nominal,high' ? 1 : 0) + (s.types.join() !== '0' ? 1 : 0) + (s.daynight.length !== 2 ? 1 : 0) + (s.gridMode === 'manual' ? 1 : 0)
   return (
-    <header className="sticky top-0 z-[1000] flex min-h-14 flex-wrap items-center gap-2 border-b border-line bg-panel px-3 py-2">
+    <header className="sticky top-0 z-[1000] flex min-h-14 flex-wrap items-center gap-2 border-b border-line bg-panel px-3 py-2 lg:px-4">
       <button className="btn px-2" aria-label={s.navOpen ? 'Collapse navigation' : 'Expand navigation'} aria-expanded={s.navOpen} onClick={() => s.set({ navOpen: !s.navOpen })}><Icon name="menu" /></button>
       <AoiSelect regions={regions} />
+      <button type="button" className="btn md:hidden" aria-expanded={more} aria-controls="topbar-more" onClick={() => setMore(!more)}>{s.start.slice(0, 4) === s.end.slice(0, 4) ? s.start.slice(0, 4) : `${s.start.slice(0, 4)}–${s.end.slice(0, 4)}`} · {SERIES_SHORT[s.series] ?? s.series}</button>
+      <div id="topbar-more" className={cls('flex flex-wrap items-center gap-2 max-md:order-last max-md:w-full', !more && 'max-md:hidden')}>
       <div className="flex items-center gap-1 text-sm" role="group" aria-label="Analysis range (UTC days)">
         <input type="date" className="field" aria-label="Analysis range start" value={s.start} min={dr?.[0]} max={s.end}
           onChange={(e) => e.target.value && s.set({ start: e.target.value, date: s.date < e.target.value ? e.target.value : s.date })} />
@@ -165,6 +168,7 @@ export default function TopBar({ regions, inventory }: { regions: Region[]; inve
         </select>}
       </div>
       <SeriesMetric />
+      </div>
       <div ref={wrap} className="relative ml-auto flex items-center gap-2">
         <button className="btn" aria-expanded={open === 'filters'} onClick={() => setOpen(open === 'filters' ? null : 'filters')}><Icon name="filter" />Filters{nf > 0 && <span className="chip bg-accent text-white">{nf}</span>}</button>
         <button className="btn" aria-expanded={open === 'export'} onClick={() => setOpen(open === 'export' ? null : 'export')}><Icon name="download" />Export</button>

@@ -53,7 +53,7 @@ function errTip(c: ErrCell, e: HErrors): string {
 
 const RATIO_STATUS = { within: 'held-out total within 0.8–1.25×', outside: 'held-out total outside 0.8–1.25×', too_few: 'too few active held-out days' }
 function ratioColor(r: number | null): string {
-  if (r === null) return '#94a3b8'
+  if (r === null) return '#a1a1aa'
   return r < 0.67 ? '#c2410c' : r < 0.8 ? '#fb923c' : r <= 1.25 ? '#22c55e' : r <= 1.5 ? '#a78bfa' : '#6d28d9'
 }
 function ratioTip(c: RegionRatioCell, e: RegionRatios): string {
@@ -89,7 +89,7 @@ export default function HarmonizationMap({ run }: { run: string }) {
     m.attributionControl.setPrefix('Leaflet')
     map.current = m
     getJSON<GeoJSON.Feature>('/api/regions/indonesia.geojson').then((f) => {
-      L.geoJSON(f, { interactive: false, style: { color: '#64748b', weight: 0.8, fill: false, opacity: 0.7 } }).addTo(m).bringToBack()
+      L.geoJSON(f, { interactive: false, style: { color: '#71717a', weight: 0.8, fill: false, opacity: 0.7 } }).addTo(m).bringToBack()
     }).catch(() => {})
     return () => { m.remove(); map.current = null }
   }, [])
@@ -115,7 +115,7 @@ export default function HarmonizationMap({ run }: { run: string }) {
     let alive = true
     getJSON<GeoJSON.Feature>(url).then((f) => {
       if (!alive || !map.current) return
-      lay.current.aoi = L.geoJSON(f, { interactive: false, style: { color: '#0f1d3a', weight: 2, dashArray: '5 4', fill: false } }).addTo(map.current)
+      lay.current.aoi = L.geoJSON(f, { interactive: false, style: { color: '#09090b', weight: 2, dashArray: '5 4', fill: false } }).addTo(map.current)
       const b = lay.current.aoi.getBounds()
       if (b.isValid()) map.current.fitBounds(b, { padding: [20, 20], maxZoom: 9, animate: false })
     }).catch(() => {})
@@ -151,8 +151,8 @@ export default function HarmonizationMap({ run }: { run: string }) {
       if (!e) return
       for (const c of e.cells) {
         const tip = ratioTip(c, e)
-        if (c.status === 'too_few') rect(c.ci, c.cj, e.error_grid_deg, { weight: 0.8, color: '#64748b', dashArray: '3 3', fillColor: '#94a3b8', fillOpacity: 0.3 }, tip)
-        else rect(c.ci, c.cj, e.error_grid_deg, { weight: 0.5, color: '#1e293b', fillColor: ratioColor(c.ratio), fillOpacity: 0.85 }, tip)
+        if (c.status === 'too_few') rect(c.ci, c.cj, e.error_grid_deg, { weight: 0.8, color: '#71717a', dashArray: '3 3', fillColor: '#a1a1aa', fillOpacity: 0.3 }, tip)
+        else rect(c.ci, c.cj, e.error_grid_deg, { weight: 0.5, color: '#27272a', fillColor: ratioColor(c.ratio), fillOpacity: 0.85 }, tip)
       }
     } else if (h.layer === 'errors') {
       const e = eq.data
@@ -161,11 +161,11 @@ export default function HarmonizationMap({ run }: { run: string }) {
         const tip = errTip(c, e)
         if (c.status === 'validated') {
           const fill = h.errColor === 'mae' ? rampOf(ERR_RAMP, c.mae_cal ?? 0, errMax) : improvementColor(c.improvement_pct ?? 0)
-          rect(c.ci, c.cj, e.error_grid_deg, { weight: 0.5, color: '#1e293b', fillColor: fill, fillOpacity: 0.85 }, tip)
+          rect(c.ci, c.cj, e.error_grid_deg, { weight: 0.5, color: '#27272a', fillColor: fill, fillOpacity: 0.85 }, tip)
         } else if (c.status === 'too_few') {
-          rect(c.ci, c.cj, e.error_grid_deg, { weight: 0.8, color: '#64748b', dashArray: '3 3', fillColor: '#94a3b8', fillOpacity: 0.35 }, tip)
+          rect(c.ci, c.cj, e.error_grid_deg, { weight: 0.8, color: '#71717a', dashArray: '3 3', fillColor: '#a1a1aa', fillOpacity: 0.35 }, tip)
         } else {
-          rect(c.ci, c.cj, e.error_grid_deg, { weight: 1, color: '#94a3b8', dashArray: '2 4', fill: false }, tip)
+          rect(c.ci, c.cj, e.error_grid_deg, { weight: 1, color: '#a1a1aa', dashArray: '2 4', fill: false }, tip)
         }
       }
     } else if (d) {
@@ -173,7 +173,7 @@ export default function HarmonizationMap({ run }: { run: string }) {
         const sel = h.selCell && h.selCell.ci === c.ci && h.selCell.cj === c.cj
         const click = () => useHarm.getState().set({ selCell: { ci: c.ci, cj: c.cj } })
         const tip = cellTip(c, d, g)
-        const edge = sel ? { weight: 2.5, color: '#0f1d3a' } : null
+        const edge = sel ? { weight: 2.5, color: '#09090b' } : null
         if (h.layer === 'modis') {
           if (c.modis > 0) rect(c.ci, c.cj, g, { weight: 0.4, color: '#7c2d12', ...edge, fillColor: rampColor(c.modis, scales.modisScale), fillOpacity: 0.85 }, tip, click)
         } else if (h.layer === 'viirs') {
@@ -188,7 +188,7 @@ export default function HarmonizationMap({ run }: { run: string }) {
           if (v <= 0) {
             rect(c.ci, c.cj, g, { weight: 0.8, color: '#a855f7', dashArray: '2 3', fill: false, ...edge }, tip, click)
           } else {
-            rect(c.ci, c.cj, g, { weight: validated ? 0.6 : 1, color: validated ? '#581c87' : '#64748b', dashArray: validated ? undefined : '3 3', ...edge,
+            rect(c.ci, c.cj, g, { weight: validated ? 0.6 : 1, color: validated ? '#581c87' : '#71717a', dashArray: validated ? undefined : '3 3', ...edge,
               fillColor: rampOf(EST_RAMP, v, scales.modisScale), fillOpacity: validated ? 0.85 : 0.4 }, tip, click)
           }
         } else if (h.layer === 'matching') {
@@ -197,7 +197,7 @@ export default function HarmonizationMap({ run }: { run: string }) {
             const fill = t < 0.34 ? '#16a34a' : t < 0.67 ? '#eab308' : '#f97316'
             rect(c.ci, c.cj, g, { weight: 0.6, color: '#14532d', ...edge, fillColor: fill, fillOpacity: 0.85 }, tip, click)
           } else if (c.modis_events > 0 && c.viirs_events > 0) {
-            rect(c.ci, c.cj, g, { weight: 1.2, color: '#475569', ...edge, fillColor: '#cbd5e1', fillOpacity: 0.5 }, tip, click)
+            rect(c.ci, c.cj, g, { weight: 1.2, color: '#52525b', ...edge, fillColor: '#d4d4d8', fillOpacity: 0.5 }, tip, click)
           } else if (c.modis_events > 0) {
             rect(c.ci, c.cj, g, { weight: 1.4, color: '#0f766e', ...edge, fill: false }, tip, click)
           } else {
@@ -269,7 +269,7 @@ function RatioLegend({ minDays }: { minDays: number }) {
     <div className="absolute bottom-2 right-2 z-[500] max-w-[300px] rounded-lg bg-panel/95 px-2 py-1.5 text-[10px] shadow" aria-label="Map legend" data-testid="hmap-legend">
       <div className="mb-1 font-semibold">Held-out Σ (c × VIIRS) / Σ MODIS per region</div>
       <div className="flex flex-wrap items-center gap-1">{sw('#c2410c')}&lt; 0.67{sw('#fb923c')}0.67–0.8{sw('#22c55e')}0.8–1.25{sw('#a78bfa')}1.25–1.5{sw('#6d28d9')}&gt; 1.5</div>
-      <div className="mt-0.5 flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-dashed border-slate-500 bg-slate-400/40" />Fewer than {minDays} active held-out days</div>
+      <div className="mt-0.5 flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-dashed border-zinc-500 bg-zinc-400/40" />Fewer than {minDays} active held-out days</div>
       <div className="mt-0.5 text-muted">One AOI-wide c is applied everywhere; this view shows where that c holds and where it does not.</div>
     </div>
   )
@@ -290,7 +290,7 @@ function Legend({ layer, d, e, scales, errMax, errColor, tol, ratio }: { layer: 
       </> : layer === 'calibrated' ? <>
         <div className="mb-1 font-semibold">Estimated MODIS-scale detections per cell (not observations)</div>
         <div className="flex items-center gap-1"><span>0</span>{EST_RAMP.map((c) => <span key={c}>{sw(c)}</span>)}<span>{fmtNum(scales.modisScale, 1)}</span></div>
-        <div className="mt-0.5 flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-dashed border-slate-500 bg-purple-200/40" />Faded, dashed: region not validated (too few or no held-out units)</div>
+        <div className="mt-0.5 flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-dashed border-zinc-500 bg-purple-200/40" />Faded, dashed: region not validated (too few or no held-out units)</div>
         <div className="flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-dashed border-purple-500" />Outline only: VIIRS events outside the model domain</div>
         <div className="mt-0.5 text-muted">Estimate on the grid from VIIRS events; no new hotspots are created.</div>
       </> : layer === 'matching' ? <>
@@ -298,7 +298,7 @@ function Legend({ layer, d, e, scales, errMax, errColor, tol, ratio }: { layer: 
         <div className="flex items-center gap-1">{sw('#16a34a')}matched, median |Δt| &lt; {Math.round(tol / 3)} min</div>
         <div className="flex items-center gap-1">{sw('#eab308')}matched, {Math.round(tol / 3)}–{Math.round((2 * tol) / 3)} min</div>
         <div className="flex items-center gap-1">{sw('#f97316')}matched, ≥ {Math.round((2 * tol) / 3)} min (tolerance ±{tol})</div>
-        <div className="flex items-center gap-1">{sw('#cbd5e1', 'border border-slate-600')}both sensors, but not within tolerance</div>
+        <div className="flex items-center gap-1">{sw('#d4d4d8', 'border border-zinc-600')}both sensors, but not within tolerance</div>
         <div className="flex items-center gap-1"><span className="inline-block h-2.5 w-4 border-2 border-teal-700" />MODIS only</div>
         <div className="flex items-center gap-1"><span className="inline-block h-2.5 w-4 border border-blue-600" />VIIRS only</div>
         <div className="mt-0.5 text-muted">One-sided cells are not proof that the other sensor saw nothing (coverage is not verified).</div>
@@ -307,8 +307,8 @@ function Legend({ layer, d, e, scales, errMax, errColor, tol, ratio }: { layer: 
         {errColor === 'mae'
           ? <div className="flex items-center gap-1"><span>0</span>{ERR_RAMP.map((c) => <span key={c}>{sw(c)}</span>)}<span>{f2(errMax)}</span></div>
           : <div className="flex flex-wrap items-center gap-1">{sw('#c2410c')}&lt; −25 %{sw('#fb923c')}worse{sw('#dcfce7')}0–25{sw('#86efac')}25–50{sw('#22c55e')}50–75{sw('#15803d')}≥ 75 %</div>}
-        <div className="mt-0.5 flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-dashed border-slate-500 bg-slate-400/40" />Too few held-out units (&lt; {e?.min_n})</div>
-        <div className="flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-dashed border-slate-400" />VIIRS activity, no held-out units: not validated</div>
+        <div className="mt-0.5 flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-dashed border-zinc-500 bg-zinc-400/40" />Too few held-out units (&lt; {e?.min_n})</div>
+        <div className="flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-dashed border-zinc-400" />VIIRS activity, no held-out units: not validated</div>
       </>}
     </div>
   )

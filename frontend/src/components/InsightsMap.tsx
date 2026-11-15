@@ -71,7 +71,7 @@ export default function InsightsMap({ aoi, grid, mode, rec, anom, nYears, height
     let alive = true
     getJSON<GeoJSON.Feature>(url).then((g) => {
       if (!alive || !map.current) return
-      lay.current.aoi = L.geoJSON(g, { interactive: false, style: { color: '#0f1d3a', weight: 2, dashArray: '5 4', fill: false } }).addTo(map.current)
+      lay.current.aoi = L.geoJSON(g, { interactive: false, style: { color: '#09090b', weight: 2, dashArray: '5 4', fill: false } }).addTo(map.current)
       const b = lay.current.aoi.getBounds()
       map.current.invalidateSize()
       if (b.isValid()) map.current.fitBounds(b, { padding: [20, 20], maxZoom: 9, animate: false })
@@ -95,7 +95,7 @@ export default function InsightsMap({ aoi, grid, mode, rec, anom, nYears, height
       // draw normal cells first so unusual ones stay on top
       const order = [...anom].sort((a, b) => a.z - b.z)
       for (const c of order) {
-        L.rectangle([[c.lat - h, c.lon - h], [c.lat + h, c.lon + h]], opts(BAND_COLOR[c.band] ?? '#cbd5e1'))
+        L.rectangle([[c.lat - h, c.lon - h], [c.lat + h, c.lon + h]], opts(BAND_COLOR[c.band] ?? '#d4d4d8'))
           .bindTooltip(anomTip(c, nYears), { sticky: true }).addTo(grp)
       }
     }

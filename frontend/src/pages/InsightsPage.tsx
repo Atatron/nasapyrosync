@@ -44,7 +44,7 @@ function Unavailable({ reason }: { reason: string | null }) {
 }
 
 // ------------------------------------------------------------------ page
-export default function InsightsPage({ regions }: { regions: Region[] }) {
+export default function InsightsPage({ regions, view = 'tracker' }: { regions: Region[]; view?: 'tracker' | 'climate' }) {
   const s = useApp()
   const ins = useIns()
   const inv = useInventory()
@@ -68,26 +68,26 @@ export default function InsightsPage({ regions }: { regions: Region[] }) {
   const qsYear = insQS(s, ins.series, yearStart, asOf)
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-4 p-4">
+    <div className="space-y-4 p-4 lg:p-6">
       <header className="panel space-y-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-lg font-semibold">AOI Insights</h1>
+            <h1 className="text-base font-semibold">{view === 'climate' ? 'Climate background: ENSO and IOD' : 'AOI Insights'}</h1>
             <p className="max-w-3xl text-[13px] text-muted">Historical fire patterns, unusual conditions and critical periods for <b className="text-ink">{aoiName ?? 'no area selected'}</b>,
               from one sensor series at a time. A description of past satellite detections: <b className="text-ink">not a forecast, not a fire-danger rating and not an official warning.</b></p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button className="btn" onClick={() => ins.set({ briefing: true })} disabled={s.aoi === 'none'}><Icon name="doc" />Briefing (EN / ID)</button>
-            <button className="btn" onClick={() => ins.set({ methodOpen: !ins.methodOpen })} aria-expanded={ins.methodOpen}><Icon name="data" />Method &amp; data</button>
+            <button className="btn" onClick={() => ins.set({ methodOpen: !ins.methodOpen })} aria-expanded={ins.methodOpen}><Icon name="data" />Method and data</button>
           </div>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">I am…</div>
-            <div className="seg" role="group" aria-label="Role preset">
-              {ROLES.map((r) => <button key={r.id} type="button" aria-pressed={ins.role === r.id} title={r.hint} onClick={() => ins.set({ role: r.id })}>{r.label}</button>)}
-            </div>
-          </div>
+          {view === 'tracker' && <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">I am…</span>
+            <select className="field" aria-label="Role preset" data-testid="role-select" value={ins.role} onChange={(e) => ins.set({ role: e.target.value as typeof ins.role })}>
+              {ROLES.map((r) => <option key={r.id} value={r.id} title={r.hint}>{r.label}</option>)}
+            </select>
+          </label>}
           <div>
             <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Sensor series<Info>Each sensor series is analysed on its own, or as the harmonized series: every eligible satellite calibrated to MODIS Aqua and averaged. Raw MODIS and VIIRS detections are never added together. Cell maps (recurrence, cell anomaly) of the harmonized series use the MODIS Aqua reference sensor.</Info></div>
             <Seg label="Sensor series" value={ins.series} onChange={(v) => ins.set({ series: v, asOf: null })}
@@ -99,7 +99,9 @@ export default function InsightsPage({ regions }: { regions: Region[] }) {
           </label>
           <p id="asof-help" className="max-w-xs text-[11px] text-muted">The history runs from the first imported day ({first}) to this day; its year is the focus year. Latest {SERIES_NAME[ins.series]} day: {last}.</p>
         </div>
-        <p className="text-[12px] text-muted"><b className="text-ink">{role.label}:</b> {role.hint}</p>
+        {view === 'tracker'
+          ? <p className="text-[12px] text-muted"><b className="text-ink">{role.label}:</b> {role.hint} Years and climate background are in the Climate ENSO / IOD view.</p>
+          : <p className="text-[12px] text-muted">ENSO (NOAA ONI) and Indian Ocean Dipole (NOAA DMI) phases of each complete year, next to its detections. Context only, not a forecast.</p>}
       </header>
       {ins.series === 'FUSED' && <FusionBanner force />}
 
@@ -110,7 +112,8 @@ export default function InsightsPage({ regions }: { regions: Region[] }) {
           its history, thresholds and hotspots are its own.</Empty></Panel>
       ) : (
         <div className="space-y-4">
-          {role.sections.map((id) => (
+          {view === 'climate' && <YearsSection qs={qsYear} />}
+          {view === 'tracker' && role.sections.filter((id) => id !== 'years').map((id) => (
             <div key={id} id={`ins-${id}`}>
               {id === 'now' && <NowSection asOf={asOf} lastArchive={last!} />}
               {id === 'tracker' && <TrackerSection qs={qsYear} />}
@@ -118,13 +121,12 @@ export default function InsightsPage({ regions }: { regions: Region[] }) {
               {id === 'anomaly' && <AnomalySection asOf={asOf} first={first ?? asOf} />}
               {id === 'critical' && <CriticalSection qs={qsYear} />}
               {id === 'map' && <MapSection asOf={asOf} qs={qsYear} />}
-              {id === 'years' && <YearsSection qs={qsYear} />}
               {id === 'compare' && <CompareSection asOf={asOf} regions={regions} />}
             </div>
           ))}
-          <Panel title="Experimental MODIS-equivalent comparison (1.4, off by default)" info={<>Optional. Uses this area's whole history from {first} to {asOf}: VIIRS daily totals times c = ΣMODIS / ΣVIIRS fitted on earlier days. Drawn only when this area and satellite pair pass the project's aggregate gate; otherwise the original totals are shown and nothing is estimated. Not an official NASA product, and none of the sections above use it.</>}>
+          {view === 'tracker' && <Panel title="Experimental MODIS-equivalent comparison (1.4, off by default)" info={<>Optional. Uses this area's whole history from {first} to {asOf}: VIIRS daily totals times c = ΣMODIS / ΣVIIRS fitted on earlier days. Drawn only when this area and satellite pair pass the project's aggregate gate; otherwise the original totals are shown and nothing is estimated. Not an official NASA product, and none of the sections above use it.</>}>
             <ModisEquivalentComparison qs={insQS(s, ins.series, first ?? asOf, asOf)} available={avail} preferred={ins.series} testid="ins-meq" />
-          </Panel>
+          </Panel>}
         </div>
       )}
       {ins.briefing && s.aoi !== 'none' && <Briefing asOf={asOf} aoiName={aoiName ?? ''} onClose={() => ins.set({ briefing: false })} />}
@@ -157,7 +159,7 @@ function NowSection({ asOf, lastArchive }: { asOf: ISODate; lastArchive: ISODate
                 grid: { left: 44, right: 12, top: 10, bottom: 28 },
                 tooltip: { trigger: 'axis', formatter: (p: { dataIndex: number }[]) => { const x = d.days[p[0].dataIndex]; return `${x.date}<br/>${x.nrt_detections} NRT detections<br/>${x.band ? `${x.band} (z ${x.z?.toFixed(2)}, usual median ${fmtNum(x.reference_median, 1)})` : x.state}` } },
                 xAxis: { type: 'category', data: d.days.map((x) => x.date.slice(5)) }, yAxis: { type: 'value', name: 'detections', nameTextStyle: { fontSize: 10 } },
-                series: [{ type: 'bar', data: d.days.map((x) => ({ value: x.nrt_detections, itemStyle: { color: x.band ? BAND_COLOR[x.band] : '#94a3b8' } })) }],
+                series: [{ type: 'bar', data: d.days.map((x) => ({ value: x.nrt_detections, itemStyle: { color: x.band ? BAND_COLOR[x.band] : '#a1a1aa' } })) }],
               }} />
               <p className="text-[11px] text-muted">Source {d.source}: {d.counts.rows_fetched} rows fetched, {d.counts.outside_aoi} outside the area, {d.counts.filtered_out} removed by the filters,
                 {' '}{d.counts.rejected_rows} rejected. Latest ONI {d.climate_now.oni.season} {d.climate_now.oni.year}: {d.climate_now.oni.value.toFixed(2)} °C.</p>
@@ -176,7 +178,7 @@ function TrackerSection({ qs }: { qs: string }) {
       complete reference years at the same day of the year. Unknown-coverage days add nothing.</>}>
       <Q q={q} what="Season tracker">{(r) => !r.available || !r.tracker ? <Unavailable reason={r.reason} /> : (
         <div className="space-y-3">
-          {r.tracker.status && <p className="text-[14px]"><Badge color={TRACKER_COLOR[r.tracker.status.band] ?? '#64748b'}>{r.tracker.status.band}</Badge> <span className="ml-1">{r.tracker.status.sentence}</span></p>}
+          {r.tracker.status && <p className="text-[14px]"><Badge color={TRACKER_COLOR[r.tracker.status.band] ?? '#71717a'}>{r.tracker.status.band}</Badge> <span className="ml-1">{r.tracker.status.sentence}</span></p>}
           <EChart height={260} ariaLabel="Cumulative detections of the focus year against the reference range" option={trackerOption(r)} />
           <p className="text-[11px] text-muted">{r.tracker.note} Reference years: {r.reference_years.join(', ')}. {String(r.rules.missing_type ?? '')}</p>
         </div>
@@ -196,7 +198,7 @@ function trackerOption(r: Regime) {
     series: [
       { name: 'p10', type: 'line', data: e.p10, stack: 'band', symbol: 'none', lineStyle: { opacity: 0 }, tooltip: { show: false } },
       { name: '10th–90th percentile', type: 'line', data: e.p90.map((v, i) => v - e.p10[i]), stack: 'band', symbol: 'none', lineStyle: { opacity: 0 }, areaStyle: { color: 'rgba(100,116,139,0.22)' }, color: 'rgba(100,116,139,0.5)' },
-      { name: 'Median of reference years', type: 'line', data: e.median, symbol: 'none', lineStyle: { type: 'dashed', width: 1.5 }, color: '#475569' },
+      { name: 'Median of reference years', type: 'line', data: e.median, symbol: 'none', lineStyle: { type: 'dashed', width: 1.5 }, color: '#52525b' },
       { name: String(r.focus_year), type: 'line', data: r.tracker!.focus, symbol: 'none', lineStyle: { width: 2.5 }, color: SERIES_COLOR[r.series] ?? '#0f766e' },
     ],
   }
@@ -229,7 +231,7 @@ function RegimeSection({ qs }: { qs: string }) {
             series: [
               { name: 'p10', type: 'line', stack: 'b', data: r.weeks.map((w) => w.p10), symbol: 'none', lineStyle: { opacity: 0 }, tooltip: { show: false } },
               { name: '10th–90th percentile', type: 'line', stack: 'b', data: r.weeks.map((w) => (w.p90 ?? 0) - (w.p10 ?? 0)), symbol: 'none', lineStyle: { opacity: 0 }, areaStyle: { color: 'rgba(100,116,139,0.22)' }, color: 'rgba(100,116,139,0.5)' },
-              { name: 'Median', type: 'line', data: r.weeks.map((w) => w.median), symbol: 'none', lineStyle: { type: 'dashed' }, color: '#475569' },
+              { name: 'Median', type: 'line', data: r.weeks.map((w) => w.median), symbol: 'none', lineStyle: { type: 'dashed' }, color: '#52525b' },
               { name: String(r.focus_year), type: 'line', data: r.focus_weeks, symbol: 'circle', symbolSize: 3, color: SERIES_COLOR[r.series] ?? '#0f766e' },
             ],
           }} />
@@ -257,8 +259,8 @@ function AnomalySection({ asOf, first }: { asOf: ISODate; first: ISODate }) {
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
             {BAND_ORDER.map((b) => <Badge key={b} color={BAND_COLOR[b]}>{b}: {a.summary.by_band[b] ?? 0} days</Badge>)}
-            {a.summary.unknown > 0 && <Badge color="#94a3b8">unknown coverage: {a.summary.unknown}</Badge>}
-            {a.summary.insufficient > 0 && <Badge color="#e2e8f0">not enough history: {a.summary.insufficient}</Badge>}
+            {a.summary.unknown > 0 && <Badge color="#a1a1aa">unknown coverage: {a.summary.unknown}</Badge>}
+            {a.summary.insufficient > 0 && <Badge color="#e4e4e7">not enough history: {a.summary.insufficient}</Badge>}
           </div>
           {a.summary.max && a.summary.max.band && a.summary.max.band !== 'normal' && <p className="text-[13px]">Most unusual day: <b>{fmtDay(a.summary.max.date)}</b> with {fmtNum(a.summary.max.value)} detections
             (usually {fmtNum(a.summary.max.reference_median, 1)} around that date; higher than {fmtNum(a.summary.max.higher_than_pct)} % of those reference days), <b>{a.summary.max.band}</b>.</p>}
@@ -268,13 +270,13 @@ function AnomalySection({ asOf, first }: { asOf: ISODate; first: ISODate }) {
             xAxis: { type: 'category', data: a.days.map((x) => x.date), axisLabel: { formatter: (v: string) => v.slice(5) } },
             yAxis: { type: 'value', name: 'detections/day', nameTextStyle: { fontSize: 10 } },
             dataZoom: [{ type: 'inside' }],
-            series: [{ type: 'bar', barCategoryGap: '10%', data: a.days.map((x) => ({ value: x.value ?? 0, itemStyle: { color: x.value === null ? '#e2e8f0' : x.band ? BAND_COLOR[x.band] : '#94a3b8' } })) }],
+            series: [{ type: 'bar', barCategoryGap: '10%', data: a.days.map((x) => ({ value: x.value ?? 0, itemStyle: { color: x.value === null ? '#e4e4e7' : x.band ? BAND_COLOR[x.band] : '#a1a1aa' } })) }],
           }} />
           <div>
             <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Weeks (mean detections per known day vs the same week in earlier complete years)</div>
             <div className="flex flex-wrap gap-0.5" role="list" aria-label="Weekly anomaly bands">
               {a.weeks.map((w) => <span key={`${w.year}-${w.week}`} role="listitem" className="inline-block h-5 w-5 rounded-sm border border-line"
-                style={{ background: w.band ? BAND_COLOR[w.band] : w.state === 'unknown coverage' ? 'transparent' : '#e2e8f0' }}
+                style={{ background: w.band ? BAND_COLOR[w.band] : w.state === 'unknown coverage' ? 'transparent' : '#e4e4e7' }}
                 title={`${w.year} ${w.label}: ${w.value === null ? 'unknown' : fmtNum(w.value, 1) + ' /day'}${w.band ? ` · ${w.band} (usual ${fmtNum(w.reference_median, 1)})` : ` · ${w.state}`}`} />)}
             </div>
           </div>
@@ -306,14 +308,14 @@ function CriticalSection({ qs }: { qs: string }) {
             <div className="mt-1 flex justify-between text-[10px] text-muted">{MON.map((m) => <span key={m}>{m}</span>)}</div>
             <TopWeeks c={c} />
           </div>
-          <div className="overflow-auto">
-            <table className="data">
+          <div>
+            <div className="scroll-box"><table className="data">
               <thead><tr><th>#</th><th>Period (UTC days)</th><th className="text-right">Days</th><th className="text-right">Peak</th><th className="text-right">Total</th><th className="text-right">Above threshold</th></tr></thead>
               <tbody>{c.periods.slice(0, 10).map((p) => <tr key={p.start} title={p.reason}>
                 <td>{p.rank}</td><td>{fmtDay(p.start)} – {fmtDay(p.end)}{p.coverage_notes.length > 0 && <span className="text-amber-700"> ⚠</span>}</td>
                 <td className="text-right">{p.duration_days}</td><td className="text-right">{fmtNum(p.peak)} ({p.peak_date.slice(5)})</td>
                 <td className="text-right">{fmtNum(p.total)}</td><td className="text-right">{fmtNum(p.excess)}</td></tr>)}</tbody>
-            </table>
+            </table></div>
             <p className="mt-1 text-[11px] text-muted">{c.periods_total} critical periods in total; the 10 with the most detections above the threshold are listed. {c.rule_text}</p>
           </div>
         </div>
@@ -402,7 +404,7 @@ function YearsSection({ qs }: { qs: string }) {
             <p className="text-[13px]">Focus year {y.focus_year}: ENSO <b>{y.focus_phase.enso ?? 'not yet known'}</b>{y.focus_phase.oni !== null && ` (ONI ${y.focus_phase.oni.toFixed(2)}${y.focus_phase.oni_complete ? '' : ', partial'})`},
               {' '}IOD <b>{y.focus_phase.iod ?? 'not yet known'}</b>{y.focus_phase.dmi !== null && ` (DMI ${y.focus_phase.dmi.toFixed(2)}${y.focus_phase.dmi_complete ? '' : ', partial'})`}.
               {' '}Latest values: ONI {y.climate_latest.oni.season} {y.climate_latest.oni.year} = {y.climate_latest.oni.value.toFixed(2)} °C, DMI {MON[y.climate_latest.dmi.month - 1]} {y.climate_latest.dmi.year} = {y.climate_latest.dmi.value.toFixed(2)} °C.</p>
-            <div className="max-h-80 overflow-auto">
+            <div className="scroll-box">
               <table className="data">
                 <thead><tr><th>Year</th><th className="text-right">Detections</th><th className="text-right">Jul–Oct</th><th className="text-right">Critical days</th><th>ENSO</th><th className="text-right">ONI</th><th>IOD</th><th className="text-right">DMI</th></tr></thead>
                 <tbody>{sorted.map((r) => <tr key={r.year} className={cls(r.is_focus && 'font-semibold')}>
@@ -448,7 +450,7 @@ function CompareSection({ asOf, regions }: { asOf: ISODate; regions: Region[] })
                   {r.regime_available ? <>
                     <td className="text-right">{fmtNum(r.mean_annual)}</td><td className="text-right">{fmtNum(r.mean_annual_per_1000km2, 1)}</td><td className="text-right">{r.cv?.toFixed(2) ?? '—'}</td>
                     <td>{r.peak_week ?? '—'}</td><td className="text-right">{fmtNum(r.chronic_cells)}</td><td className="text-right">{fmtNum(r.median_critical_days)}</td>
-                    <td>{r.tracker ? <Badge color={TRACKER_COLOR[r.tracker.band] ?? '#64748b'}>{r.tracker.band}</Badge> : '—'}</td>
+                    <td>{r.tracker ? <Badge color={TRACKER_COLOR[r.tracker.band] ?? '#71717a'}>{r.tracker.band}</Badge> : '—'}</td>
                   </> : <td colSpan={7} className="text-muted">{r.reason}</td>}
                 </tr>)}</tbody>
               </table>
@@ -469,7 +471,7 @@ function MethodDrawer({ qs, series, asOf, aoi }: { qs: string; series: InsSeries
   const cli = `python -m pyrosync.cli insights --aoi ${aoi} --series ${series} --as-of ${asOf} --out insights_${series}_${asOf}`
   const [copied, setCopied] = useState(false)
   return (
-    <Panel title="Method & data" actions={<button className="btn" onClick={() => ins.set({ methodOpen: false })} aria-label="Close method and data"><Icon name="x" /></button>}>
+    <Panel title="Method and data" actions={<button className="btn" onClick={() => ins.set({ methodOpen: false })} aria-label="Close method and data"><Icon name="x" /></button>}>
       <div className="grid gap-4 text-[12px] md:grid-cols-2">
         <div className="space-y-2">
           <p><b>{d?.disclaimer ?? 'Historical description of satellite fire detections. Not a forecast.'}</b></p>

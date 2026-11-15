@@ -67,7 +67,7 @@ export default function HarmonizationPage({ regions }: { regions: Region[] }) {
   const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   return (
-    <div className="mx-auto flex max-w-[1500px] flex-col gap-3 p-3" data-testid="harmonization-page">
+    <div className="flex flex-col gap-4 p-4 lg:p-6" data-testid="harmonization-page">
       <section className="panel p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>

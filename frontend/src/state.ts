@@ -84,7 +84,7 @@ function readHash(): Partial<AppState> {
 export const useApp = create<AppState>((set, get) => ({
   page: 'explore',
   theme: (() => { try { return (localStorage.getItem('pyrosync-theme') as 'light' | 'dark') || 'light' } catch { return 'light' } })(),
-  navOpen: typeof window === 'undefined' || window.innerWidth >= 768,
+  navOpen: typeof window === 'undefined' || window.innerWidth >= 1024,
   detailsOpen: true,
   aoi: 'region:kalimantan',
   start: '2023-01-01',

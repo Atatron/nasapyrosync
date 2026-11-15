@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { clearCache, getJSON, postJSON, useApi, type Imagery } from '../api'
-import { useInventory } from '../hooks'
-import { applyViewConfig, useApp } from '../state'
-import { fmtNum } from '../util'
-import { ErrorNote, Loading, Panel, Seg, Warnings } from '../components/ui'
+import { useFilterQS, useInventory } from '../hooks'
+import { applyViewConfig, frameWindow, useApp } from '../state'
+import { SERIES_COLOR, fmtNum } from '../util'
+import { ErrorNote, Icon, Loading, Panel, Seg, Warnings } from '../components/ui'
 
 type Tab = 'import' | 'history' | 'firms' | 'exports' | 'methods'
 
@@ -27,18 +27,27 @@ export default function DataMethods() {
   const ro = !!health.data?.readonly
   const [tab, setTab] = useState<Tab>(ro ? 'methods' : 'import')
   return (
-    <div className="flex flex-col gap-3 p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-2 text-lg font-semibold">Data &amp; Methods</h1>
-        <Seg<Tab> label="Section" value={tab} onChange={setTab} options={[
+    <div className="flex flex-col gap-4 p-4 lg:p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="mr-1 text-base font-semibold">Methods and Data Inventory</h1>
+        <Seg<Tab> pills label="Section" value={tab} onChange={setTab} options={[
           { value: 'import', label: 'Import data' }, { value: 'history', label: 'Import history' }, { value: 'firms', label: 'NASA FIRMS refresh' },
-          { value: 'exports', label: 'Exports & view config' }, { value: 'methods', label: 'Methodology' }]} />
+          { value: 'exports', label: 'Exports and view config' }, { value: 'methods', label: 'Methodology' }]} />
       </div>
       {tab === 'import' && (ro ? <ReadonlyNotice what="Import FIRMS CSV or ZIP" /> : <ImportTab />)}
       {tab === 'history' && <HistoryTab />}
       {tab === 'firms' && (ro ? <ReadonlyNotice what="FIRMS API refresh" /> : <FirmsTab />)}
       {tab === 'exports' && <ExportsTab />}
-      {tab === 'methods' && <Methods />}
+      {tab === 'methods' && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <div className="flex min-w-0 flex-col gap-4 lg:col-span-5">
+            <Inventory />
+            <LocalSync />
+            <QuickExports />
+          </div>
+          <div className="min-w-0 lg:col-span-7"><Methods /></div>
+        </div>
+      )}
     </div>
   )
 }
@@ -141,6 +150,71 @@ function ImportTab() {
       </Panel>
       <CurrentData />
     </div>
+  )
+}
+
+/** Dataset inventory: real rows and date span per sensor, from /api/inventory. */
+function Inventory() {
+  const inv = useInventory()
+  if (!inv.data) return <Panel title="Currently loaded dataset"><Loading /></Panel>
+  const d = inv.data
+  const by = new Map<string, { label: string; rows: number; first: string; last: string; files: number }>()
+  for (const p of d.products) {
+    const x = by.get(p.series) ?? { label: p.series_label, rows: 0, first: p.first_date, last: p.last_date, files: 0 }
+    x.rows += p.rows; x.files += 1
+    if (p.first_date < x.first) x.first = p.first_date
+    if (p.last_date > x.last) x.last = p.last_date
+    by.set(p.series, x)
+  }
+  const [a, b] = d.date_range ?? ['', '']
+  const span = a && b ? (Date.parse(b) - Date.parse(a)) || 1 : 1
+  return (
+    <Panel title="Currently loaded dataset" info="Totals of the imported FIRMS archive, before any filter. Bars show each sensor's first and last day within the whole record.">
+      <div className="rounded-lg border border-line p-3" data-testid="current-data">
+        <div className="font-mono text-xl font-semibold tabular-nums"><span data-testid="obs-total">{fmtNum(d.observations_total)}</span> <span className="font-sans text-sm font-normal text-muted">observations</span></div>
+        <div className="mt-0.5 text-xs text-muted">Date range {d.date_range ? `${d.date_range[0]} → ${d.date_range[1]}` : '—'} · revision <b data-testid="revision">{d.dataset_revision}</b> · {d.processing_version} · {fmtNum(d.observations_superseded)} superseded NRT rows kept for audit</div>
+      </div>
+      <ul className="mt-3 space-y-2" aria-label="Rows by sensor">
+        {Array.from(by.entries()).map(([k, x]) => (
+          <li key={k} className="rounded-lg border border-line p-2.5">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="flex min-w-0 items-center gap-1.5 font-medium"><span className="h-2 w-2 shrink-0 rounded-full" style={{ background: SERIES_COLOR[k] }} /><span className="truncate">{x.label}</span></span>
+              <span className="font-mono tabular-nums">{fmtNum(x.rows)} rows</span>
+            </div>
+            <div className="mt-1.5 h-1.5 rounded-full bg-soft" aria-hidden>
+              <div className="h-1.5 rounded-full" style={{ background: SERIES_COLOR[k], marginLeft: `${((Date.parse(x.first) - Date.parse(a)) / span) * 100}%`, width: `${Math.max(1, ((Date.parse(x.last) - Date.parse(x.first)) / span) * 100)}%` }} />
+            </div>
+            <div className="mt-1 font-mono text-[10px] tabular-nums text-muted">{x.first} → {x.last}</div>
+          </li>
+        ))}
+      </ul>
+    </Panel>
+  )
+}
+
+function LocalSync() {
+  return (
+    <Panel title="Refresh data locally">
+      <p className="text-xs text-muted">The online demo is read-only. To import new FIRMS downloads or refresh from the FIRMS API, run PyroSync on your computer with your own FIRMS key.</p>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-zinc-950 px-3 py-2 font-mono text-[11px] text-zinc-100 dark:bg-zinc-950">
+        <span>Windows: scripts/start.bat</span><span className="text-zinc-500">|</span><span>macOS / Linux: ./scripts/start.sh</span>
+      </div>
+    </Panel>
+  )
+}
+
+function QuickExports() {
+  const s = useApp()
+  const qs = useFilterQS()
+  const [w0, w1] = frameWindow(s.date, s.frameMode)
+  return (
+    <Panel title="Export" info="The same files as the Export menu in the top bar, for the current area, dates and filters. Each comes with a manifest.">
+      <div className="flex flex-wrap gap-2">
+        <a className="btn btn-primary" href={`/api/export/daily.zip?${qs}&series=${s.series}&metric=${s.metric}`} download><Icon name="download" />Export CSV</a>
+        <a className="btn" href={`/api/export/grid.geojson?${qs}&date=${s.date}&mode=${s.frameMode}`} download><Icon name="download" />Export GeoJSON</a>
+      </div>
+      <p className="mt-2 text-[11px] text-muted">CSV: daily summary {s.start} → {s.end}. GeoJSON: {s.grid}° cells for the map window {w0} → {w1}.</p>
+    </Panel>
   )
 }
 

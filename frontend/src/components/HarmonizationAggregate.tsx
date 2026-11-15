@@ -57,7 +57,7 @@ function AggDetails({ r, ev }: { r: AggReport; ev: AggEval }) {
     series: [{
       name: 'Year predicted from earlier years only', type: 'bar', barMaxWidth: 22,
       data: yrs.map((y) => ({ value: y.ratio === null ? null : Number(y.ratio.toFixed(3)), itemStyle: { color: y.within_level ? '#7c3aed' : '#f59e0b' } })),
-      markLine: { silent: true, symbol: 'none', lineStyle: { color: '#64748b', type: 'dashed' }, label: { fontSize: 9, formatter: '{c}×' },
+      markLine: { silent: true, symbol: 'none', lineStyle: { color: '#71717a', type: 'dashed' }, label: { fontSize: 9, formatter: '{c}×' },
         data: [{ yAxis: 0.8 }, { yAxis: 1 }, { yAxis: 1.25 }] },
     }],
   }), [yrs])

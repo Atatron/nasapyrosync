@@ -40,7 +40,7 @@ export function Info({ children, label = 'More information' }: { children: React
         className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-line text-[10px] font-bold text-muted hover:text-ink"
         onClick={() => setOpen((o) => !o)} onBlur={() => setOpen(false)} onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}>i</button>
       {open && (
-        <span id={id} role="tooltip" className="absolute left-1/2 top-5 z-[1200] w-72 -translate-x-1/2 rounded-lg border border-line bg-panel p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-ink shadow-lg">
+        <span id={id} role="tooltip" className="absolute left-1/2 top-5 z-[1200] w-72 -tranzinc-x-1/2 rounded-lg border border-line bg-panel p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-ink shadow-lg">
           {children}
         </span>
       )}
@@ -62,7 +62,17 @@ export function Panel({ title, info, actions, children, className, id }: { title
   )
 }
 
-export function Seg<T extends string | number>({ value, options, onChange, label }: { value: T; options: { value: T; label: string; title?: string }[]; onChange: (v: T) => void; label: string }) {
+/** Two or three options: a segmented pill. Four or more: a compact dropdown (same values, same onChange). */
+export function Seg<T extends string | number>({ value, options, onChange, label, pills }: { value: T; options: { value: T; label: string; title?: string }[]; onChange: (v: T) => void; label: string; pills?: boolean }) {
+  if (options.length >= 4 && !pills) {
+    const i = options.findIndex((o) => o.value === value)
+    return (
+      <select className="field" aria-label={label} value={i < 0 ? '' : String(i)} title={options[i]?.title} onChange={(e) => { const o = options[Number(e.target.value)]; if (o) onChange(o.value) }}>
+        {i < 0 && <option value="" disabled>{label}</option>}
+        {options.map((o, k) => <option key={String(o.value)} value={String(k)} title={o.title}>{o.label}</option>)}
+      </select>
+    )
+  }
   return (
     <div className="seg" role="group" aria-label={label}>
       {options.map((o) => (
@@ -121,14 +131,22 @@ export function Icon({ name, className = 'h-4 w-4' }: { name: string; className?
     flag: <path d="M5 21V4m0 0h11l-2 4 2 4H5" />,
     x: <path d="M6 6l12 12M18 6 6 18" />,
     upload: <path d="M12 20V9m0 0-4 4m4-4 4 4M5 4h14" />,
+    // Lucide icons (ISC licence) for the five workspaces
+    compass: <><circle cx="12" cy="12" r="10" /><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36z" /></>,
+    calendar: <><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></>,
+    lineChart: <><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></>,
+    layers: <><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65M22 12.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" /></>,
+    database: <><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0" /></>,
+    sidebar: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" /></>,
+    pin: <><path d="M20 10c0 5-5.5 10.2-7.4 11.8a1 1 0 0 1-1.2 0C9.5 20.2 4 15 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></>,
     link: <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
   }
   return <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>{p[name]}</svg>
 }
 
 export function StatusSwatch({ status, color }: { status: string; color?: string }) {
-  if (status === 'unknown') return <span className="hatch inline-block h-3 w-3 rounded-sm border border-slate-400" aria-hidden />
-  if (status === 'zero_reported') return <span className="inline-block h-3 w-3 rounded-sm border border-slate-300 bg-slate-100 dark:bg-slate-800" aria-hidden />
-  if (status === 'outside_range' || status === 'sensor_unavailable') return <span className="inline-block h-3 w-3 rounded-sm border border-dashed border-slate-300" aria-hidden />
+  if (status === 'unknown') return <span className="hatch inline-block h-3 w-3 rounded-sm border border-zinc-400" aria-hidden />
+  if (status === 'zero_reported') return <span className="inline-block h-3 w-3 rounded-sm border border-zinc-300 bg-zinc-100 dark:bg-zinc-800" aria-hidden />
+  if (status === 'outside_range' || status === 'sensor_unavailable') return <span className="inline-block h-3 w-3 rounded-sm border border-dashed border-zinc-300" aria-hidden />
   return <span className="inline-block h-3 w-3 rounded-sm" style={{ background: color ?? '#f59e0b' }} aria-hidden />
 }

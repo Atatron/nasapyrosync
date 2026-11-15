@@ -165,10 +165,14 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
     upd()
     map.current = m
     getJSON<GeoJSON.Feature>('/api/regions/indonesia.geojson').then((f) => {
-      layers.current.context = L.geoJSON(f, { interactive: false, style: { color: '#64748b', weight: 0.8, fill: false, opacity: 0.7 } }).addTo(m)
+      layers.current.context = L.geoJSON(f, { interactive: false, style: { color: '#71717a', weight: 0.8, fill: false, opacity: 0.7 } }).addTo(m)
       layers.current.context.bringToBack()
     }).catch(() => {})
-    return () => { dead = true; m.off(); window.clearTimeout(t); m.stop(); m.remove(); map.current = null }
+    // keep the map filling its box when the sidebar or details panel opens or closes (never clipped)
+    let raf = 0
+    const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { if (!dead) m.invalidateSize({ pan: false }) }) })
+    ro.observe(el.current!)
+    return () => { dead = true; ro.disconnect(); cancelAnimationFrame(raf); m.off(); window.clearTimeout(t); m.stop(); m.remove(); map.current = null }
   }, [])
 
   // crosshair cursor in Analyze Location mode
@@ -228,8 +232,8 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
     if (s.aoi.startsWith('circle:')) {
       const [lat, lon, km] = s.aoi.slice(7).split(',').map(Number)
       const g = L.featureGroup([
-        L.circle([lat, lon], { radius: km * 1000, interactive: false, color: '#0f1d3a', weight: 2, dashArray: '6 4', fill: true, fillOpacity: 0.04 }),
-        L.circleMarker([lat, lon], { radius: 5, interactive: false, color: '#fff', weight: 2, fillColor: '#0f1d3a', fillOpacity: 1 }),
+        L.circle([lat, lon], { radius: km * 1000, interactive: false, color: '#09090b', weight: 2, dashArray: '6 4', fill: true, fillOpacity: 0.04 }),
+        L.circleMarker([lat, lon], { radius: 5, interactive: false, color: '#fff', weight: 2, fillColor: '#09090b', fillOpacity: 1 }),
       ]).addTo(m)
       layers.current.aoi = g
       setAoiErr(null)
@@ -239,7 +243,7 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
     let alive = true
     getJSON<GeoJSON.Feature>(url).then((f) => {
       if (!alive || !map.current) return
-      layers.current.aoi = L.geoJSON(f, { interactive: false, style: { color: '#0f1d3a', weight: 2, dashArray: '5 4', fill: false } }).addTo(map.current)
+      layers.current.aoi = L.geoJSON(f, { interactive: false, style: { color: '#09090b', weight: 2, dashArray: '5 4', fill: false } }).addTo(map.current)
       setAoiErr(null)
     }).catch((e) => setAoiErr(`AOI unavailable: ${(e as Error).message}`))
     return () => { alive = false }
@@ -278,8 +282,8 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
       const sel = s.selectedCell && s.selectedCell.ci === c.ci && s.selectedCell.cj === c.cj
       const v = cellValue(c)
       const r = v > 0
-        ? L.rectangle([[so, w], [so + g, w + g]], { renderer: renderer.current!, bubblingMouseEvents: false, weight: sel ? 2.5 : 0.4, color: sel ? '#0f1d3a' : '#7c2d12', fillColor: rampColor(v, maxN), fillOpacity: 0.85 })
-        : L.rectangle([[so, w], [so + g, w + g]], { renderer: renderer.current!, bubblingMouseEvents: false, weight: sel ? 2.5 : 0.8, color: sel ? '#0f1d3a' : '#64748b', fillColor: '#94a3b8', fillOpacity: 0.12 })
+        ? L.rectangle([[so, w], [so + g, w + g]], { renderer: renderer.current!, bubblingMouseEvents: false, weight: sel ? 2.5 : 0.4, color: sel ? '#09090b' : '#7c2d12', fillColor: rampColor(v, maxN), fillOpacity: 0.85 })
+        : L.rectangle([[so, w], [so + g, w + g]], { renderer: renderer.current!, bubblingMouseEvents: false, weight: sel ? 2.5 : 0.8, color: sel ? '#09090b' : '#71717a', fillColor: '#a1a1aa', fillOpacity: 0.12 })
       r.on('click', (e: L.LeafletMouseEvent) => {
         if (useApp.getState().analyzeMode === 'click') analyzeRef.current(e.latlng)
         else useApp.getState().set({ selectedCell: { ci: c.ci, cj: c.cj }, detailsOpen: true })
@@ -419,13 +423,13 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
       </div>
       {/* imagery status */}
       {s.imagery !== 'off' && imgState.key === imgKey && imgState.status === 'unavailable' && (
-        <div role="status" data-testid="imagery-unavailable" className="absolute left-1/2 top-24 z-[600] -translate-x-1/2 rounded-lg border border-line bg-panel px-3 py-2 text-center text-xs shadow-lg">
+        <div role="status" data-testid="imagery-unavailable" className="absolute left-1/2 top-24 z-[600] -tranzinc-x-1/2 rounded-lg border border-line bg-panel px-3 py-2 text-center text-xs shadow-lg">
           <b>Imagery unavailable for this date</b> ({imgDate}).<br />
           {(() => { const n = nearestImagery(imagery.data, s.imagery, s.date); return n && n !== imgDate ? <button className="mt-1 text-accent underline" onClick={() => s.set({ imageryOverride: n })}>Show nearest available date ({n}) — will be labeled as substituted</button> : null })()}
         </div>
       )}
       {s.imagery !== 'off' && imgState.key === imgKey && imgState.status === 'failed' && (
-        <div role="status" className="absolute left-1/2 top-24 z-[600] -translate-x-1/2 rounded-lg border border-line bg-panel px-3 py-2 text-xs shadow-lg"><b>Imagery tiles failed to load</b> for {imgDate} (offline or service error). Fire analysis still works.</div>
+        <div role="status" className="absolute left-1/2 top-24 z-[600] -tranzinc-x-1/2 rounded-lg border border-line bg-panel px-3 py-2 text-xs shadow-lg"><b>Imagery tiles failed to load</b> for {imgDate} (offline or service error). Fire analysis still works.</div>
       )}
       {(showLoading || (s.imagery !== 'off' && imgState.key === imgKey && imgState.status === 'loading')) && (
         <div role="status" data-testid="map-loading" className="absolute inset-x-0 bottom-3 z-[600] mx-auto flex w-fit items-center gap-2 rounded-full bg-panel px-3 py-1.5 text-xs shadow-lg">
@@ -439,7 +443,7 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
           <>
             <div className="mb-1 font-semibold">{cellSeries === 'UNION' ? `Selected sensors detecting each ${dGrid}° cell` : `${SERIES_SHORT[cellSeries] ?? cellSeries} detections per ${dGrid}° cell in window`}</div>
             <div className="flex items-center gap-1"><span>1</span>{RAMP.map((c) => <span key={c} className="inline-block h-2.5 w-4" style={{ background: c }} />)}<span>{fmtNum(maxN)}</span></div>
-            {!isUnion && cellSeries !== 'UNION' && <div className="mt-0.5 flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-slate-500 bg-slate-400/20" />Detected only by other selected sensor(s)</div>}
+            {!isUnion && cellSeries !== 'UNION' && <div className="mt-0.5 flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-zinc-500 bg-zinc-400/20" />Detected only by other selected sensor(s)</div>}
             <div className="mt-0.5 text-muted">Original observations. Cells are grid summaries, not burned-area polygons.</div>
             {current?.truncated && <div className="text-amber-700">Showing {current.cells.length} of {current.cells_total} cells (truncated)</div>}
           </>

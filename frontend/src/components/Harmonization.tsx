@@ -137,7 +137,7 @@ export function Stage3({ r, unit }: { r: Harmonization; unit: string }) {
         { name: 'Training units', type: 'scatter', symbolSize: 4, itemStyle: { color: SERIES_COLOR.VIIRS_SNPP, opacity: 0.35 }, data: tr },
         { name: 'Held-out units', type: 'scatter', symbolSize: 4, itemStyle: { color: '#ea580c', opacity: 0.45 }, data: te },
         { name: 'Fitted α + β ln(1+V)', type: 'line', showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: SERIES_COLOR.MODIS }, data: curve },
-        { name: 'M = V (no adjustment)', type: 'line', showSymbol: false, lineStyle: { width: 1, type: 'dashed' }, itemStyle: { color: '#94a3b8' }, data: [[0, 0], [vmax, vmax]] },
+        { name: 'M = V (no adjustment)', type: 'line', showSymbol: false, lineStyle: { width: 1, type: 'dashed' }, itemStyle: { color: '#a1a1aa' }, data: [[0, 0], [vmax, vmax]] },
       ],
     }
   }, [s3])
@@ -150,7 +150,7 @@ export function Stage3({ r, unit }: { r: Harmonization; unit: string }) {
       series: [
         { name: 'MODIS (observed)', type: 'line', showSymbol: false, itemStyle: { color: SERIES_COLOR.MODIS }, data: d.map((x) => x.M) },
         { name: 'Calibrated from VIIRS', type: 'line', showSymbol: false, itemStyle: { color: '#ea580c' }, data: d.map((x) => +x.M_hat.toFixed(3)) },
-        { name: 'VIIRS unadjusted', type: 'line', showSymbol: false, lineStyle: { type: 'dashed', width: 1 }, itemStyle: { color: '#94a3b8' }, data: d.map((x) => x.V) },
+        { name: 'VIIRS unadjusted', type: 'line', showSymbol: false, lineStyle: { type: 'dashed', width: 1 }, itemStyle: { color: '#a1a1aa' }, data: d.map((x) => x.V) },
       ],
     }
   }, [s3])

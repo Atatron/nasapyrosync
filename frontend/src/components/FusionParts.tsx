@@ -102,7 +102,7 @@ export function FusionPanel() {
     yAxis: { type: 'value', min: 0, max: 2, axisLabel: { fontSize: 10 } },
     series: [{ type: 'bar', data: yrs.map((y) => ({ value: y.ratio === null ? null : Number(y.ratio.toFixed(3)), itemStyle: { color: y.within_level ? '#059669' : '#d97706' } })),
       markArea: { silent: true, itemStyle: { color: 'rgba(16,185,129,0.08)' }, data: [[{ yAxis: 0.8 }, { yAxis: 1.25 }]] },
-      markLine: { silent: true, symbol: 'none', lineStyle: { type: 'dashed', color: '#64748b' }, data: [{ yAxis: 1 }] } }],
+      markLine: { silent: true, symbol: 'none', lineStyle: { type: 'dashed', color: '#71717a' }, data: [{ yAxis: 1 }] } }],
   }
   return (
     <div className="space-y-3 text-xs" data-testid="fusion-panel">

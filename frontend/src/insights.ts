@@ -178,14 +178,14 @@ export const BAND_COLOR: Record<string, string> = {
   exceptional: '#b91c1c',
   'well above normal': '#ea580c',
   'above normal': '#f59e0b',
-  normal: '#cbd5e1',
+  normal: '#d4d4d8',
   'below normal': '#3b82f6',
 }
 export const BAND_ORDER = ['exceptional', 'well above normal', 'above normal', 'normal', 'below normal']
 export const TRACKER_COLOR: Record<string, string> = {
   'among the highest on record': '#b91c1c',
   'above the usual range': '#ea580c',
-  'within the usual range': '#64748b',
+  'within the usual range': '#71717a',
   'below the usual range': '#3b82f6',
   'among the lowest on record': '#1d4ed8',
 }

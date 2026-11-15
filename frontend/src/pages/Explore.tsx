@@ -10,9 +10,9 @@ import { ErrorNote, Info, Panel, StatusSwatch, Warnings } from '../components/ui
 
 function Card({ label, children, info, testid }: { label: string; children: React.ReactNode; info?: React.ReactNode; testid?: string }) {
   return (
-    <div className="panel min-w-0 px-3 py-2.5" data-testid={testid}>
+    <div className="panel min-w-0 px-3.5 py-3" data-testid={testid}>
       <div className="label">{label}{info && <Info>{info}</Info>}</div>
-      <div className="mt-1 text-sm">{children}</div>
+      <div className="num mt-1.5 text-sm">{children}</div>
     </div>
   )
 }
@@ -34,7 +34,7 @@ function Summary({ frame, daily, regions, elevatedCount }: { frame: Frame | null
     : s.aoi.startsWith('circle:') ? `Circle, radius ${s.aoi.split(',')[2]} km` : 'Custom AOI'
   const sers = selectedSeries(s.platforms)
   return (
-    <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-6" data-testid="summary-cards">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" data-testid="summary-cards">
       <Card label="Selected AOI" testid="card-aoi">
         <div className="truncate font-semibold" title={aoiName}>{aoiName}</div>
         <div className="text-[11px] text-muted">{s.aoi === 'none' ? 'Download extent is broader than Indonesia' : s.aoi.startsWith('circle:') ? 'Click-to-Analyze: radius follows the map zoom' : 'Exact point-in-polygon filter · fixed when zooming'}</div>
@@ -56,7 +56,7 @@ function Summary({ frame, daily, regions, elevatedCount }: { frame: Frame | null
         {daily ? Object.entries(windowStatus(daily, s.series, w0, w1)).map(([k, v]) => <div key={k} className="flex items-center gap-1.5 text-xs"><StatusSwatch status={k} color={SERIES_COLOR[s.series]} /><span className="truncate">{STATUS_LABEL[k]}</span><b className="ml-auto num">{v}d</b></div>) : <span className="text-xs text-muted">Loading…</span>}
       </Card>
       <Card label="Elevated periods" testid="card-elevated" info="Number of periods meeting the current elevated-activity rule in the analysis range (see details panel). Descriptive; not a warning.">
-        <div className="text-lg font-semibold num">{elevatedCount === null ? '—' : elevatedCount}</div>
+        <div className="font-mono text-lg font-semibold tabular-nums">{elevatedCount === null ? '—' : elevatedCount}</div>
         <div className="text-[11px] text-muted">{SERIES_SHORT[s.series]}, {s.start.slice(0, 4)}–{s.end.slice(0, 4)}</div>
       </Card>
     </div>
@@ -71,7 +71,7 @@ function Details({ frame, cellFrame, daily }: { frame: Frame | null; cellFrame: 
   const cell = cf && s.selectedCell ? cf.cells.find((c) => c.ci === s.selectedCell!.ci && c.cj === s.selectedCell!.cj) : null
   const i = daily ? daily.dates.indexOf(s.date) : -1
   return (
-    <aside aria-label="Details" className="flex w-full shrink-0 flex-col gap-3 overflow-auto lg:w-[340px]">
+    <aside aria-label="Details" className="flex min-w-0 flex-col gap-4 lg:col-span-4">
       <Panel title={`Selected day · ${s.date}`} info="Values for the single selected UTC day across all selected sensors (independent of the map window length).">
         {daily && i >= 0 ? (
           <table className="data" data-testid="day-table"><thead><tr><th>Sensor</th><th>Det.</th><th>Cells</th><th>Max FRP</th><th>Status</th></tr></thead>
@@ -93,7 +93,7 @@ function Details({ frame, cellFrame, daily }: { frame: Frame | null; cellFrame: 
         </Panel>
       )}
       <Panel title="Elevated observed activity" info="Explainable rule applied to the primary sensor and metric over the analysis range. Click a period to show it on the map and timeline.">
-        <ElevatedList q={el} compact />
+        <div className="max-h-[320px] overflow-y-auto" data-testid="elevated-box"><ElevatedList q={el} compact /></div>
       </Panel>
       {cur && <Panel title="Filters applied"><ul className="space-y-0.5 text-[11px] text-muted">
         <li>{String(cur.filter_disclosure.modis_quality)}; {String(cur.filter_disclosure.viirs_quality)}</li>
@@ -123,14 +123,14 @@ export default function Explore({ regions }: { regions: Region[] }) {
   }
   const tooLong = diffDays(s.start, s.end) < 0
   return (
-    <div className="flex flex-col gap-3 p-3">
+    <div className="flex flex-col gap-4 p-4 lg:p-6">
       <Summary frame={frame.data} daily={daily.data} regions={regions} elevatedCount={el.data ? (el.data.unavailable ? null : el.data.periods.length) : null} />
       {upErr && <ErrorNote msg={`GeoJSON AOI rejected: ${upErr}`} />}
       {tooLong && <ErrorNote msg="Analysis range end is before its start." />}
       <input ref={fileRef} type="file" accept=".geojson,.json,application/geo+json,application/json" className="hidden" aria-label="Upload GeoJSON AOI"
         data-testid="geojson-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = '' }} />
-      <div className={cls('flex flex-col gap-3 lg:flex-row')}>
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className={cls('flex min-w-0 flex-col gap-4', s.detailsOpen ? 'lg:col-span-8' : 'lg:col-span-12')}>
           <div className="h-[56vh] min-h-[360px]"><MapView frame={mapFrame} onUploadRequest={() => fileRef.current?.click()} /></div>
           <Timeline daily={daily.data} elevated={el.data} />
           {daily.error && <ErrorNote msg={daily.error} />}

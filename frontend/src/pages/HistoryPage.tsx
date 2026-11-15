@@ -58,7 +58,7 @@ export default function HistoryPage() {
       if (!fm.data) return {}
       const d = fm.data
       const years = Array.from(new Set(d.dates.map((x) => Number(x.slice(0, 4)))))
-      const palette = ['#0f1d3a', '#ea580c', '#0f766e', '#7c3aed', '#2563eb', '#a16207']
+      const palette = ['#09090b', '#ea580c', '#0f766e', '#7c3aed', '#2563eb', '#a16207']
       return {
         grid: { left: 56, right: 12, top: 30, bottom: 28 }, legend: { top: 0, type: 'scroll' }, tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: MON3 }, yAxis: { type: 'value', name: 'MODIS-Aqua-eq. detections', nameTextStyle: { fontSize: 10 } },
@@ -68,7 +68,7 @@ export default function HistoryPage() {
     }
     if (!h.data) return {}
     const years = Array.from(new Set(h.data.months.map((m) => m.year)))
-    const palette = ['#0f1d3a', '#ea580c', '#0f766e', '#7c3aed', '#2563eb', '#a16207']
+    const palette = ['#09090b', '#ea580c', '#0f766e', '#7c3aed', '#2563eb', '#a16207']
     return {
       grid: { left: 56, right: 12, top: 30, bottom: 28 }, legend: { top: 0 }, tooltip: { trigger: 'axis' },
       xAxis: { type: 'category', data: MON3 }, yAxis: { type: 'value', name: MEASURE_LABEL[measure], nameTextStyle: { fontSize: 10 } },
@@ -78,7 +78,7 @@ export default function HistoryPage() {
   }, [h.data, measure, s.series, fused, fm.data])
 
   return (
-    <div className="flex flex-col gap-3 p-3">
+    <div className="flex flex-col gap-4 p-4 lg:p-6">
       <FusionBanner />
       {h.error && <ErrorNote msg={h.error} />}
       {fused && <Panel title="Harmonized multi-sensor record (whole archive)" info="All eligible satellites on the MODIS Aqua scale, averaged per day; the per-sensor charts below keep the original observations.">
@@ -92,13 +92,13 @@ export default function HistoryPage() {
       <Panel title="Experimental MODIS-equivalent comparison (1.4, off by default)" info="Optional. Converts VIIRS daily totals to a MODIS (Aqua) scale with the day-level ratio c = ΣMODIS / ΣVIIRS fitted on earlier days, for the current area, period and type filters. The line is drawn only when that exact setting passes the project's aggregate gate (chronological hold-out plus year-by-year stability); otherwise only the original totals appear. Not an official NASA product, and the bars above are never replaced.">
         <ModisEquivalentComparison qs={qs} available={inv.data?.available_series ?? []} preferred={s.series} testid="hist-meq" />
       </Panel>
-      <div className="grid gap-3 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <Panel title={`Seasonal profile · ${SERIES_SHORT[s.series]}`} info="Month-of-year profile for each imported year (primary sensor). Two years cannot establish a seasonal shift or trend.">
           {!h.data ? <Loading /> : <EChart ariaLabel="Seasonal profile by year" option={seasonal} height={240} onClick={(p) => { const y = (seasonal as { series: { name: string }[] }).series.find((x) => x.name === p.seriesName)?.name; if (y) peak(`${y}-${String(p.dataIndex + 1).padStart(2, '0')}`) }} />}
         </Panel>
         <Panel title="Annual summary" info="Per-year totals within the analysis range. Partial years are labeled; compare matched dates in the year comparison below.">
           {!h.data ? <Loading /> : (
-            <div className="overflow-x-auto"><table className="data"><thead><tr><th>Year</th><th>Sensor</th><th>Detections</th><th>Σ daily cells</th><th>Distinct cells</th><th>Days w/ det.</th><th>Unknown days</th></tr></thead>
+            <div className="scroll-box"><table className="data"><thead><tr><th>Year</th><th>Sensor</th><th>Detections</th><th>Σ daily cells</th><th>Distinct cells</th><th>Days w/ det.</th><th>Unknown days</th></tr></thead>
               <tbody>{h.data.years.flatMap((y) => Object.entries(y.series).map(([k, v]) => (
                 <tr key={`${y.year}${k}`}><td>{y.year}{y.days_in_range < y.days_in_year && <span className="chip ml-1 bg-amber-100 text-amber-900">partial {y.days_in_range}/{y.days_in_year}d</span>}</td>
                   <td>{SERIES_SHORT[k]}</td><td className="num">{k === 'UNION' ? '—' : fmtNum(v.detections)}</td><td className="num">{fmtNum(v.sum_daily_cells)}</td><td className="num">{fmtNum(v.distinct_cells)}</td><td className="num">{v.days_detections}</td><td className="num">{v.days_unknown}</td></tr>)))}</tbody></table></div>
@@ -106,12 +106,12 @@ export default function HistoryPage() {
         </Panel>
       </div>
       <YearCompare />
-      <div className="grid gap-3 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <BaselinePanel />
         <RankingsPanel />
       </div>
       <Panel title="Elevated observed activity" info="Explainable rule; every period lists the exact reason it qualified. Click a period to show it on the map and timeline." actions={<ElevatedSettings />}>
-        <ElevatedList q={el} />
+        <div className="max-h-[360px] overflow-y-auto"><ElevatedList q={el} /></div>
       </Panel>
     </div>
   )
@@ -129,7 +129,7 @@ function YearCompare() {
     grid: { left: 56, right: 12, top: 30, bottom: 28 }, legend: { top: 0 }, tooltip: { trigger: 'axis' },
     xAxis: { type: 'category', data: MON3 }, yAxis: { type: 'value', name: METRIC_INFO[s.metric].unit.replace('/day', ' (matched days)'), nameTextStyle: { fontSize: 10 } },
     series: [{ name: `${q.data.year}`, type: 'bar', itemStyle: { color: SERIES_COLOR[s.series] }, data: q.data.months.map((m) => m.value) },
-      { name: `${q.data.reference_year} (reference)`, type: 'bar', itemStyle: { color: '#94a3b8' }, data: q.data.months.map((m) => m.ref_value) }],
+      { name: `${q.data.reference_year} (reference)`, type: 'bar', itemStyle: { color: '#a1a1aa' }, data: q.data.months.map((m) => m.ref_value) }],
   } : {}, [q.data, s.metric, s.series])
   if (years.length < 2) return <Panel title="Year comparison"><Empty title="Only one year imported">Import another year to compare.</Empty></Panel>
   return (

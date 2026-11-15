@@ -42,7 +42,7 @@ export default function Timeline({ daily, elevated, compact = false }: { daily: 
       const st = ser.status[i]
       const known = st === 'detections' || st === 'zero_reported'
       const v = (ser as unknown as Record<string, (number | null)[]>)[metric]?.[i] ?? 0
-      return { value: known ? v ?? 0 : 0, itemStyle: { color: known ? SERIES_COLOR[s.series] : 'rgba(148,163,184,0.5)' } }
+      return { value: known ? v ?? 0 : 0, itemStyle: { color: known ? SERIES_COLOR[s.series] : 'rgba(161,161,170,0.5)' } }
     })
     const areas: unknown[] = []
     areas.push([{ xAxis: w0, itemStyle: { color: 'rgba(15,29,58,0.10)' } }, { xAxis: w1 }])
@@ -58,10 +58,10 @@ export default function Timeline({ daily, elevated, compact = false }: { daily: 
           return `<b>${d} (UTC day)</b><br/>${METRIC_INFO[metric].label}<br/>${lines.join('<br/>')}`
         },
       },
-      xAxis: { type: 'category', data: daily.dates, axisLabel: { fontSize: 10, color: '#64748b', hideOverlap: true, formatter: (v: string) => (v.endsWith('-01') && ['01', '04', '07', '10'].includes(v.slice(5, 7))) ? v.slice(0, 7) : '', interval: 0 }, axisTick: { show: false } },
-      yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#64748b' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.2)' } } },
+      xAxis: { type: 'category', data: daily.dates, axisLabel: { fontSize: 10, color: '#71717a', hideOverlap: true, formatter: (v: string) => (v.endsWith('-01') && ['01', '04', '07', '10'].includes(v.slice(5, 7))) ? v.slice(0, 7) : '', interval: 0 }, axisTick: { show: false } },
+      yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#71717a' }, splitLine: { lineStyle: { color: 'rgba(161,161,170,0.2)' } } },
       series: [{ type: 'bar', data: vals, barCategoryGap: '10%', large: false, markArea: { silent: true, data: areas },
-        markLine: { silent: true, symbol: 'none', data: [{ xAxis: s.date }], lineStyle: { color: '#0f1d3a', width: 1.5 }, label: { show: false } } }],
+        markLine: { silent: true, symbol: 'none', data: [{ xAxis: s.date }], lineStyle: { color: '#09090b', width: 1.5 }, label: { show: false } } }],
     }
   }, [daily, ser, s.metric, s.series, s.date, w0, w1, elevated])
 

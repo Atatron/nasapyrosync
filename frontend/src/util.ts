@@ -49,7 +49,7 @@ export const SERIES_COLOR: Record<string, string> = {
   VIIRS_N20: '#d97706',
   VIIRS_N21: '#7c3aed',
   VIIRS_SNPP: '#2563eb',
-  UNION: '#334155',
+  UNION: '#3f3f46',
   FUSED: '#a21caf',
 }
 export const SERIES_SHORT: Record<string, string> = {

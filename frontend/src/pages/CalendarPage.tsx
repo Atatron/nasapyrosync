@@ -27,12 +27,12 @@ function useDayLookup(daily: Daily | null, series: string, metric: string) {
 
 function cellStyle(info: DayInfo, max: number, color: string): { className: string; style?: React.CSSProperties } {
   if (!info.inRange) return { className: 'border border-dashed border-line text-muted/60' }
-  if (info.status === 'unknown' || info.status === 'sensor_unavailable') return { className: 'hatch border border-slate-300 text-muted' }
+  if (info.status === 'unknown' || info.status === 'sensor_unavailable') return { className: 'hatch border border-zinc-300 text-muted' }
   if (info.status === 'outside_range') return { className: 'border border-dashed border-line text-muted/60' }
   if (!info.value) return { className: 'border border-line bg-soft text-muted' }
   const bg = rampColor(info.value, max)
   const dark = RAMP.indexOf(bg) >= 5
-  return { className: cls('border border-transparent', dark ? 'text-white' : 'text-slate-900'), style: { background: bg, boxShadow: `inset 0 -3px 0 ${color}22` } }
+  return { className: cls('border border-transparent', dark ? 'text-white' : 'text-zinc-900'), style: { background: bg, boxShadow: `inset 0 -3px 0 ${color}22` } }
 }
 
 export default function CalendarPage() {
@@ -42,6 +42,7 @@ export default function CalendarPage() {
   const look = useDayLookup(daily.data, s.series, s.metric)
   const [y, m] = s.date.split('-').map(Number)
   const [focus, setFocus] = useState<string>(s.date)
+  const [overview, setOverview] = useState<'year' | 'weeks'>('year')
   const gridRef = useRef<HTMLDivElement>(null)
   const flagged = useMemo(() => {
     const set = new Map<string, string>()
@@ -97,12 +98,12 @@ export default function CalendarPage() {
   const ser = daily.data?.series[s.series]
 
   return (
-    <div className="flex flex-col gap-3 p-3">
+    <div className="flex flex-col gap-4 p-4 lg:p-6">
       <FusionBanner />
       <Timeline daily={daily.data} elevated={el.data} compact />
       {daily.error && <ErrorNote msg={daily.error} />}
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <Panel title={`Burning-activity calendar · ${SERIES_SHORT[s.series]}`} id="cal-title"
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <Panel className="min-w-0 lg:col-span-8" title={`Burning-activity calendar · ${SERIES_SHORT[s.series]}`} id="cal-title"
           info={<>Each day is one UTC calendar day. Color = {METRIC_INFO[s.metric].label} ({METRIC_INFO[s.metric].unit}). Hatched = unknown coverage (not zero). Grey = zero detections reported inside an imported interval. Dashed = outside the analysis/imported range. Clicking a day selects it on the shared timeline and map.</>}
           actions={<>
             <button className="btn px-2" aria-label="Previous month" onClick={() => goMonth(0, -1)}><Icon name="prev" /></button>
@@ -145,7 +146,7 @@ export default function CalendarPage() {
             </>
           )}
         </Panel>
-        <Panel title="Day details" info="Updates as you hover or move keyboard focus; click/Enter selects the day for the map and timeline.">
+        <Panel className="min-w-0 lg:col-span-4" title="Day details" info="Updates as you hover or move keyboard focus; click/Enter selects the day for the map and timeline.">
           <div aria-live="polite" className="space-y-2 text-xs" data-testid="day-details">
             <div className="text-sm font-semibold">{fmtDate(sel.date)} <span className="text-muted">(UTC)</span></div>
             <div>{METRIC_INFO[s.metric].label}: <b className="num">{sel.value === null ? '—' : fmtNum(sel.value, 2)}</b> {METRIC_INFO[s.metric].unit}</div>
@@ -161,8 +162,11 @@ export default function CalendarPage() {
           </div>
         </Panel>
       </div>
-      <YearOverview look={look} max={rangeMax} year={y} flagged={flagged} />
-      <WeeklyOverview />
+      <Panel title={overview === 'year' ? `12-Month Year Overview · ${y}` : 'Multi-Year ISO-Week Matrix'}
+        info={overview === 'year' ? 'Twelve months on the stable color scale of the analysis range. Click a day to select it.' : 'Weekly values for every ISO year in the analysis range. Click a week to show a trailing 7-day map window ending that Sunday.'}
+        actions={<Seg label="Overview" value={overview} onChange={setOverview} options={[{ value: 'year', label: '12-Month Year Overview' }, { value: 'weeks', label: 'Multi-Year ISO-Week Matrix' }]} />}>
+        {overview === 'year' ? <YearOverview look={look} max={rangeMax} year={y} flagged={flagged} /> : <WeeklyOverview />}
+      </Panel>
       {s.series === 'FUSED' && <Panel title="Historical activity timeline · whole record (harmonized)" info="The harmonized series over the whole imported record (2000 → today where eligible sensors exist), with the observed MODIS Aqua reference. Monthly or yearly sums of known days.">
         <FusionHistory range="record" />
       </Panel>}
@@ -173,7 +177,7 @@ export default function CalendarPage() {
 function YearOverview({ look, max, year, flagged }: { look: Map<string, { v: number | null; st: string }>; max: number; year: number; flagged: Map<string, string> }) {
   const s = useApp()
   return (
-    <Panel title={`Year overview · ${year}`} info="Twelve months on the stable color scale of the analysis range. Click a day to select it.">
+    <div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         {MON3.map((mn, mi) => {
           const first = `${year}-${String(mi + 1).padStart(2, '0')}-01`
@@ -198,7 +202,7 @@ function YearOverview({ look, max, year, flagged }: { look: Map<string, { v: num
           )
         })}
       </div>
-    </Panel>
+    </div>
   )
 }
 
@@ -207,13 +211,14 @@ function WeeklyOverview() {
   const p = useSeriesParams()
   const q = useApi<Weeks>(`/api/weeks?${p}`)
   if (q.error) return <ErrorNote msg={q.error} />
-  if (!q.data) return <Panel title="Multi-year ISO-week overview"><Loading /></Panel>
+  if (!q.data) return <Loading />
   const weeks = q.data.weeks
   const years = Array.from(new Set(weeks.map((w) => w.iso_year))).sort()
   const max = Math.max(0, ...weeks.map((w) => w.value))
   const by = new Map(weeks.map((w) => [`${w.iso_year}-${w.iso_week}`, w]))
   return (
-    <Panel title="Multi-year ISO-week overview" info={<>{q.data.iso_note} Weekly value = {String((q.data.metric_definition as Record<string, string>).weekly_value)} Click a week to show a trailing 7-day map window ending that Sunday.</>}>
+    <div>
+      <p className="mb-2 text-[11px] text-muted">{q.data.iso_note} Weekly value = {String((q.data.metric_definition as Record<string, string>).weekly_value)}</p>
       <div className="overflow-x-auto">
         <table className="text-[10px]" aria-label="ISO week heatmap">
           <thead><tr><th className="pr-2 text-left text-muted">ISO year</th>{Array.from({ length: 53 }, (_, i) => <th key={i} className="w-4 font-normal text-muted">{(i + 1) % 4 === 1 ? i + 1 : ''}</th>)}</tr></thead>
@@ -232,7 +237,7 @@ function WeeklyOverview() {
                     return <td key={i} className="p-[1px]"><button aria-label={`${yy}-W${String(i + 1).padStart(2, '0')} (${w.start}): ${fmtNum(w.value, 1)}${w.partial ? ', partial week' : ''}`}
                       title={`${yy}-W${String(i + 1).padStart(2, '0')} from ${w.start}\n${fmtNum(w.value, 1)} ${METRIC_INFO[s.metric].unit.replace('/day', '')} (sum over ${w.days_in_range} day(s))${w.distinct_cells !== undefined ? `\nDistinct cells: ${w.distinct_cells}` : ''}${w.partial ? '\nPartial week (range boundary)' : ''}${!w.coverage_complete ? '\nIncludes unknown-coverage days' : ''}`}
                       onClick={() => { s.set({ frameMode: 7 }); s.setDate(end > s.end ? s.end : end) }}
-                      className={cls('block h-4 w-4 rounded-sm', w.partial && 'border border-slate-500', !w.coverage_complete && 'hatch', sel && 'ring-2 ring-ink')}
+                      className={cls('block h-4 w-4 rounded-sm', w.partial && 'border border-zinc-500', !w.coverage_complete && 'hatch', sel && 'ring-2 ring-ink')}
                       style={{ background: w.value > 0 ? rampColor(w.value, max) : undefined }} /></td>
                   })}
                 </tr>
@@ -242,6 +247,6 @@ function WeeklyOverview() {
         </table>
       </div>
       <p className="mt-2 text-[11px] text-muted">Outlined squares are partial ISO weeks at the range edges (e.g. 2023-01-01 belongs to 2022-W52 and 2024-12-30/31 to 2025-W01). Stable color domain: 0–{fmtNum(max, 1)}.</p>
-    </Panel>
+    </div>
   )
 }
