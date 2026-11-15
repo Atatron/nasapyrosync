@@ -144,10 +144,14 @@ def harmonization_zip(f: Filters, cfg) -> bytes:
                                          "row_count": len(res.get("units", [])),
                                          "columns_note": "units.csv lists every comparison unit used by the model; set = train/test (chronological). "
                                                          "M = MODIS-scale measurement, V = VIIRS measurement, M_hat = calibrated prediction."})
+    from . import aggregate as A  # 1.4: the day-level ratio report for the same AOI, filters and sensor pair
+    agg = A.report(f, cfg)
     return _zip({"manifest.json": json.dumps(man, indent=2, default=str),
                  "harmonization_report.json": json.dumps(body, indent=2, default=str),
                  "HARMONIZATION_REPORT.md": H.report_markdown(res),
-                 "units.csv": H.units_csv(res)})
+                 "units.csv": H.units_csv(res),
+                 "aggregate_report.json": json.dumps(agg, indent=2, default=str),
+                 "AGGREGATE_REPORT.md": A.report_markdown(agg, "Day-level (aggregate) calibration report")})
 
 
 # ------------------------------------------------------------------ AOI Insights exports (1.3)

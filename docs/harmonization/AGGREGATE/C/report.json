@@ -1,0 +1,837 @@
+{
+  "method_version": "pyrosync-aggregate-1.0",
+  "gate_version": "pyrosync-aggregate-gate-1.0",
+  "dataset_revision": 1,
+  "config": {
+    "modis_platforms": [
+      "Aqua"
+    ],
+    "viirs_series": "VIIRS_N20",
+    "unit_grid": 0.1,
+    "tolerance_min": 60,
+    "metric": "detections",
+    "unit_set": "matched",
+    "evidence_radius_deg": 5.0,
+    "test_fraction": 0.2,
+    "split_date": null
+  },
+  "effective_filters": {
+    "start": "2018-04-01",
+    "end": "2026-11-14",
+    "platforms": [
+      "Aqua",
+      "N20"
+    ],
+    "modis_min_conf": 30,
+    "viirs_conf": [
+      "nominal",
+      "high"
+    ],
+    "types": [
+      "0",
+      "unknown"
+    ],
+    "daynight": [
+      "D",
+      "N"
+    ],
+    "aoi": "none",
+    "grid": 0.1
+  },
+  "split": "2025-02-27",
+  "split_rule": "chronological hold-out: the last 20% of days with activity and known coverage of both sensors",
+  "equation": "M\u0302_d = c \u00b7 V_d,  c = \u03a3_train M_d / \u03a3_train V_d (training days with known coverage of both sensors)",
+  "modis_label": "MODIS Aqua",
+  "viirs_label": "VIIRS NOAA-20",
+  "estimate_label": {
+    "detections": "MODIS Aqua detections per day, estimated from VIIRS NOAA-20 (experimental)",
+    "cells": "MODIS Aqua occupied 0.1\u00b0 cells per day, estimated from VIIRS NOAA-20 (experimental)"
+  },
+  "valid_period": [
+    "2018-04-01",
+    "2026-11-14"
+  ],
+  "event_model_compared": true,
+  "quantities": {
+    "detections": {
+      "quantity": "detections",
+      "definition": "FIRMS detections per UTC day in the AOI, each sensor its own count (MODIS 1 km, VIIRS 375 m pixels).",
+      "split": "2025-02-27",
+      "train_days": 2507,
+      "held_out_days": 626,
+      "train_period": [
+        "2018-04-01",
+        "2025-02-26"
+      ],
+      "held_out_period": [
+        "2025-02-27",
+        "2026-11-14"
+      ],
+      "known_days": 3133,
+      "days": 3150,
+      "unknown_share": 0.0053968253968254,
+      "c": 0.13492836194047791,
+      "status": "ok",
+      "bootstrap": {
+        "n_boot": 500,
+        "seed": 20261115,
+        "blocks": 83,
+        "c_lo": 0.1285367817086139,
+        "c_hi": 0.14184820821598154,
+        "rule": "Month-block bootstrap: whole calendar months of training days resampled with replacement; 2.5th and 97.5th percentiles."
+      },
+      "held_out": {
+        "raw_viirs": {
+          "n": 626,
+          "mae": 1149.8578274760384,
+          "rmse": 2569.846666588565,
+          "mbe": 1149.8578274760384,
+          "ratio": 7.894147056288251,
+          "sum_pred": 824220.0,
+          "sum_obs": 104409.0
+        },
+        "constant_train_mean": {
+          "n": 626,
+          "mae": 162.10352291538962,
+          "rmse": 362.76843528926725,
+          "mbe": -95.14493921811258,
+          "ratio": 0.4295440819226456,
+          "sum_pred": 44848.268049461505,
+          "sum_obs": 104409.0,
+          "value": 71.64260071798962
+        },
+        "day_ratio": {
+          "n": 626,
+          "mae": 79.48101887885676,
+          "rmse": 202.42206956894034,
+          "mbe": 10.865262745336596,
+          "ratio": 1.0651443312222193,
+          "sum_pred": 111210.6544785807,
+          "sum_obs": 104409.0
+        },
+        "event_loglog_all_viirs": {
+          "n": 626,
+          "mae": 458.8756140033488,
+          "rmse": 847.9266869423487,
+          "mbe": 458.8756140033488,
+          "ratio": 3.751258362460098,
+          "sum_pred": 391665.13436609635,
+          "sum_obs": 104409.0
+        },
+        "event_loglog_model_domain": {
+          "n": 626,
+          "mae": 161.0951448553895,
+          "rmse": 383.19767826463556,
+          "mbe": -161.0937389368626,
+          "ratio": 0.03413804773078961,
+          "sum_pred": 3564.3194255240123,
+          "sum_obs": 104409.0
+        }
+      },
+      "training": {
+        "day_ratio": {
+          "n": 2507,
+          "mae": 26.285765153977344,
+          "rmse": 65.33176435377241,
+          "mbe": 3.627820908547779e-15,
+          "ratio": 1.0,
+          "sum_pred": 179608.0,
+          "sum_obs": 179608.0
+        },
+        "raw_viirs": {
+          "n": 2507,
+          "mae": 459.32588751495814,
+          "rmse": 983.1099458028577,
+          "mbe": 459.32508974870365,
+          "ratio": 7.4113402521045835,
+          "sum_pred": 1331136.0,
+          "sum_obs": 179608.0
+        }
+      },
+      "loglog_slope_diagnostic": {
+        "alpha": -2.0331759387926778,
+        "beta": 0.9741795793748598,
+        "note": "OLS of ln(1 + M_d) on ln(1 + V_d) over training days; diagnostic only, not used for prediction."
+      },
+      "activity": {
+        "threshold": 174.0,
+        "rule": "High-activity days: held-out days with MODIS total \u2265 the training 90th percentile.",
+        "high": {
+          "raw_viirs": {
+            "n": 133,
+            "mae": 4416.090225563909,
+            "rmse": 5508.534151318352,
+            "mbe": 4416.090225563909,
+            "ratio": 7.761526506648247,
+            "sum_pred": 674205.0,
+            "sum_obs": 86865.0
+          },
+          "constant_train_mean": {
+            "n": 133,
+            "mae": 581.47770003389,
+            "rmse": 780.2698976601025,
+            "mbe": -581.47770003389,
+            "ratio": 0.10969280948014298,
+            "sum_pred": 9528.46589549262,
+            "sum_obs": 86865.0
+          },
+          "day_ratio": {
+            "n": 133,
+            "mae": 304.2079496032017,
+            "rmse": 433.2644679445206,
+            "mbe": 30.8599718953377,
+            "ratio": 1.047250057699648,
+            "sum_pred": 90969.37626207992,
+            "sum_obs": 86865.0
+          },
+          "event_loglog_all_viirs": {
+            "n": 133,
+            "mae": 1530.9078889767486,
+            "rmse": 1776.3837271909492,
+            "mbe": 1530.9078889767486,
+            "ratio": 3.3439906663662873,
+            "sum_pred": 290475.74923390755,
+            "sum_obs": 86865.0
+          },
+          "event_loglog_model_domain": {
+            "n": 133,
+            "mae": 639.0834529163628,
+            "rmse": 825.940003590361,
+            "mbe": -639.0834529163628,
+            "ratio": 0.021491979072396666,
+            "sum_pred": 1866.9007621237365,
+            "sum_obs": 86865.0
+          }
+        },
+        "low": {
+          "raw_viirs": {
+            "n": 493,
+            "mae": 268.7038539553753,
+            "rmse": 446.82538757067914,
+            "mbe": 268.7038539553753,
+            "ratio": 8.550786593707251,
+            "sum_pred": 150015.0,
+            "sum_obs": 17544.0
+          },
+          "constant_train_mean": {
+            "n": 493,
+            "mae": 48.96606742500308,
+            "rmse": 53.459979328294445,
+            "mbe": 36.056393821437894,
+            "ratio": 2.0132126170752893,
+            "sum_pred": 35319.80215396888,
+            "sum_obs": 17544.0
+          },
+          "day_ratio": {
+            "n": 493,
+            "mae": 18.854889494804272,
+            "rmse": 37.238647295556014,
+            "mbe": 5.471152568967129,
+            "ratio": 1.1537436283915181,
+            "sum_pred": 20241.278216500792,
+            "sum_obs": 17544.0
+          },
+          "event_loglog_all_viirs": {
+            "n": 493,
+            "mae": 169.6660956028169,
+            "rmse": 248.29873364170146,
+            "mbe": 169.6660956028169,
+            "ratio": 5.767748810544274,
+            "sum_pred": 101189.38513218873,
+            "sum_obs": 17544.0
+          },
+          "event_loglog_model_domain": {
+            "n": 493,
+            "mae": 32.14495221419386,
+            "rmse": 49.184053162644574,
+            "mbe": -32.143167011358464,
+            "ratio": 0.0967520897970974,
+            "sum_pred": 1697.4186634002767,
+            "sum_obs": 17544.0
+          }
+        }
+      },
+      "monthly": {
+        "months": 20,
+        "min_known_days": 20,
+        "raw_viirs": {
+          "n": 20,
+          "mae": 34990.85,
+          "rmse": 73077.66774911471,
+          "mbe": 34990.85,
+          "ratio": 7.9217538376325365,
+          "sum_pred": 800921.0,
+          "sum_obs": 101104.0
+        },
+        "day_ratio": {
+          "n": 20,
+          "mae": 797.7003669046587,
+          "rmse": 2313.1268637561957,
+          "mbe": 348.14792868647544,
+          "ratio": 1.0688692690074526,
+          "sum_pred": 108066.9585737295,
+          "sum_obs": 101104.0
+        },
+        "share_within_level": 0.9
+      },
+      "rolling_origin": {
+        "years": [
+          {
+            "year": 2019,
+            "c": 0.14202173713257524,
+            "train_days": 275,
+            "test_days": 365,
+            "ratio": 1.1092692038933152,
+            "mae": 47.67189006217037,
+            "rmse": 106.83113041459482,
+            "mbe": 17.277107657783596,
+            "sum_modis": 57712.0,
+            "sum_estimate": 64018.144295091006,
+            "raw_ratio": 7.81055932908234,
+            "constant_mae": 148.65008219178083,
+            "within_level": true
+          },
+          {
+            "year": 2020,
+            "c": 0.13243073067013836,
+            "train_days": 640,
+            "test_days": 366,
+            "ratio": 1.208401287265081,
+            "mae": 21.065248946428614,
+            "rmse": 42.11260008328897,
+            "mbe": 7.118669107617605,
+            "sum_modis": 12502.0,
+            "sum_estimate": 15107.432893388042,
+            "raw_ratio": 9.12478003519437,
+            "constant_mae": 107.16410519125684,
+            "within_level": true
+          },
+          {
+            "year": 2021,
+            "c": 0.12905399800929,
+            "train_days": 1006,
+            "test_days": 362,
+            "ratio": 0.983271114724403,
+            "mae": 12.746724339133767,
+            "rmse": 30.56531952287561,
+            "mbe": -0.555010807071601,
+            "sum_modis": 12010.0,
+            "sum_estimate": 11809.08608784008,
+            "raw_ratio": 7.619067443796836,
+            "constant_mae": 73.76920795667984,
+            "within_level": true
+          },
+          {
+            "year": 2022,
+            "c": 0.1292867827072295,
+            "train_days": 1368,
+            "test_days": 361,
+            "ratio": 1.010638876474002,
+            "mae": 11.957788485742713,
+            "rmse": 19.92533981200999,
+            "mbe": 0.2772001997630537,
+            "sum_modis": 9406.0,
+            "sum_estimate": 9506.069272114462,
+            "raw_ratio": 7.817031681905167,
+            "constant_mae": 63.9648758322399,
+            "within_level": true
+          },
+          {
+            "year": 2023,
+            "c": 0.1291799414060832,
+            "train_days": 1729,
+            "test_days": 358,
+            "ratio": 0.8809963864663436,
+            "mae": 37.05204641857483,
+            "rmse": 88.45570604778358,
+            "mbe": -12.945133301232342,
+            "sum_modis": 38943.0,
+            "sum_estimate": 34308.64227815882,
+            "raw_ratio": 6.819916287907968,
+            "constant_mae": 103.80198293326787,
+            "within_level": true
+          },
+          {
+            "year": 2024,
+            "c": 0.13303482603618022,
+            "train_days": 2087,
+            "test_days": 363,
+            "ratio": 0.8710402475855168,
+            "mae": 25.376561547705773,
+            "rmse": 72.14546115784523,
+            "mbe": -6.87536663492423,
+            "sum_modis": 19353.0,
+            "sum_estimate": 16857.241911522506,
+            "raw_ratio": 6.54746034206583,
+            "constant_mae": 61.527717828192635,
+            "within_level": true
+          },
+          {
+            "year": 2025,
+            "c": 0.13491286513755185,
+            "train_days": 2450,
+            "test_days": 365,
+            "ratio": 0.9312221748336327,
+            "mae": 18.487091325090848,
+            "rmse": 44.76123814928826,
+            "mbe": -2.743387278348327,
+            "sum_modis": 14559.0,
+            "sum_estimate": 13557.663643402859,
+            "raw_ratio": 6.902397142660897,
+            "constant_mae": 61.868343304445084,
+            "within_level": true
+          },
+          {
+            "year": 2026,
+            "c": 0.1356133898695195,
+            "train_days": 2815,
+            "test_days": 318,
+            "ratio": 1.0918058504558954,
+            "mae": 136.14611497021437,
+            "rmse": 280.7392766851071,
+            "mbe": 26.031866464176375,
+            "sum_modis": 90170.0,
+            "sum_estimate": 98448.13353560808,
+            "raw_ratio": 8.050870577797493,
+            "constant_mae": 261.1060513645452,
+            "within_level": true
+          }
+        ],
+        "rule": "Year Y is predicted with c fitted on all known days before 1 January Y (expanding window); a year needs \u2265 180 training days and \u2265 30 test days."
+      },
+      "gate": {
+        "version": "pyrosync-aggregate-gate-1.0",
+        "status": "passes",
+        "checks": [
+          {
+            "id": "days",
+            "label": "Enough held-out days",
+            "passed": true,
+            "value": "626 days",
+            "rule": "At least 30 held-out days with a known coverage state for both sensors."
+          },
+          {
+            "id": "level",
+            "label": "Total level close to MODIS",
+            "passed": true,
+            "value": "\u03a3 estimate / \u03a3 MODIS = 1.07",
+            "rule": "Held-out total between 0.8\u00d7 and 1.25\u00d7 the MODIS total."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Daily totals better than raw VIIRS",
+            "passed": true,
+            "value": "MAE 79.5 vs 1149.9; RMSE 202.4 vs 2569.8",
+            "rule": "Held-out daily MAE and RMSE below raw VIIRS."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Daily totals better than a constant",
+            "passed": true,
+            "value": "MAE 79.5 vs 162.1; RMSE 202.4 vs 362.8",
+            "rule": "Held-out daily MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+          },
+          {
+            "id": "roll_years",
+            "label": "Enough rolling-origin years",
+            "passed": true,
+            "value": "8 years",
+            "rule": "At least 3 calendar years predicted from earlier years only."
+          },
+          {
+            "id": "roll_share",
+            "label": "Most years close to MODIS",
+            "passed": true,
+            "value": "8 of 8 years within 0.8\u20131.25\u00d7",
+            "rule": "At least 80% of rolling-origin years within 0.8\u20131.25\u00d7."
+          },
+          {
+            "id": "roll_hard",
+            "label": "No year far off",
+            "passed": true,
+            "value": "worst year 2020: 1.21\u00d7",
+            "rule": "No rolling-origin year outside 0.67\u20131.5\u00d7."
+          },
+          {
+            "id": "high_activity",
+            "label": "High-fire days close to MODIS",
+            "passed": true,
+            "value": "133 days, 1.05\u00d7",
+            "rule": "At least 10 held-out days at or above the training 90th percentile, total within 0.8\u20131.25\u00d7."
+          }
+        ],
+        "label": "Passes the project's aggregate validation rules (chronological hold-out and year-by-year stability)",
+        "note": "\"Passes\" means the documented PyroSync rules on held-out (later) data; it is not an official or NASA validation."
+      }
+    },
+    "cells": {
+      "quantity": "cells",
+      "definition": "Occupied comparison cells per UTC day: grid cells of the run's comparison grid with at least one detection of that sensor.",
+      "split": "2025-02-27",
+      "train_days": 2507,
+      "held_out_days": 626,
+      "train_period": [
+        "2018-04-01",
+        "2025-02-26"
+      ],
+      "held_out_period": [
+        "2025-02-27",
+        "2026-11-14"
+      ],
+      "known_days": 3133,
+      "days": 3150,
+      "unknown_share": 0.0053968253968254,
+      "c": 0.1969111969111969,
+      "status": "ok",
+      "bootstrap": {
+        "n_boot": 500,
+        "seed": 20261115,
+        "blocks": 83,
+        "c_lo": 0.18208488821040777,
+        "c_hi": 0.2106597036018422,
+        "rule": "Month-block bootstrap: whole calendar months of training days resampled with replacement; 2.5th and 97.5th percentiles."
+      },
+      "held_out": {
+        "raw_viirs": {
+          "n": 626,
+          "mae": 283.87539936102235,
+          "rmse": 480.9555451616347,
+          "mbe": 283.87539936102235,
+          "ratio": 4.317205204308301,
+          "sum_pred": 231277.0,
+          "sum_obs": 53571.0
+        },
+        "constant_train_mean": {
+          "n": 626,
+          "mae": 79.4493354709051,
+          "rmse": 157.94415350554456,
+          "mbe": -44.89059833743472,
+          "ratio": 0.4754341983678829,
+          "sum_pred": 25469.485440765857,
+          "sum_obs": 53571.0,
+          "value": 40.68607897885919
+        },
+        "day_ratio": {
+          "n": 626,
+          "mae": 32.89292807184181,
+          "rmse": 76.13029728521353,
+          "mbe": -12.827426696436282,
+          "ratio": 0.850106044091596,
+          "sum_pred": 45541.03088803089,
+          "sum_obs": 53571.0
+        }
+      },
+      "training": {
+        "day_ratio": {
+          "n": 2507,
+          "mae": 14.829988002704395,
+          "rmse": 30.739655150084438,
+          "mbe": -1.2697373179917227e-15,
+          "ratio": 1.0,
+          "sum_pred": 102000.0,
+          "sum_obs": 102000.0
+        },
+        "raw_viirs": {
+          "n": 2507,
+          "mae": 165.9369764658955,
+          "rmse": 257.61400983142977,
+          "mbe": 165.9353809333865,
+          "ratio": 5.078431372549019,
+          "sum_pred": 518000.0,
+          "sum_obs": 102000.0
+        }
+      },
+      "loglog_slope_diagnostic": {
+        "alpha": -2.111122848637157,
+        "beta": 1.0483259895529624,
+        "note": "OLS of ln(1 + M_d) on ln(1 + V_d) over training days; diagnostic only, not used for prediction."
+      },
+      "activity": {
+        "threshold": 103.40000000000009,
+        "rule": "High-activity days: held-out days with MODIS total \u2265 the training 90th percentile.",
+        "high": {
+          "raw_viirs": {
+            "n": 130,
+            "mae": 905.3076923076923,
+            "rmse": 1001.1414485476066,
+            "mbe": 905.3076923076923,
+            "ratio": 3.8133291898740227,
+            "sum_pred": 159523.0,
+            "sum_obs": 41833.0
+          },
+          "constant_train_mean": {
+            "n": 130,
+            "mae": 281.10622871344844,
+            "rmse": 341.777209587028,
+            "mbe": -281.10622871344844,
+            "ratio": 0.12643583456246732,
+            "sum_pred": 5289.190267251695,
+            "sum_obs": 41833.0
+          },
+          "day_ratio": {
+            "n": 130,
+            "mae": 114.54511434511436,
+            "rmse": 163.32474484379404,
+            "mbe": -80.16257796257797,
+            "ratio": 0.7508872149944987,
+            "sum_pred": 31411.864864864863,
+            "sum_obs": 41833.0
+          }
+        },
+        "low": {
+          "raw_viirs": {
+            "n": 496,
+            "mae": 121.0,
+            "rmse": 171.02790519338856,
+            "mbe": 121.0,
+            "ratio": 6.112966433804737,
+            "sum_pred": 71754.0,
+            "sum_obs": 11738.0
+          },
+          "constant_train_mean": {
+            "n": 496,
+            "mae": 26.59571425814172,
+            "rmse": 29.474657414716436,
+            "mbe": 17.020756398214036,
+            "ratio": 1.7192277367110378,
+            "sum_pred": 20180.29517351416,
+            "sum_obs": 11738.0
+          },
+          "day_ratio": {
+            "n": 496,
+            "mae": 11.492153443766348,
+            "rmse": 17.98511251199866,
+            "mbe": 4.820899240254079,
+            "ratio": 1.2037115371584617,
+            "sum_pred": 14129.166023166023,
+            "sum_obs": 11738.0
+          }
+        }
+      },
+      "monthly": {
+        "months": 20,
+        "min_known_days": 20,
+        "raw_viirs": {
+          "n": 20,
+          "mae": 8545.25,
+          "rmse": 14132.912026542866,
+          "mbe": 8545.25,
+          "ratio": 4.307369276618802,
+          "sum_pred": 222579.0,
+          "sum_obs": 51674.0
+        },
+        "day_ratio": {
+          "n": 20,
+          "mae": 526.7955598455599,
+          "rmse": 1101.9347335200398,
+          "mbe": -392.28513513513514,
+          "ratio": 0.8481692397975247,
+          "sum_pred": 43828.29729729729,
+          "sum_obs": 51674.0
+        },
+        "share_within_level": 0.65
+      },
+      "rolling_origin": {
+        "years": [
+          {
+            "year": 2019,
+            "c": 0.2043090189049424,
+            "train_days": 275,
+            "test_days": 365,
+            "ratio": 0.9387952417783507,
+            "mae": 22.68856152521624,
+            "rmse": 44.52940345012799,
+            "mbe": -4.847249166885519,
+            "sum_modis": 28907.0,
+            "sum_estimate": 27137.754054086785,
+            "raw_ratio": 4.594976995191476,
+            "constant_mae": 70.26943960149438,
+            "within_level": true
+          },
+          {
+            "year": 2020,
+            "c": 0.21252286465055387,
+            "train_days": 640,
+            "test_days": 366,
+            "ratio": 1.408171597409178,
+            "mae": 14.536259171419717,
+            "rmse": 26.574400993492006,
+            "mbe": 8.989812149495581,
+            "sum_modis": 8061.0,
+            "sum_estimate": 11351.271246715383,
+            "raw_ratio": 6.625976925939709,
+            "constant_mae": 53.24569672131148,
+            "within_level": false
+          },
+          {
+            "year": 2021,
+            "c": 0.20028272757709906,
+            "train_days": 1006,
+            "test_days": 362,
+            "ratio": 1.1366058046733734,
+            "mae": 8.359626867834312,
+            "rmse": 14.409001072166326,
+            "mbe": 2.8506084212780647,
+            "sum_modis": 7554.0,
+            "sum_estimate": 8585.920248502662,
+            "raw_ratio": 5.675006619009796,
+            "constant_mae": 37.309864569489136,
+            "within_level": true
+          },
+          {
+            "year": 2022,
+            "c": 0.1969718845350505,
+            "train_days": 1368,
+            "test_days": 361,
+            "ratio": 1.1741439847812318,
+            "mae": 8.98747579446817,
+            "rmse": 12.931568261372593,
+            "mbe": 3.015922971889921,
+            "sum_modis": 6252.0,
+            "sum_estimate": 7340.748192852261,
+            "raw_ratio": 5.960972488803582,
+            "constant_mae": 33.15935267531709,
+            "within_level": true
+          },
+          {
+            "year": 2023,
+            "c": 0.19385178838047037,
+            "train_days": 1729,
+            "test_days": 358,
+            "ratio": 0.9095597318837726,
+            "mae": 19.566546442767088,
+            "rmse": 41.73187542895022,
+            "mbe": -5.5961810595270105,
+            "sum_modis": 22152.0,
+            "sum_estimate": 20148.56718068933,
+            "raw_ratio": 4.692036836403034,
+            "constant_mae": 55.91021063617358,
+            "within_level": true
+          },
+          {
+            "year": 2024,
+            "c": 0.19827550040297207,
+            "train_days": 2087,
+            "test_days": 363,
+            "ratio": 1.0527808734797928,
+            "mae": 14.178145590082998,
+            "rmse": 29.458577907782576,
+            "mbe": 1.7381337784502562,
+            "sum_modis": 11954.0,
+            "sum_estimate": 12584.942561577443,
+            "raw_ratio": 5.3096871340137195,
+            "constant_mae": 33.22250690025225,
+            "within_level": true
+          },
+          {
+            "year": 2025,
+            "c": 0.19705358889295585,
+            "train_days": 2450,
+            "test_days": 365,
+            "ratio": 1.041860307639729,
+            "mae": 11.274889813543837,
+            "rmse": 21.101344686487696,
+            "mbe": 1.0638252429208948,
+            "sum_modis": 9276.0,
+            "sum_estimate": 9664.296213666126,
+            "raw_ratio": 5.28719275549806,
+            "constant_mae": 34.28666480290747,
+            "within_level": true
+          },
+          {
+            "year": 2026,
+            "c": 0.19636682637632405,
+            "train_days": 2815,
+            "test_days": 318,
+            "ratio": 0.8105768675894703,
+            "mae": 52.330169224026776,
+            "rmse": 104.63149737709828,
+            "mbe": -26.53413029316679,
+            "sum_modis": 44545.0,
+            "sum_estimate": 36107.14656677296,
+            "raw_ratio": 4.127870692558087,
+            "constant_mae": 124.22976306176481,
+            "within_level": true
+          }
+        ],
+        "rule": "Year Y is predicted with c fitted on all known days before 1 January Y (expanding window); a year needs \u2265 180 training days and \u2265 30 test days."
+      },
+      "gate": {
+        "version": "pyrosync-aggregate-gate-1.0",
+        "status": "not_validated",
+        "checks": [
+          {
+            "id": "days",
+            "label": "Enough held-out days",
+            "passed": true,
+            "value": "626 days",
+            "rule": "At least 30 held-out days with a known coverage state for both sensors."
+          },
+          {
+            "id": "level",
+            "label": "Total level close to MODIS",
+            "passed": true,
+            "value": "\u03a3 estimate / \u03a3 MODIS = 0.85",
+            "rule": "Held-out total between 0.8\u00d7 and 1.25\u00d7 the MODIS total."
+          },
+          {
+            "id": "beats_unadjusted",
+            "label": "Daily totals better than raw VIIRS",
+            "passed": true,
+            "value": "MAE 32.9 vs 283.9; RMSE 76.1 vs 481.0",
+            "rule": "Held-out daily MAE and RMSE below raw VIIRS."
+          },
+          {
+            "id": "beats_constant",
+            "label": "Daily totals better than a constant",
+            "passed": true,
+            "value": "MAE 32.9 vs 79.4; RMSE 76.1 vs 157.9",
+            "rule": "Held-out daily MAE and RMSE below a constant equal to the training-period mean daily MODIS total."
+          },
+          {
+            "id": "roll_years",
+            "label": "Enough rolling-origin years",
+            "passed": true,
+            "value": "8 years",
+            "rule": "At least 3 calendar years predicted from earlier years only."
+          },
+          {
+            "id": "roll_share",
+            "label": "Most years close to MODIS",
+            "passed": true,
+            "value": "7 of 8 years within 0.8\u20131.25\u00d7",
+            "rule": "At least 80% of rolling-origin years within 0.8\u20131.25\u00d7."
+          },
+          {
+            "id": "roll_hard",
+            "label": "No year far off",
+            "passed": true,
+            "value": "worst year 2020: 1.41\u00d7",
+            "rule": "No rolling-origin year outside 0.67\u20131.5\u00d7."
+          },
+          {
+            "id": "high_activity",
+            "label": "High-fire days close to MODIS",
+            "passed": false,
+            "value": "130 days, 0.75\u00d7",
+            "rule": "At least 10 held-out days at or above the training 90th percentile, total within 0.8\u20131.25\u00d7."
+          }
+        ],
+        "label": "Not validated under the project's aggregate rules: the calibrated line is not drawn",
+        "note": "\"Passes\" means the documented PyroSync rules on held-out (later) data; it is not an official or NASA validation."
+      }
+    }
+  },
+  "reference_doc": "MODIS is the reference scale for continuity with the long MODIS record. It is not ground truth: MODIS misses small fires and fires under cloud or smoke, and its own errors stay in the target.",
+  "coverage": {
+    "status": "not_verified",
+    "note": "Verified satellite coverage is NOT established. FIRMS active-fire records list detections only; they do not say which cells each overpass imaged, nor which were cloud-free. Verifying coverage would require swath geolocation and fire/cloud masks (MOD03/MOD14 for MODIS, VNP03/VNP14 or VJ103/VJ114 for VIIRS), which PyroSync does not import. 'Proxy' classes only show that the other instrument reported a detection nearby at about the same time."
+  },
+  "limitations": [
+    "Day totals are calibrated, not single fires: the ratio says nothing about the MODIS count of one cell and overpass.",
+    "The ratio assumes a stable MODIS/VIIRS relation; it is tested only where both sensors exist (S-NPP from 2012-01, NOAA-20 from 2018-04, NOAA-21 from 2023-03). Applying it outside the valid period is extrapolation and is not done by PyroSync.",
+    "Aqua left the A-Train in January 2022 and its overpass time drifts later; the year-by-year results after 2022 show whether that changes the ratio.",
+    "Satellite coverage (swath, cloud, smoke) is not verified: unknown days are excluded, but cloudy known days still count.",
+    "The same rules apply to every AOI; small AOIs have few active days and often fail the gate."
+  ]
+}

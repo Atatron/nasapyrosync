@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { getJSON, useApi } from '../api'
-import { EST_RAMP, ERR_RAMP, improvementColor, rampOf, useHarm, type ErrCell, type HErrors, type HLayer, type HMap, type MapCell } from '../harmonization'
+import { EST_RAMP, ERR_RAMP, improvementColor, rampOf, useHarm, type ErrCell, type HErrors, type HLayer, type HMap, type MapCell, type RegionRatioCell, type RegionRatios } from '../harmonization'
 import { useApp } from '../state'
 import { RAMP, addDays, clampDate, fmtDate, fmtNum, rampColor } from '../util'
 import { ErrorNote, Loading, Seg } from './ui'
@@ -37,6 +37,7 @@ function cellTip(c: MapCell, d: HMap, g: number): string {
     lines.push(`Calibrated estimate (MODIS scale): <b>${f2(c.value_cal)}</b> <span style="opacity:.7">(${d.scope === 'all' ? 'all VIIRS events' : 'model-domain events'}; all events ${f2(c.cal)})</span>`)
     if (c.extrapolated_events) lines.push(`<span style="color:#b45309">${c.extrapolated_events} event(s) above the largest training VIIRS value (extrapolation)</span>`)
   }
+  if (d.ratio_model?.available && c.value_ratio != null) lines.push(`Day-level ratio index (c × VIIRS): <b>${f2(c.value_ratio)}</b> <span style="opacity:.7">(validated for AOI daily totals, not for single cells)</span>`)
   lines.push(`Error region: ${VALIDATION_LABEL[c.validation]}${c.region_mae !== null ? `, held-out MAE ${f2(c.region_mae)} (n = ${c.region_n_test})` : c.region_n_test ? ` (n = ${c.region_n_test})` : ''}`)
   return lines.join('<br/>')
 }
@@ -48,6 +49,18 @@ function errTip(c: ErrCell, e: HErrors): string {
   return [head, `${c.status === 'validated' ? '<b>Validated</b>' : `<b>Too few held-out units</b> (minimum ${e.min_n})`}: n = ${c.n_test} held-out, ${c.n_train} training`,
     `Held-out MAE calibrated <b>${f2(c.mae_cal)}</b> vs unadjusted ${f2(c.mae_unadj)} ${e.unit}`,
     `RMSE ${f2(c.rmse_cal)} · MBE ${f2(c.mbe_cal)} · improvement ${c.improvement_pct === null ? '—' : c.improvement_pct.toFixed(0) + ' %'}`].join('<br/>')
+}
+
+const RATIO_STATUS = { within: 'held-out total within 0.8–1.25×', outside: 'held-out total outside 0.8–1.25×', too_few: 'too few active held-out days' }
+function ratioColor(r: number | null): string {
+  if (r === null) return '#94a3b8'
+  return r < 0.67 ? '#c2410c' : r < 0.8 ? '#fb923c' : r <= 1.25 ? '#22c55e' : r <= 1.5 ? '#a78bfa' : '#6d28d9'
+}
+function ratioTip(c: RegionRatioCell, e: RegionRatios): string {
+  const g = e.error_grid_deg
+  return [`<b>Region ${(c.ci * g - 180).toFixed(2)}°E, ${(c.cj * g - 90).toFixed(2)}°N</b> (${g}°)`, `<b>${RATIO_STATUS[c.status]}</b> · ${c.active_days} active held-out days`,
+    `Held-out MODIS ${fmtNum(c.M)} · VIIRS ${fmtNum(c.V)} · estimate c × VIIRS ${f2(c.estimate, 0)}`,
+    `Σ estimate / Σ MODIS: <b>${c.ratio === null ? '— (no MODIS detections)' : f2(c.ratio) + '×'}</b> (AOI c = ${f2(e.c, 4)})`].join('<br/>')
 }
 
 export default function HarmonizationMap({ run }: { run: string }) {
@@ -63,7 +76,8 @@ export default function HarmonizationMap({ run }: { run: string }) {
   const runAoi = runP.get('aoi') ?? 'none'
 
   const mq = useApi<HMap>(`/api/harmonization/map?${run}&date=${s.date}&mode=${s.frameMode}&scope=${h.scope}&err_grid=${h.errGrid}&min_n=${h.minN}`)
-  const eq = useApi<HErrors>(h.layer === 'errors' ? `/api/harmonization/errors?${run}&err_grid=${h.errGrid}&min_n=${h.minN}` : null)
+  const eq = useApi<HErrors>(h.layer === 'errors' && h.errView === 'units' ? `/api/harmonization/errors?${run}&err_grid=${h.errGrid}&min_n=${h.minN}` : null)
+  const rq = useApi<RegionRatios>(h.layer === 'errors' && h.errView === 'ratio' ? `/api/harmonization/aggregate/regions?${run}&err_grid=${h.errGrid}&min_days=${h.minDays}` : null)
   const d = mq.data
   const g = d?.model.grid_deg ?? Number(runP.get('unit_grid') ?? 0.1)
 
@@ -112,9 +126,9 @@ export default function HarmonizationMap({ run }: { run: string }) {
   const scales = useMemo(() => {
     const cs = d?.cells ?? []
     const maxM = Math.max(1, ...cs.map((c) => c.modis))
-    const maxC = Math.max(0, ...cs.map((c) => c.value_cal ?? 0))
+    const maxC = Math.max(0, ...cs.map((c) => (h.estimate === 'ratio' ? c.value_ratio : c.value_cal) ?? 0))
     return { modisScale: Math.max(maxM, maxC), viirs: Math.max(1, ...cs.map((c) => c.viirs)) }
-  }, [d])
+  }, [d, h.estimate])
   const errMax = useMemo(() => Math.max(0.5, ...(eq.data?.cells ?? []).filter((c) => c.status !== 'no_held_out').map((c) => c.mae_cal ?? 0)), [eq.data])
   const tol = Number(runP.get('tolerance_min') ?? 30)
 
@@ -132,7 +146,15 @@ export default function HarmonizationMap({ run }: { run: string }) {
       if (onClick) r.on('click', onClick)
       grp.addLayer(r)
     }
-    if (h.layer === 'errors') {
+    if (h.layer === 'errors' && h.errView === 'ratio') {
+      const e = rq.data
+      if (!e) return
+      for (const c of e.cells) {
+        const tip = ratioTip(c, e)
+        if (c.status === 'too_few') rect(c.ci, c.cj, e.error_grid_deg, { weight: 0.8, color: '#64748b', dashArray: '3 3', fillColor: '#94a3b8', fillOpacity: 0.3 }, tip)
+        else rect(c.ci, c.cj, e.error_grid_deg, { weight: 0.5, color: '#1e293b', fillColor: ratioColor(c.ratio), fillOpacity: 0.85 }, tip)
+      }
+    } else if (h.layer === 'errors') {
       const e = eq.data
       if (!e) return
       for (const c of e.cells) {
@@ -156,6 +178,9 @@ export default function HarmonizationMap({ run }: { run: string }) {
           if (c.modis > 0) rect(c.ci, c.cj, g, { weight: 0.4, color: '#7c2d12', ...edge, fillColor: rampColor(c.modis, scales.modisScale), fillOpacity: 0.85 }, tip, click)
         } else if (h.layer === 'viirs') {
           if (c.viirs > 0) rect(c.ci, c.cj, g, { weight: 0.4, color: '#7c2d12', ...edge, fillColor: rampColor(c.viirs, scales.viirs), fillOpacity: 0.85 }, tip, click)
+        } else if (h.layer === 'calibrated' && h.estimate === 'ratio') {
+          if (!d.ratio_model?.available || c.viirs_events === 0 || !c.value_ratio) continue
+          rect(c.ci, c.cj, g, { weight: 0.6, color: '#581c87', ...edge, fillColor: rampOf(EST_RAMP, c.value_ratio, scales.modisScale), fillOpacity: 0.8 }, tip, click)
         } else if (h.layer === 'calibrated') {
           if (!d.model.calibrated_available || c.viirs_events === 0) continue
           const v = c.value_cal ?? 0
@@ -183,11 +208,11 @@ export default function HarmonizationMap({ run }: { run: string }) {
     }
     grp.addTo(m)
     lay.current.cells = grp
-  }, [d, eq.data, h.layer, h.selCell, h.errColor, scales, errMax, g, tol])
+  }, [d, eq.data, rq.data, h.layer, h.errView, h.estimate, h.selCell, h.errColor, scales, errMax, g, tol])
 
   const outOfRun = s.date < runStart || s.date > runEnd
   const step = (n: number) => s.set({ date: clampDate(addDays(s.date, n), runStart, runEnd) })
-  const loading = (h.layer === 'errors' ? eq.loading || !eq.data : mq.loading || !d)
+  const loading = (h.layer === 'errors' ? (h.errView === 'ratio' ? rq.loading || !rq.data : eq.loading || !eq.data) : mq.loading || !d)
   const role = d?.window.period_role
 
   return (
@@ -204,9 +229,13 @@ export default function HarmonizationMap({ run }: { run: string }) {
           </div>
           <Seg label="Window" value={s.frameMode} onChange={(v) => s.set({ frameMode: v })} options={[{ value: 1, label: '1 day' }, { value: 7, label: '7 days' }, { value: 30, label: '30 days' }]} />
         </>}
-        {h.layer === 'calibrated' && <Seg label="Events in estimate" value={h.scope} onChange={(v) => h.set({ scope: v })}
+        {h.layer === 'calibrated' && <Seg label="Estimate" value={h.estimate} onChange={(v) => h.set({ estimate: v })}
+          options={[{ value: 'event', label: 'Event model (1.0)', title: 'Log-log model per VIIRS event' }, { value: 'ratio', label: 'Day-level ratio index (1.4)', title: 'c × VIIRS detections per cell' }]} />}
+        {h.layer === 'calibrated' && h.estimate === 'event' && <Seg label="Events in estimate" value={h.scope} onChange={(v) => h.set({ scope: v })}
           options={[{ value: 'domain', label: 'In model domain only', title: 'Only VIIRS events of the kind the model was fitted on' }, { value: 'all', label: 'All VIIRS events', title: 'Includes events outside the fitted domain (tends to overstate)' }]} />}
-        {h.layer === 'errors' && <Seg label="Colour by" value={h.errColor} onChange={(v) => h.set({ errColor: v })}
+        {h.layer === 'errors' && <Seg label="Error view" value={h.errView} onChange={(v) => h.set({ errView: v })}
+          options={[{ value: 'units', label: 'Unit-level MAE (1.0)' }, { value: 'ratio', label: 'Regional daily totals (1.4)' }]} />}
+        {h.layer === 'errors' && h.errView === 'units' && <Seg label="Colour by" value={h.errColor} onChange={(v) => h.set({ errColor: v })}
           options={[{ value: 'mae', label: 'Held-out MAE' }, { value: 'improvement', label: 'Improvement vs unadjusted' }]} />}
       </div>
       {outOfRun && <p className="text-[11px] text-amber-700">The selected date {s.date} is outside the run's range ({runStart} → {runEnd}); choose a date inside it.</p>}
@@ -220,18 +249,33 @@ export default function HarmonizationMap({ run }: { run: string }) {
           </div>
           {h.layer !== 'errors' && role && <div className={'rounded-md px-2 py-1 shadow ' + (role === 'held_out' ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100' : 'bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100')} data-testid="hmap-role">
             {role === 'held_out' ? 'Held-out period' : role === 'training' ? 'Training period (in-sample)' : 'Window spans the split date'}: {d?.window.period_role_doc}</div>}
-          {h.layer === 'calibrated' && d && !d.model.calibrated_available && <div className="pointer-events-auto max-w-md rounded-md bg-amber-50 px-2 py-1 text-amber-900 shadow dark:bg-amber-950 dark:text-amber-100" data-testid="hmap-cal-unavailable">
+          {h.layer === 'calibrated' && h.estimate === 'ratio' && d && <div className={'pointer-events-auto max-w-md rounded-md px-2 py-1 shadow ' + (d.ratio_model?.available ? 'bg-panel/95' : 'bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100')} data-testid="hmap-ratio-note">
+            {d.ratio_model?.available ? <>{d.ratio_model.label}; c = {f2(d.ratio_model.c, 4)}.</> : <><b>No day-level estimates:</b> the day-level ratio does not pass the aggregate gate for this AOI and sensor pair (see section 5).</>}</div>}
+          {h.layer === 'calibrated' && h.estimate === 'event' && d && !d.model.calibrated_available && <div className="pointer-events-auto max-w-md rounded-md bg-amber-50 px-2 py-1 text-amber-900 shadow dark:bg-amber-950 dark:text-amber-100" data-testid="hmap-cal-unavailable">
             <b>No calibrated estimates:</b> this run does not pass the validity rules ({d.model.calibrated_unavailable_reason}).</div>}
         </div>
         {loading && <div role="status" data-testid="hmap-loading" className="absolute inset-x-0 bottom-3 z-[600] mx-auto flex w-fit items-center gap-2 rounded-full bg-panel px-3 py-1.5 text-xs shadow-lg"><span className="spinner" aria-hidden />Loading {h.layer === 'errors' ? 'error map' : fmtDate(s.date)}…</div>}
-        {(mq.error || eq.error) && <div className="absolute bottom-14 left-2 z-[600] max-w-sm"><ErrorNote msg={(mq.error || eq.error) as string} /></div>}
-        <Legend layer={h.layer} d={d} e={eq.data} scales={scales} errMax={errMax} errColor={h.errColor} tol={tol} />
+        {(mq.error || eq.error || rq.error) && <div className="absolute bottom-14 left-2 z-[600] max-w-sm"><ErrorNote msg={(mq.error || eq.error || rq.error) as string} /></div>}
+        {h.layer === 'errors' && h.errView === 'ratio' ? <RatioLegend minDays={h.minDays} />
+          : <Legend layer={h.layer} d={d} e={eq.data} scales={scales} errMax={errMax} errColor={h.errColor} tol={tol} ratio={h.estimate === 'ratio'} />}
       </div>
     </div>
   )
 }
 
-function Legend({ layer, d, e, scales, errMax, errColor, tol }: { layer: HLayer; d: HMap | null; e: HErrors | null; scales: { modisScale: number; viirs: number }; errMax: number; errColor: 'mae' | 'improvement'; tol: number }) {
+function RatioLegend({ minDays }: { minDays: number }) {
+  const sw = (c: string) => <span className="inline-block h-2.5 w-4" style={{ background: c }} />
+  return (
+    <div className="absolute bottom-2 right-2 z-[500] max-w-[300px] rounded-lg bg-panel/95 px-2 py-1.5 text-[10px] shadow" aria-label="Map legend" data-testid="hmap-legend">
+      <div className="mb-1 font-semibold">Held-out Σ (c × VIIRS) / Σ MODIS per region</div>
+      <div className="flex flex-wrap items-center gap-1">{sw('#c2410c')}&lt; 0.67{sw('#fb923c')}0.67–0.8{sw('#22c55e')}0.8–1.25{sw('#a78bfa')}1.25–1.5{sw('#6d28d9')}&gt; 1.5</div>
+      <div className="mt-0.5 flex items-center gap-1 text-muted"><span className="inline-block h-2.5 w-4 border border-dashed border-slate-500 bg-slate-400/40" />Fewer than {minDays} active held-out days</div>
+      <div className="mt-0.5 text-muted">One AOI-wide c is applied everywhere; this view shows where that c holds and where it does not.</div>
+    </div>
+  )
+}
+
+function Legend({ layer, d, e, scales, errMax, errColor, tol, ratio }: { layer: HLayer; d: HMap | null; e: HErrors | null; scales: { modisScale: number; viirs: number }; errMax: number; errColor: 'mae' | 'improvement'; tol: number; ratio?: boolean }) {
   const sw = (c: string, extra = '') => <span className={'inline-block h-2.5 w-4 ' + extra} style={{ background: c }} />
   return (
     <div className="absolute bottom-2 right-2 z-[500] max-w-[300px] rounded-lg bg-panel/95 px-2 py-1.5 text-[10px] shadow" aria-label="Map legend" data-testid="hmap-legend">
@@ -239,6 +283,10 @@ function Legend({ layer, d, e, scales, errMax, errColor, tol }: { layer: HLayer;
         <div className="mb-1 font-semibold">{layer === 'modis' ? d?.modis_label : d?.viirs_label} detections per cell (observed)</div>
         <div className="flex items-center gap-1"><span>1</span>{RAMP.map((c) => <span key={c}>{sw(c)}</span>)}<span>{fmtNum(layer === 'modis' ? scales.modisScale : scales.viirs)}</span></div>
         <div className="mt-0.5 text-muted">{layer === 'modis' ? 'Same MODIS scale as the calibrated layer.' : 'Own scale: VIIRS counts are not on the MODIS scale.'} Cells are grid summaries, not burned area.</div>
+      </> : layer === 'calibrated' && ratio ? <>
+        <div className="mb-1 font-semibold">Day-level ratio index per cell: c × VIIRS detections (estimate)</div>
+        <div className="flex items-center gap-1"><span>0</span>{EST_RAMP.map((c) => <span key={c}>{sw(c)}</span>)}<span>{fmtNum(scales.modisScale, 1)}</span></div>
+        <div className="mt-0.5 text-muted">MODIS-equivalent index. Validated for AOI daily totals only; a single cell's value is not a tested MODIS count.</div>
       </> : layer === 'calibrated' ? <>
         <div className="mb-1 font-semibold">Estimated MODIS-scale detections per cell (not observations)</div>
         <div className="flex items-center gap-1"><span>0</span>{EST_RAMP.map((c) => <span key={c}>{sw(c)}</span>)}<span>{fmtNum(scales.modisScale, 1)}</span></div>
@@ -270,8 +318,29 @@ export function WindowDetails({ run }: { run: string }) {
   const s = useApp()
   const h = useHarm()
   const mq = useApi<HMap>(h.layer === 'errors' ? null : `/api/harmonization/map?${run}&date=${s.date}&mode=${s.frameMode}&scope=${h.scope}&err_grid=${h.errGrid}&min_n=${h.minN}`)
-  const eq = useApi<HErrors>(h.layer === 'errors' ? `/api/harmonization/errors?${run}&err_grid=${h.errGrid}&min_n=${h.minN}` : null)
+  const eq = useApi<HErrors>(h.layer === 'errors' && h.errView === 'units' ? `/api/harmonization/errors?${run}&err_grid=${h.errGrid}&min_n=${h.minN}` : null)
+  const rq = useApi<RegionRatios>(h.layer === 'errors' && h.errView === 'ratio' ? `/api/harmonization/aggregate/regions?${run}&err_grid=${h.errGrid}&min_days=${h.minDays}` : null)
   const d = mq.data
+  if (h.layer === 'errors' && h.errView === 'ratio') {
+    const e = rq.data
+    if (!e) return rq.error ? <ErrorNote msg={rq.error} /> : <Loading />
+    return (
+      <div className="space-y-2 text-xs" data-testid="hratio-summary">
+        <div className="flex flex-wrap items-end gap-2">
+          <Seg label="Region size" value={h.errGrid} onChange={(v) => h.set({ errGrid: v })} options={e.error_grids.map((x) => ({ value: x, label: `${x}°` }))} />
+          <Seg label="Minimum active held-out days" value={h.minDays} onChange={(v) => h.set({ minDays: v })} options={e.min_days_choices.map((x) => ({ value: x, label: `≥ ${x}` }))} />
+        </div>
+        <table className="data"><tbody>
+          <tr><td>AOI coefficient c</td><td className="num">{f2(e.c, 4)} (aggregate gate: {e.gate_status ?? '—'})</td></tr>
+          <tr><td>Held-out period from</td><td className="num">{e.split ?? '—'}</td></tr>
+          <tr><td>Regions within 0.8–1.25×</td><td className="num" data-testid="hratio-within">{fmtNum(e.summary.within)}</td></tr>
+          <tr><td>Regions outside 0.8–1.25×</td><td className="num">{fmtNum(e.summary.outside)}</td></tr>
+          <tr><td>Regions with too few active days</td><td className="num">{fmtNum(e.summary.too_few)}</td></tr>
+        </tbody></table>
+        <p className="text-[11px] text-muted">{e.definition}</p>
+      </div>
+    )
+  }
   if (h.layer === 'errors') {
     const e = eq.data
     if (!e) return eq.error ? <ErrorNote msg={eq.error} /> : <Loading />

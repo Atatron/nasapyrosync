@@ -1,0 +1,77 @@
+{
+ "2012": {
+  "viirs_matched_share": 0.19325390730280909,
+  "modis_matched_share": 0.46793119479311945,
+  "aqua_day_median_utc_min": 371.0
+ },
+ "2013": {
+  "viirs_matched_share": 0.2007243175752885,
+  "modis_matched_share": 0.4631924107031113,
+  "aqua_day_median_utc_min": 366
+ },
+ "2014": {
+  "viirs_matched_share": 0.19862506842556987,
+  "modis_matched_share": 0.45077200986273913,
+  "aqua_day_median_utc_min": 363
+ },
+ "2015": {
+  "viirs_matched_share": 0.2121146988531451,
+  "modis_matched_share": 0.521427118742555,
+  "aqua_day_median_utc_min": 355.0
+ },
+ "2016": {
+  "viirs_matched_share": 0.15954519119351102,
+  "modis_matched_share": 0.42071739859202145,
+  "aqua_day_median_utc_min": 355.0
+ },
+ "2017": {
+  "viirs_matched_share": 0.13857490731990987,
+  "modis_matched_share": 0.4137069192317811,
+  "aqua_day_median_utc_min": 343.0
+ },
+ "2018": {
+  "viirs_matched_share": 0.17975612183053363,
+  "modis_matched_share": 0.4538689025381041,
+  "aqua_day_median_utc_min": 342
+ },
+ "2019": {
+  "viirs_matched_share": 0.21669584855588095,
+  "modis_matched_share": 0.47872192958136955,
+  "aqua_day_median_utc_min": 357
+ },
+ "2020": {
+  "viirs_matched_share": 0.11199743026928637,
+  "modis_matched_share": 0.41329387298032316,
+  "aqua_day_median_utc_min": 338.0
+ },
+ "2021": {
+  "viirs_matched_share": 0.14966598003846635,
+  "modis_matched_share": 0.4105745212323064,
+  "aqua_day_median_utc_min": 347.0
+ },
+ "2022": {
+  "viirs_matched_share": 0.11756439580810572,
+  "modis_matched_share": 0.3339357856687221,
+  "aqua_day_median_utc_min": 348.0
+ },
+ "2023": {
+  "viirs_matched_share": 0.152362544874946,
+  "modis_matched_share": 0.3902734947677064,
+  "aqua_day_median_utc_min": 364.0
+ },
+ "2024": {
+  "viirs_matched_share": 0.07133021449377704,
+  "modis_matched_share": 0.2112603305785124,
+  "aqua_day_median_utc_min": 393
+ },
+ "2025": {
+  "viirs_matched_share": 0.017843327359442177,
+  "modis_matched_share": 0.056665979806305375,
+  "aqua_day_median_utc_min": 430.0
+ },
+ "2026": {
+  "viirs_matched_share": 0.0002019146257453025,
+  "modis_matched_share": 0.0004546966840412554,
+  "aqua_day_median_utc_min": 467
+ }
+}

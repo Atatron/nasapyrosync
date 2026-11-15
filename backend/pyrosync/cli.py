@@ -79,6 +79,10 @@ def main(argv: list[str] | None = None) -> int:
     au = sub.add_parser("harmonize-audit", help="Audit matching, leakage, metrics, alternatives and application on the imported archive")
     au.add_argument("--out", type=Path, required=True, help="Output folder for AUDIT.md and audit.json")
     au.add_argument("--runs", default=None, help="Comma-separated subset of runs (A,B,C,D,E)")
+    ag = sub.add_parser("harmonize-aggregate", help="Day-level ratio calibration reports (1.4) for the standard runs A, C, D and the Terra control F")
+    ag.add_argument("--out", type=Path, required=True, help="Output folder (one sub-folder per run, plus AGGREGATE.md)")
+    ag.add_argument("--runs", default=None, help="Comma-separated subset of runs (A,C,D,F)")
+    ag.add_argument("--with-events", action="store_true", help="Also build the event-level run to compare its daily sums (slower)")
     ins = sub.add_parser("insights", help="Write the AOI Insights package (regime, critical periods, years, recurrence) for one AOI and sensor")
     ins.add_argument("--aoi", required=True, help="AOI id, e.g. region:kalimantan")
     ins.add_argument("--series", default="MODIS", choices=["MODIS", "VIIRS_SNPP", "VIIRS_N20", "VIIRS_N21"])
@@ -146,6 +150,34 @@ def main(argv: list[str] | None = None) -> int:
         with zipfile.ZipFile(io.BytesIO(exports.insights_zip(f, a.series, a.metric))) as z:
             z.extractall(a.out)
         print(f"Wrote the AOI Insights package to {a.out}")
+        return 0
+    if a.cmd == "harmonize-aggregate":
+        from . import aggregate as A
+        from . import calibration as C
+        from . import harmonize as H
+        runs = [("A", "Indonesia, Aqua–S-NPP", dict(start="2012-01-20"), dict()),
+                ("C", "Indonesia, Aqua–NOAA-20", dict(start="2018-04-01"), dict(viirs_series="VIIRS_N20", tolerance_min=60)),
+                ("D", "Kalimantan, Aqua–S-NPP", dict(start="2012-01-20", aoi="region:kalimantan"), dict()),
+                ("F", "Indonesia, Terra–S-NPP (different overpass time; control)", dict(start="2012-01-20"), dict(modis_platforms=["Terra"]))]
+        only = [x.strip() for x in a.runs.split(",")] if a.runs else None
+        summary = []
+        for rid, label, fk, ck in runs:
+            if only and rid not in only:
+                continue
+            t0 = time.time()
+            f = query.Filters(start=date.fromisoformat(fk["start"]), end=date(2026, 11, 14), aoi=fk.get("aoi", "none"))
+            cfg = H.HarmonizeConfig(**ck)
+            core = C.core(f, cfg) if a.with_events else None
+            rep = A.report(f, cfg, core)
+            d = a.out / rid
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "report.json").write_text(json.dumps(rep, indent=2, default=str), encoding="utf-8")
+            (d / "report.md").write_text(A.report_markdown(rep, f"Run {rid}: {label}"), encoding="utf-8")
+            summary.append((rid, label, rep))
+            C.clear()
+            print(f"aggregate {rid} done in {time.time() - t0:.1f} s", flush=True)
+        (a.out / "AGGREGATE.md").write_text(A.summary_markdown(summary), encoding="utf-8")
+        print(f"Wrote {a.out}/AGGREGATE.md")
         return 0
     if a.cmd == "harmonize-audit":
         from . import audit

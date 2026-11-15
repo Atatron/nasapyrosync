@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useApi, type Baseline, type Compare, type History, type Rankings } from '../api'
-import { useDaily, useElevated, useFilterQS, useSeriesParams } from '../hooks'
+import { useDaily, useElevated, useFilterQS, useInventory, useSeriesParams } from '../hooks'
 import { useApp } from '../state'
 import { MON3, METRIC_INFO, SERIES_COLOR, SERIES_SHORT, addDays, fmtDate, fmtNum } from '../util'
 import { EChart, Empty, ErrorNote, Info, Loading, Panel, Seg } from '../components/ui'
 import { ElevatedList, ElevatedSettings } from '../components/Elevated'
+import { ModisEquivalentComparison } from '../components/HarmonizationAggregate'
 
 type Measure = 'detections' | 'sum_daily_cells' | 'distinct_cells' | 'frp_sum'
 const MEASURE_LABEL: Record<Measure, string> = {
@@ -31,6 +32,7 @@ export default function HistoryPage() {
   const [measure, setMeasure] = useState<Measure>('sum_daily_cells')
   const peak = usePeakDay()
   const el = useElevated()
+  const inv = useInventory()
 
   const monthly = useMemo(() => {
     if (!h.data) return {}
@@ -65,6 +67,9 @@ export default function HistoryPage() {
         actions={<Seg<Measure> label="Monthly measure" value={measure} onChange={setMeasure} options={(Object.keys(MEASURE_LABEL) as Measure[]).map((k) => ({ value: k, label: MEASURE_LABEL[k] }))} />}>
         {!h.data ? <Loading /> : <EChart ariaLabel="Monthly totals by sensor" option={monthly} height={280} onClick={(p) => peak(h.data!.months[p.dataIndex].label)} />}
         {h.data && <p className="mt-1 text-[11px] text-muted">{h.data.notes.join(' ')} MODIS and VIIRS columns are not summed: their detection sensitivities differ.</p>}
+      </Panel>
+      <Panel title="Experimental MODIS-equivalent comparison (1.4, off by default)" info="Optional. Converts VIIRS daily totals to a MODIS (Aqua) scale with the day-level ratio c = ΣMODIS / ΣVIIRS fitted on earlier days, for the current area, period and type filters. The line is drawn only when that exact setting passes the project's aggregate gate (chronological hold-out plus year-by-year stability); otherwise only the original totals appear. Not an official NASA product, and the bars above are never replaced.">
+        <ModisEquivalentComparison qs={qs} available={inv.data?.available_series ?? []} preferred={s.series} testid="hist-meq" />
       </Panel>
       <div className="grid gap-3 xl:grid-cols-2">
         <Panel title={`Seasonal profile · ${SERIES_SHORT[s.series]}`} info="Month-of-year profile for each imported year (primary sensor). Two years cannot establish a seasonal shift or trend.">

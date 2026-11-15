@@ -20,6 +20,7 @@ export interface MapCell {
   ci: number; cj: number; modis: number; viirs: number; modis_events: number; viirs_events: number; pairs: number; viirs_events_in_domain: number
   cal: number | null; cal_domain: number | null; value_cal: number | null; extrapolated_events: number; dt_median: number | null
   validation: Validation; region_mae: number | null; region_n_test: number
+  value_ratio?: number | null // 1.4: day-level ratio index (c × VIIRS), only when the aggregate gate passes
 }
 export interface Pair { ci: number; cj: number; modis_platform: string; t_modis: string; t_viirs: string; dt_min: number; M: number; V: number; M_hat: number | null; set: 'train' | 'test' | null }
 export interface HMap {
@@ -27,6 +28,7 @@ export interface HMap {
   scope: 'all' | 'domain'; error_grid_deg: number; min_n: number; cells: MapCell[]; truncated: boolean; pairs: Pair[]; pairs_truncated: boolean
   totals: { modis: number; viirs: number; modis_events: number; viirs_events: number; pairs: number; cells: number; cal: number | null; cal_domain: number | null; cells_viirs: number; cells_viirs_validated: number }
   model: ModelSummary; event_day_rule: string; modis_label: string; viirs_label: string
+  ratio_model?: { available: boolean; c: number | null; gate_status: string | null; split: string | null; label: string }
   suggested_days: { training: { date: string; pairs: number }[]; held_out: { date: string; pairs: number }[] }
 }
 export interface ErrCell { ci: number; cj: number; n_test: number; n_train: number; mae_cal: number | null; mae_unadj: number | null; rmse_cal: number | null; mbe_cal: number | null; improvement_pct: number | null; status: Validation }
@@ -64,6 +66,11 @@ export interface HState {
   minN: number
   errColor: 'mae' | 'improvement'
   seriesAgg: 'day' | 'month'
+  histMethod: 'event' | 'ratio' // 1.4: historical series from the event model (1.0 baseline) or the day-level ratio
+  quantity: AggQuantity
+  estimate: 'event' | 'ratio' // calibrated map layer: event model or day-level ratio index
+  errView: 'units' | 'ratio'
+  minDays: number
   selCell: { ci: number; cj: number } | null
   set: (p: Partial<HState>) => void
 }
@@ -71,6 +78,7 @@ export interface HState {
 export const useHarm = create<HState>((set) => ({
   viirs: 'VIIRS_SNPP', modis: 'Aqua', tol: 30, grid: 0.1, metric: 'detections', unitSet: 'matched', testFraction: 0.2,
   run: null, layer: 'modis', scope: 'domain', errGrid: 0.5, minN: 20, errColor: 'mae', seriesAgg: 'month', selCell: null,
+  histMethod: 'ratio', quantity: 'detections', estimate: 'event', errView: 'units', minDays: 20,
   set: (p) => set(p),
 }))
 
@@ -98,4 +106,41 @@ export function rampOf(ramp: string[], v: number, max: number): string {
   if (max <= 0) return ramp[0]
   const t = Math.min(1, Math.max(0, v / max))
   return ramp[Math.min(ramp.length - 1, Math.floor(Math.sqrt(t) * ramp.length))]
+}
+
+// ------------------------------------------------------------------ 1.4: day-level (aggregate) calibration
+export type AggQuantity = 'detections' | 'cells'
+export interface AggMetrics { n: number; mae: number | null; rmse: number | null; mbe: number | null; ratio: number | null; sum_pred: number; sum_obs: number; value?: number }
+export interface AggYear { year: number; c: number; train_days: number; test_days: number; ratio: number | null; mae: number | null; rmse: number | null; mbe: number | null
+  sum_modis: number; sum_estimate: number; raw_ratio: number | null; constant_mae: number | null; within_level: boolean }
+export interface AggGate { version: string; status: 'passes' | 'not_validated' | 'insufficient'; checks: Check[]; label: string; note?: string }
+export interface AggEval {
+  quantity: AggQuantity; definition: string; status: 'ok' | 'insufficient'; reason?: string; c: number | null; split: string | null
+  train_days: number; held_out_days: number; train_period: [string, string] | null; held_out_period: [string, string] | null; known_days: number; days: number; unknown_share: number | null
+  bootstrap?: { n_boot: number; seed: number; blocks: number; c_lo: number; c_hi: number; rule: string } | null
+  held_out?: Record<string, AggMetrics>; training?: Record<string, AggMetrics>; loglog_slope_diagnostic?: { alpha: number; beta: number; note: string }
+  activity?: { threshold: number; rule: string; high: Record<string, AggMetrics>; low: Record<string, AggMetrics> }
+  monthly?: { months: number; min_known_days: number; raw_viirs: AggMetrics; day_ratio: AggMetrics; share_within_level?: number | null }
+  rolling_origin?: { years: AggYear[]; rule: string }
+  gate: AggGate
+}
+export interface AggReport {
+  method_version: string; gate_version: string; dataset_revision: number; config: Record<string, unknown>; effective_filters: Record<string, unknown>
+  split: string | null; split_rule: string; equation: string; modis_label: string; viirs_label: string; estimate_label: Record<AggQuantity, string>
+  valid_period: [string, string] | null; event_model_compared: boolean; quantities: Record<AggQuantity, AggEval>; reference_doc: string
+  coverage: { status: string; note: string }; limitations: string[]
+}
+export interface AggSeries {
+  agg: 'day' | 'month'; quantity: AggQuantity; method_version: string; gate: AggGate; evaluation: Partial<AggEval>; split: string | null; valid_period: [string, string] | null
+  dates: string[]; modis: (number | null)[]; viirs: (number | null)[]; calibrated: (number | null)[] | null; band: ([number, number] | null)[] | null
+  known_days: number[] | null; days: number[] | null; modis_label: string; viirs_label: string; calibrated_label: string; notes: string[]
+}
+export interface RegionRatioCell { ci: number; cj: number; M: number; V: number; estimate: number; ratio: number | null; active_days: number; status: 'within' | 'outside' | 'too_few' }
+export interface RegionRatios {
+  error_grid_deg: number; min_days: number; min_days_choices: number[]; error_grids: number[]; c: number | null; split: string | null; gate_status: string | null
+  level: [number, number]; cells: RegionRatioCell[]; summary: { within: number; outside: number; too_few: number }; definition: string
+}
+export const AGG_METHOD_LABEL: Record<string, string> = {
+  raw_viirs: 'Raw VIIRS (no calibration)', constant_train_mean: 'Constant: training mean', day_ratio: 'Day-level ratio c · V (1.4)',
+  event_loglog_all_viirs: 'Event log-log model, all VIIRS events (1.0)', event_loglog_model_domain: 'Event log-log model, matched events only (1.0)',
 }

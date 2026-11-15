@@ -255,7 +255,8 @@ def harmonization_map(request: Request, date_: date = Query(..., alias="date"), 
     except ValueError as e:
         raise HTTPException(422, detail=str(e)) from None
     out["suggested_days"] = C.suggested_days(c)
-    return out
+    from . import aggregate
+    return aggregate.augment_map(out, c.f, c.cfg)
 
 
 @app.get("/api/harmonization/errors")
@@ -271,6 +272,49 @@ def harmonization_errors(request: Request):
 def harmonization_series(request: Request, agg: Literal["day", "month"] = "month", scope: Literal["all", "domain"] = "domain"):
     C, c = _ccore(request)
     return C.series(c, agg, scope)
+
+
+# ------------------------------------------------------------------ day-level (aggregate) calibration (1.4, additive, read-only)
+@app.get("/api/harmonization/aggregate")
+def harmonization_aggregate(request: Request, events: bool = False):
+    """Day-level ratio calibration with chronological, rolling-origin and bootstrap evaluation and the aggregate gate.
+    events=true also builds the harmonization run to compare the event-level model's daily sums (slower)."""
+    from . import aggregate
+    f, cfg = F(request), _hcfg(request)
+    c = _ccore(request)[1] if events else None
+    return aggregate.report(f, cfg, c)
+
+
+@app.get("/api/harmonization/aggregate/series")
+def harmonization_aggregate_series(request: Request, agg: Literal["day", "month"] = "month",
+                                   quantity: Literal["detections", "cells"] = "detections"):
+    from . import aggregate
+    return aggregate.series(F(request), _hcfg(request), agg, quantity)
+
+
+@app.get("/api/harmonization/aggregate/regions")
+def harmonization_aggregate_regions(request: Request):
+    """Held-out regional check of the AOI's day-level ratio: Σ c·V / Σ MODIS per region cell (needs the run's events)."""
+    from . import aggregate
+    C, c = _ccore(request)
+    err_grid = _num(request, "err_grid", float, max(0.5, c.cfg.unit_grid))
+    min_days = _num(request, "min_days", int, 20)
+    if min_days not in aggregate.REGION_MIN_DAYS:
+        raise HTTPException(422, detail=f"min_days must be one of {aggregate.REGION_MIN_DAYS}")
+    try:
+        k = C._agg_factor(c, err_grid)
+    except ValueError as e:
+        raise HTTPException(422, detail=str(e)) from None
+    rep = aggregate.report(c.f, c.cfg)
+    rows = aggregate.regional_ratio(c, k, min_days)
+    return {"error_grid_deg": err_grid, "min_days": min_days, "min_days_choices": list(aggregate.REGION_MIN_DAYS),
+            "error_grids": C.error_grids_for(c.cfg.unit_grid), "c": rep["quantities"]["detections"].get("c"), "split": rep["split"],
+            "gate_status": rep["quantities"]["detections"].get("gate", {}).get("status"), "level": list(aggregate.LEVEL), "cells": rows,
+            "summary": {"within": sum(1 for r in rows if r["status"] == "within"), "outside": sum(1 for r in rows if r["status"] == "outside"),
+                        "too_few": sum(1 for r in rows if r["status"] == "too_few")},
+            "definition": "Per region cell, over held-out days with a known coverage state for both sensors: the AOI's c times the region's VIIRS "
+                          "detections, divided by its MODIS detections. 'within' = 0.8–1.25×; 'too few' = fewer active held-out days than the "
+                          "minimum. The AOI-level gate does not make every region accurate; this view shows where it holds."}
 
 
 @app.get("/api/export/harmonization.zip")

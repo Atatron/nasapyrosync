@@ -243,7 +243,8 @@ def test_api_and_export(env):
     z = c.get(f"/api/export/harmonization.zip?{q}")
     assert z.status_code == 200
     zf = zipfile.ZipFile(io.BytesIO(z.content))
-    assert set(zf.namelist()) == {"manifest.json", "harmonization_report.json", "HARMONIZATION_REPORT.md", "units.csv"}
+    assert set(zf.namelist()) == {"manifest.json", "harmonization_report.json", "HARMONIZATION_REPORT.md", "units.csv",
+                                 "aggregate_report.json", "AGGREGATE_REPORT.md"}  # 1.4 adds the day-level ratio report
     lines = zf.read("units.csv").decode().strip().splitlines()
     assert len(lines) == N_DAYS + 1
     man = json.loads(zf.read("manifest.json"))

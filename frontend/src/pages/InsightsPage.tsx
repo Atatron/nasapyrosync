@@ -12,6 +12,7 @@ import { useApp } from '../state'
 import { SERIES_COLOR, addDays, cls, fmtNum, type ISODate } from '../util'
 import InsightsMap, { recurColor } from '../components/InsightsMap'
 import Briefing from '../components/InsightsBriefing'
+import { ModisEquivalentComparison } from '../components/HarmonizationAggregate'
 import { EChart, Empty, ErrorNote, Icon, Info, Loading, Panel, Seg } from '../components/ui'
 
 const SERIES_NAME: Record<InsSeries, string> = { MODIS: 'MODIS (Terra + Aqua)', VIIRS_SNPP: 'VIIRS S-NPP', VIIRS_N20: 'VIIRS NOAA-20', VIIRS_N21: 'VIIRS NOAA-21' }
@@ -117,6 +118,9 @@ export default function InsightsPage({ regions }: { regions: Region[] }) {
               {id === 'compare' && <CompareSection asOf={asOf} regions={regions} />}
             </div>
           ))}
+          <Panel title="Experimental MODIS-equivalent comparison (1.4, off by default)" info={<>Optional. Uses this area's whole history from {first} to {asOf}: VIIRS daily totals times c = ΣMODIS / ΣVIIRS fitted on earlier days. Drawn only when this area and satellite pair pass the project's aggregate gate; otherwise the original totals are shown and nothing is estimated. Not an official NASA product, and none of the sections above use it.</>}>
+            <ModisEquivalentComparison qs={insQS(s, ins.series, first ?? asOf, asOf)} available={avail} preferred={ins.series} testid="ins-meq" />
+          </Panel>
         </div>
       )}
       {ins.briefing && s.aoi !== 'none' && <Briefing asOf={asOf} aoiName={aoiName ?? ''} onClose={() => ins.set({ briefing: false })} />}

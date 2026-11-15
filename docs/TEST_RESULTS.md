@@ -1,14 +1,16 @@
 # Test results
 
-Every result below was produced by actually running the tests on **2026-11-14** (version 1.3.0, after adding the AOI Insights tab) in the development container: Linux 6.18, 4 vCPU Intel Xeon @ 2.30 GHz, 15 GB RAM, Python 3.13.18, Node 22.23.4, Chromium via Playwright 1.63. Nothing is reported as passed unless it was executed.
+Every result below was produced by actually running the tests on **2026-11-14** (version 1.3.0, after adding the AOI Insights tab); the 1.4 rows and the section "Day-level ratio (1.4)" were run on **2026-11-15** (version 1.4.0) in the development container: Linux 6.18, 4 vCPU Intel Xeon @ 2.30 GHz, 15 GB RAM, Python 3.13.18, Node 22.23.4, Chromium via Playwright 1.63. Nothing is reported as passed unless it was executed.
 
 ## Summary
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit/integration (pytest) | `cd backend && ../.venv/bin/python -m pytest -v` | **112 passed, 0 failed** (18 s): the 98 tests of 1.2 (one assertion updated for the new default type filter), plus 14 AOI Insights tests (`test_insights.py`: regime and tracker, insufficient history, recurrence, critical periods and readiness with a hand-computed threshold, anomaly score with a hand-computed z, guard rail against count noise, cell anomaly, years and NOAA phases, analog groups exclude the focus year, climate file checksums, API/compare/exports, NRT rows without a type, demo refuses areas outside its data, near-real-time view with a mocked FIRMS: nothing stored, key not leaked) |
+| Backend unit/integration (pytest), 1.4 | `cd backend && ../.venv/bin/python -m pytest -q` | **120 passed, 0 failed** (20 s): the 115 tests of 1.3 with Blob (one assertion in `test_api_and_export` extended to the two added ZIP files) plus 5 day-level ratio tests (`test_aggregate.py`) |
+| Browser-level checks, 1.4 | `cd frontend && npm run build && npm run e2e` | **18 of 18 passed** (flows 1–17, flow 15 now selects the 1.0 event model before reading its series, plus flow 18), 0 uncaught page errors |
+| Backend unit/integration (pytest), 1.3 | `cd backend && ../.venv/bin/python -m pytest -v` | **112 passed, 0 failed** (18 s): the 98 tests of 1.2 (one assertion updated for the new default type filter), plus 14 AOI Insights tests (`test_insights.py`: regime and tracker, insufficient history, recurrence, critical periods and readiness with a hand-computed threshold, anomaly score with a hand-computed z, guard rail against count noise, cell anomaly, years and NOAA phases, analog groups exclude the focus year, climate file checksums, API/compare/exports, NRT rows without a type, demo refuses areas outside its data, near-real-time view with a mocked FIRMS: nothing stored, key not leaked) |
 | TypeScript type check | `cd frontend && npx tsc -b --noEmit` | **passed** (no errors) |
 | Production build | `cd frontend && npm run build` | **passed** |
-| Browser-level checks (Playwright) | `cd frontend && npm run e2e` | **17 of 17 passed** in 1 min 36 s (flows 1–16 with unchanged results, plus flow 17 for AOI Insights: role presets, honest "not enough history" on the short sample, no FIRMS request until asked, English and Indonesian briefing with the disclaimer, method drawer, hotspot and package exports), 0 uncaught page errors |
+| Browser-level checks (Playwright), 1.3 | `cd frontend && npm run e2e` | **17 of 17 passed** in 1 min 36 s (flows 1–16 with unchanged results, plus flow 17 for AOI Insights: role presets, honest "not enough history" on the short sample, no FIRMS request until asked, English and Indonesian briefing with the disclaimer, method drawer, hotspot and package exports), 0 uncaught page errors |
 | Fresh-copy start (macOS/Linux script) | `./scripts/start.sh` in a clean copy without `.venv` or `data` | **passed**: created .venv, installed the locked packages, served `/api/health` |
 | CLI import of the sample | `./scripts/import.sh sample_data/indonesia.zip`, twice | **passed**: 566,644 new rows, 0 rejected, revision 1. The second run gave 0 new, 566,644 duplicates, revision unchanged. |
 | CLI import of the full-history archive | `./scripts/import.sh indonesia_full_history.zip` | **passed**: 3,886 files, 10,917,537 rows, 0 rejected, 2000-11-01 → 2026-11-14, 526 s |
@@ -112,3 +114,13 @@ Run locally on the full-history database (2000-11-01 → 2026-11-14), read-only,
 - Example notebook `docs/notebooks/aoi_insights_api.ipynb`: its code cells were executed as a script against this server and completed (tracker, anomaly, critical periods, analog years, recurrence, ZIP download). The notebook file itself is stored without outputs.
 - CLI `python -m pyrosync.cli insights --aoi region:kalimantan --series MODIS --as-of 2026-11-14` wrote the 9-file package.
 - **Not executed:** the "Status now" request against the real FIRMS API (the container cannot reach NASA); it is covered by a test with a mocked FIRMS response.
+
+## Day-level ratio (added in 1.4)
+Browser check 18, final run on 2026-11-15 (sample data, so the gate correctly reports "not validated": two years cannot give three rolling-origin years):
+```
+PASS  15. Harmonization tab: stages, validation, map layers and error map match the API — 5907 matches; validity not_validated; map day 2024-09-15 MODIS 4 / VIIRS 651 (= daily series); 13 validated 0.5° regions; series totals not_validated
+PASS  18. Day-level ratio (1.4): gate badge, series, map views and the off-by-default History/Insights comparison follow the API — sample Kalimantan Aqua–N20: aggregate gate not_validated (UI = API); series line withheld; map ratio layer withheld; 22 regions within 0.8–1.25×; history gate not_validated; insights gate not_validated; nothing requested before the toggle
+
+18/18 browser checks passed.
+```
+Full archive, through the API (`TestClient`, same container): `/api/harmonization/aggregate/series` for Indonesia, Aqua–S-NPP, 2012-01-20 → 2026-11-14 returns `passes` with a calibrated line (0.9 s warm). 2024-01-01 → 2026-11-14 returns `not_validated` (enough rolling-origin years fails). Kalimantan with Aqua–NOAA-20 from 2018-04-01 returns `not_validated` (most years close to MODIS fails). The generated reports and every gate check are in [`harmonization/AGGREGATE/`](harmonization/AGGREGATE/AGGREGATE.md). The live preview and production checks are reported with the deployment, not here.

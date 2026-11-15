@@ -9,13 +9,14 @@ import { SERIES_SHORT, fmtNum } from '../util'
 import { Stage3 } from '../components/Harmonization'
 import HarmonizationMap, { WindowDetails } from '../components/HarmonizationMap'
 import HarmonizationSeries from '../components/HarmonizationSeries'
+import { AggregatePanel, AggregateSeries } from '../components/HarmonizationAggregate'
 import { ErrorComparison, MatchingProcess, PipelineCards, StatusBadge, ValidityChecks } from '../components/HarmonizationParts'
 import { ErrorNote, Icon, Loading, Panel, Seg } from '../components/ui'
 
 const VIIRS_PLATFORM: Record<string, string> = { VIIRS_SNPP: 'SNPP', VIIRS_N20: 'N20', VIIRS_N21: 'N21' }
 const STEPS = [
   ['h-settings', 'Choose region'], ['h-compare', 'Compare sensors'], ['h-harmonize', 'Harmonize'],
-  ['h-validity', 'Evaluate errors'], ['h-map', 'View on map'], ['h-history', 'Historical patterns'],
+  ['h-validity', 'Evaluate errors'], ['h-aggregate', 'Validate daily totals'], ['h-map', 'View on map'], ['h-history', 'Historical patterns'],
 ] as const
 
 export default function HarmonizationPage({ regions }: { regions: Region[] }) {
@@ -137,15 +138,24 @@ export default function HarmonizationPage({ regions }: { regions: Region[] }) {
           </div>
         </Panel>
 
-        <Panel id="h-map" title="5 · View on the map" info="Original MODIS and VIIRS detections, the matched pairs and, for a validated run, the experimental MODIS-scale estimates on the comparison grid. The error layer shows held-out MAE per region.">
+        <Panel id="h-aggregate" title="5 · Validate daily totals: day-level ratio (1.4)" info="A second, additive method for AOI totals: c = Σ MODIS / Σ VIIRS over training days, tested on later days, year by year and with a month-block bootstrap. Its own gate decides whether a calibrated total may be drawn.">
+          <AggregatePanel run={h.run} />
+        </Panel>
+
+        <Panel id="h-map" title="6 · View on the map" info="Original MODIS and VIIRS detections, the matched pairs and, for a validated run, the experimental MODIS-scale estimates on the comparison grid. The error layer shows held-out MAE per region.">
           <div className="flex flex-col gap-3 lg:flex-row">
             <div className="min-w-0 flex-1"><HarmonizationMap run={h.run} /></div>
             <aside className="w-full shrink-0 lg:w-[360px]"><WindowDetails run={h.run} /></aside>
           </div>
         </Panel>
 
-        <Panel id="h-history" title="6 · Historical patterns: original vs calibrated" info="Original series are the same detections as the rest of the app. The calibrated series is drawn only when the run passes both the unit-level and the held-out daily-total rules.">
-          <HarmonizationSeries run={h.run} />
+        <Panel id="h-history" title="7 · Historical patterns: original vs calibrated" info="Original series are the same detections as the rest of the app. A calibrated line is drawn only when its method passes its own held-out rules for daily totals.">
+          <div className="mb-2 flex flex-wrap items-end gap-2 text-xs">
+            <Seg label="Calibration method" value={h.histMethod} onChange={(v) => h.set({ histMethod: v })} options={[
+              { value: 'ratio', label: 'Day-level ratio (1.4)', title: 'Calibrates AOI daily totals directly' },
+              { value: 'event', label: 'Event model (1.0 baseline)', title: 'Sums the event-level log-log model; its daily totals did not pass validation' }]} />
+          </div>
+          {h.histMethod === 'ratio' ? <AggregateSeries run={h.run} /> : <HarmonizationSeries run={h.run} />}
         </Panel>
 
         <Panel title="Interpretation and limits">

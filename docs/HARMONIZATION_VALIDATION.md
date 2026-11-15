@@ -27,7 +27,7 @@ The NRT files start the day after the SP files end, so no NRT rows were supersed
 # add --viirs VIIRS_N20, --modis Terra, --tolerance 60, --grid 0.25, --metric frp_sum, --unit-set matched_plus_proxy, --aoi region:kalimantan
 ../.venv/bin/python -m pyrosync.cli harmonize-audit --out ../docs/harmonization/AUDIT   # audit of runs A–E (about 5 minutes)
 ```
-The same analysis is available in the app (the **Harmonization** tab, or Sensor Workbench → MODIS–VIIRS harmonization; both offer the validation package, which also exports every comparison unit as `units.csv`). Since 1.2 every report also contains the validity checks and the training-median constant; the reports in `docs/harmonization/` were regenerated with the same commands and their earlier numbers are unchanged. Shared defaults: MODIS confidence ≥ 30, VIIRS nominal/high, type 0 (vegetation fire), day and night, chronological hold-out of the last 20 % of units.
+The same analysis is available in the app (the **Harmonization** tab, or Sensor Workbench → MODIS–VIIRS harmonization; both offer the validation package, which also exports every comparison unit as `units.csv`). Since 1.2 every report also contains the validity checks and the training-median constant; the reports in `docs/harmonization/` were regenerated with the same commands and their earlier numbers are unchanged. Shared defaults: MODIS confidence ≥ 30, VIIRS nominal/high, type 0 (vegetation fire), day and night, chronological hold-out of the last 20 % of units. **Type filter note (1.4 review):** the reports in this section were generated with `types=0`. Since 1.3 the app's default is `0,unknown`, which also keeps FIRMS NRT rows (they have no type column). Run A re-run on 2026-11-15 with `types=0` reproduces every number below exactly (113,567 units, α 0.613138, β 0.238849, MAE 3.562 → 0.842); with `0,unknown` it has 113,588 units and the same training fit. The day-level results in the 1.4 section use `0,unknown`, because with type 0 the NRT period (2026) loses most of its rows.
 
 ## Results
 
@@ -108,3 +108,24 @@ Verified satellite coverage is not established. FIRMS active-fire records list d
 - The MODIS collection change (6.0 → 6.1 in 2023) and the NRT records after 2026-08/09 are inside the held-out period. No collection-specific correction is applied.
 - Event clustering uses a fixed 20-minute gap, and event time is the first acquisition in the event. FIRMS acquisition times are granule times, not per-pixel times.
 - Quality and type filters are applied identically to both sensors, but MODIS confidence (numeric) and VIIRS confidence (categorical) are different scales.
+
+## Day-level ratio for daily totals (added in 1.4)
+
+Full method, candidate comparison and derivation: [HARMONIZATION_UPDATE_REPORT.md](HARMONIZATION_UPDATE_REPORT.md). Generated reports: [`docs/harmonization/AGGREGATE/`](harmonization/AGGREGATE/AGGREGATE.md) (`python -m pyrosync.cli harmonize-aggregate --with-events`). Method `pyrosync-aggregate-1.0`, gate `pyrosync-aggregate-gate-1.0`.
+
+**Revised model.** AOI daily totals: M̂_d = c·V_d, c = Σ M / Σ V over training days with a known coverage state for both sensors. The chronological split is the last 20 % of active known days; each calendar year is also predicted from earlier years only (rolling origin), and c has a 95 % month-block bootstrap interval. The gate keeps the 1.2 daily-total rules (≥ 30 days, 0.8–1.25×, better than raw VIIRS and than a constant on MAE and RMSE) and adds: ≥ 3 rolling years, ≥ 80 % of them within 0.8–1.25×, none outside 0.67–1.5×, and ≥ 10 high-fire days (≥ training 90th percentile) within 0.8–1.25×.
+
+| Run | Quantity | c (95 %) | Held-out days | Σ est / Σ MODIS | Daily MAE ratio / raw / constant | Rolling years in band (range) | High-fire days | Gate |
+|---|---|---|---|---|---|---|---|---|
+| A Indonesia, Aqua–S-NPP | detections | 0.1309 (0.1226–0.1394) | 1,066 | 0.99 | 51.6 / 754.1 / 138.2 | 14 of 14 (0.83–1.22) | 0.98× | **passes** |
+| A | occupied cells | 0.2204 | 1,066 | 0.95 | 24.1 / 202.9 / 68.1 | 11 of 14 (0.85–1.46) | 0.78× | not validated |
+| C Indonesia, Aqua–NOAA-20 | detections | 0.1349 (0.1285–0.1418) | 626 | 1.07 | 79.5 / 1,149.9 / 162.1 | 8 of 8 (0.87–1.21) | 1.05× | **passes** |
+| C | occupied cells | 0.1969 | 626 | 0.85 | 32.9 / 283.9 / 79.4 | 7 of 8 (0.81–1.41) | 0.75× | not validated |
+| D Kalimantan, Aqua–S-NPP | detections | 0.1477 | 1,070 | 1.06 | 36.6 / 300.6 / 66.7 | 10 of 14 (0.66–1.34) | 0.89× | not validated |
+| D | occupied cells | 0.2789 | 1,070 | 0.94 | 16.6 / 55.0 / 30.9 | 11 of 14 (0.88–1.50) | 0.65× | not validated |
+| F Indonesia, Terra–S-NPP (control) | detections | 0.0630 | 1,066 | 0.87 | 31.1 / 806.1 / 83.0 | 10 of 14 (0.74–1.84) | 0.70× | not validated |
+| F | occupied cells | 0.1074 | 1,066 | 0.94 | 16.3 / 233.5 / 38.0 | 5 of 14 (0.69–2.05) | 0.62× | not validated |
+
+On the same held-out days (run A, from 2023-10-27) the 1.0 event model gives 3.67× (all VIIRS events, MAE 307.1) and 0.05× (matched events, MAE 109.9). **Aggregate validation therefore passes for Indonesia-wide detection totals with Aqua and S-NPP or NOAA-20, and fails for occupied cells, for Kalimantan and for the Terra control.** In the app the MODIS-equivalent line is drawn only where the gate passes for the exact filters, AOI and pair. Coverage remains not verified.
+
+**Aqua drift.** Aqua's median daytime acquisition over Indonesia moved from 05:38–06:11 UTC (2012–2023) to 07:47 UTC (2026), and the share of S-NPP detections in ±30 min matched events fell to 7.1 % (2024), 1.8 % (2025) and 0.0 % (2026) ([`aqua_drift_matched_share.json`](harmonization/AGGREGATE/aqua_drift_matched_share.json)). The event-level model cannot be refitted on recent years; the day-level ratio for run A stays at 0.83×, 0.92× and 1.04× in 2024–2026.

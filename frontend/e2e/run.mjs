@@ -1,4 +1,5 @@
-// PyroSync browser-level checks (13 required flows + harmonization flows added in v1.1/v1.2 + AOI Insights flow added in v1.3).
+// PyroSync browser-level checks (13 required flows + harmonization flows added in v1.1/v1.2 + AOI Insights flow added in v1.3
+// + day-level ratio flow added in v1.4).
 //
 // Starts its OWN backend on 127.0.0.1:8765 with a fresh, temporary data directory, so it never
 // touches your real database. The only synthetic rows used (flow 11) are a clearly labelled
@@ -353,6 +354,8 @@ try {
       assert(v === e.summary.cells_validated, `validated regions UI ${v} != API ${e.summary.cells_validated}`)
       errNote = `${v} validated 0.5° regions`
     }
+    // 1.4: the history panel opens on the day-level ratio; the 1.0 event-model series is one click away and unchanged
+    await page.getByRole('button', { name: 'Event model (1.0 baseline)' }).click()
     await page.getByTestId('hseries-status').waitFor({ timeout: 60000 })
     const sr = await api(`/api/harmonization/series?${q}&agg=month&scope=domain`)
     const st = await page.getByTestId('hseries-status').innerText()
@@ -423,6 +426,62 @@ try {
     const z = await fetch(`${BASE}/api/export/insights.zip?${qs}&metric=detections`)
     assert(z.ok && (await z.arrayBuffer()).byteLength > 200, 'insights.zip missing')
     return reg.available ? `tracker: ${reg.tracker.status.band}` : `sample history too short: "${reg.reason}" shown, nothing estimated; NRT not called; EN/ID briefing; exports OK`
+  })
+
+  await check('18. Day-level ratio (1.4): gate badge, series, map views and the off-by-default History/Insights comparison follow the API', async () => {
+    const q = 'start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&viirs_series=VIIRS_N20&modis_platforms=Aqua&tolerance_min=60&unit_grid=0.1&metric=detections&unit_set=matched&test_fraction=0.2'
+    await open(page, 'page=harmonization&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31&date=2024-09-15&frameMode=1')
+    const ctl = page.getByTestId('h-controls')
+    await ctl.getByRole('button', { name: /^NOAA-20/ }).click()
+    await ctl.getByRole('button', { name: '±60 min' }).click()
+    await page.getByTestId('h-run').click()
+    await page.getByTestId('hagg').waitFor({ timeout: 180000 })
+    const a = await api(`/api/harmonization/aggregate?${q}&events=true`)
+    const g = a.quantities.detections.gate
+    const badge = await page.getByTestId('hagg-badge').getAttribute('data-status')
+    assert(badge === g.status, `aggregate badge ${badge} != API ${g.status}`)
+    assert(a.coverage.status === 'not_verified', 'coverage must not be claimed as verified')
+    // the history panel defaults to the ratio series; a calibrated line exists only if the gate passes
+    await page.getByRole('button', { name: 'Day-level ratio (1.4)' }).click()
+    await page.getByTestId('hagg-series-status').waitFor({ timeout: 60000 })
+    const sr = await api(`/api/harmonization/aggregate/series?${q}&agg=month&quantity=detections`)
+    assert((sr.calibrated !== null) === (sr.gate.status === 'passes'), 'ratio series drawn without passing the gate')
+    assert((await page.getByTestId('hagg-series-status').innerText()).includes(sr.gate.label), 'series status differs from the API')
+    // map: ratio estimate note and regional ratio error view
+    const mc = page.getByTestId('hmap-controls')
+    await mc.getByRole('button', { name: 'Experimental calibrated' }).click()
+    await mc.getByRole('button', { name: 'Day-level ratio index (1.4)' }).click()
+    await page.getByTestId('hmap-ratio-note').waitFor({ timeout: 60000 })
+    const m = await api(`/api/harmonization/map?${q}&date=2024-09-15&mode=1&scope=domain&err_grid=0.5&min_n=20`)
+    assert(m.ratio_model.available === (g.status === 'passes'), 'map ratio layer availability does not follow the gate')
+    await mc.getByRole('button', { name: 'Calibration error' }).click()
+    await mc.getByRole('button', { name: 'Regional daily totals (1.4)' }).click()
+    await page.getByTestId('hratio-within').waitFor({ timeout: 60000 })
+    const rr = await api(`/api/harmonization/aggregate/regions?${q}&err_grid=0.5&min_days=20`)
+    const within = num(await page.getByTestId('hratio-within').innerText())
+    assert(within === rr.summary.within, `regions within UI ${within} != API ${rr.summary.within}`)
+    // History: off by default (no request), then the same gate as the API for the page's own filters
+    const meqCalls = []
+    page.on('request', (r) => { if (r.url().includes('/api/harmonization/aggregate/series')) meqCalls.push(r.url()) })
+    await open(page, 'page=history&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31&platforms=Aqua,N20&series=VIIRS_N20')
+    await page.getByTestId('hist-meq-toggle').waitFor({ timeout: 30000 })
+    await page.waitForTimeout(800)
+    assert(meqCalls.length === 0, 'the comparison was requested before it was switched on')
+    assert(!(await page.getByTestId('hist-meq-toggle').isChecked()), 'the comparison must be off by default')
+    await page.getByTestId('hist-meq-toggle').check()
+    await page.getByTestId('hist-meq-status').waitFor({ timeout: 60000 })
+    const hq = new URL(meqCalls[meqCalls.length - 1]).search
+    const hs = await api('/api/harmonization/aggregate/series' + hq)
+    const hb = await page.getByTestId('hist-meq-gate').getAttribute('data-status')
+    assert(hb === hs.gate.status && (hs.calibrated !== null) === (hs.gate.status === 'passes'), 'history comparison does not follow the gate')
+    // AOI Insights: the same comparison, off by default
+    await open(page, 'page=insights&aoi=region:kalimantan')
+    await page.getByTestId('ins-meq-toggle').waitFor({ timeout: 60000 })
+    assert(!(await page.getByTestId('ins-meq-toggle').isChecked()), 'insights comparison must be off by default')
+    await page.getByTestId('ins-meq-toggle').check()
+    await page.getByTestId('ins-meq-status').waitFor({ timeout: 60000 })
+    const ib = await page.getByTestId('ins-meq-gate').getAttribute('data-status')
+    return `sample Kalimantan Aqua–N20: aggregate gate ${g.status} (UI = API); series line ${sr.calibrated ? 'drawn' : 'withheld'}; map ratio layer ${m.ratio_model.available ? 'on' : 'withheld'}; ${within} regions within 0.8–1.25×; history gate ${hb}; insights gate ${ib}; nothing requested before the toggle`
   })
 
 } finally {

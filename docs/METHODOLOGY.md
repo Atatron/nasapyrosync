@@ -95,7 +95,7 @@ Area API: `/api/area/csv/[MAP_KEY]/[SOURCE]/[west,south,east,north]/[DAY_RANGE 1
 - NASA GIBS API documentation: https://nasa-gibs.github.io/gibs-api-docs/
 - Natural Earth (public domain): https://www.naturalearthdata.com/
 
-No journal articles are cited. The only cross-sensor relationship PyroSync reports is the empirical calibration of §15, fitted on the imported data and published with its held-out errors; it is not a general conversion factor.
+The cross-sensor relationships PyroSync reports (§15 and §18) are empirical calibrations fitted on the imported data and published with their held-out errors; they are not general conversion factors. Literature used for the 1.4 method and sensor background (verified via Crossref on 2026-11-15) is listed in [HARMONIZATION_UPDATE_REPORT.md](HARMONIZATION_UPDATE_REPORT.md#references); all thresholds are project decisions.
 
 ## 14. Known limitations
 1. The bundled sample (2023–2024) cannot support baselines, trends or seasonal-shift claims. The full-history archive can support baselines; trend or seasonal-shift statements would still need a dedicated statistical analysis, which PyroSync does not perform.
@@ -169,3 +169,18 @@ Implementation: `backend/pyrosync/insights.py`, `climate.py`, `live.py`. API: `/
 **D1 Status now.** On request only, the server fetches the last 3–10 days of FIRMS NRT detections for the AOI's bounding box (the key stays on the server; responses are cached in memory for 30 minutes and never stored), keeps rows inside the AOI polygon and passing the filters (rows without a type pass only when "unknown/missing type" is selected, the default), and scores each day and the window total with B2 against the archive. NRT data are provisional and the latest day is usually incomplete.
 
 **E1 Briefing.** A printable one-page summary in English or Indonesian built only from the numbers above, with the disclaimer at the top. **G1 Package.** `insights.zip` holds JSON and CSV for the regime, critical periods, years and recurrence, a manifest with every setting and a README; the CLI writes the same package.
+
+## 18. Day-level ratio for daily totals (added in 1.4)
+Implementation: `backend/pyrosync/aggregate.py` (method `pyrosync-aggregate-1.0`, gate `pyrosync-aggregate-gate-1.0`). API: `/api/harmonization/aggregate`, `/aggregate/series`, `/aggregate/regions`. UI: Harmonization tab section 5, the history-panel method switch, map switches "Estimate" and "Error view", and the off-by-default comparison panels in Historical Patterns and AOI Insights. CLI: `python -m pyrosync.cli harmonize-aggregate --out DIR`. Full report: [HARMONIZATION_UPDATE_REPORT.md](HARMONIZATION_UPDATE_REPORT.md).
+
+**Why.** The §15 event model is fitted on matched events only. Summed over days, it either credits VIIRS-only fires with MODIS detections (all events) or leaves out MODIS-only fires (matched events), so it fails the §16 daily-total gate. The day-level ratio calibrates the quantity the history pages show, the AOI total of one UTC day.
+
+**Estimator.** M̂_d = c · V_d, with c = Σ M_d / Σ V_d over training days on which both sensors have a known state (`detections` or `zero_reported`). Unknown days are excluded and are never treated as zero. Quantities: detections, and occupied cells of the comparison grid, each with its own c and gate. The split is either a configured date or the first day of the last `test_fraction` of active known days. The same rule is used with or without a unit-level run, so the Harmonization tab and the history pages agree. A 95 % interval for c comes from 500 month-block bootstrap resamples (seed 20261115). Rolling origin: each calendar year with at least 30 known days is predicted with c fitted on all earlier known days (at least 180).
+
+**Gate (a project rule, not a NASA standard).** The four §16 daily-total rules (at least 30 held-out days; 0.8–1.25×; MAE and RMSE better than raw VIIRS; and better than the training-mean constant), plus: at least 3 rolling-origin years; at least 80 % of them within 0.8–1.25×; none outside 0.67–1.5×; and at least 10 held-out days at or above the training 90th percentile of MODIS, whose total is within 0.8–1.25×. A line, band or map index is drawn only when the gate passes for that quantity.
+
+**Map.** "Day-level ratio index" = c × VIIRS detections of a cell. It is a visual aid, and it is validated only as a sum over the AOI. "Regional daily totals" shows, for each region cell over held-out known days, Σ c·V / Σ MODIS: within 0.8–1.25×, outside, or too few active days (a choice of 5, 10, 20, 30 or 50).
+
+**History and Insights.** The comparison is off until the user ticks it. It uses Aqua and one VIIRS satellite and the page's own filters (Insights: the AOI's whole history up to the as-of day). It shows the gate, c, the valid period (days on which both sensors exist; never before the VIIRS record starts) and the split. If the gate fails, only the original totals are shown, with the failed checks listed. No other statistic on those pages uses calibrated values.
+
+**Results on the full archive (types 0 + unknown).** The gate passes for Indonesia-wide detections with Aqua–S-NPP (c 0.1309, held-out 0.99×, 14 of 14 years in the band) and with Aqua–NOAA-20 (c 0.1349, 1.07×, 8 of 8). It fails for occupied cells, for Kalimantan and for Terra–S-NPP. See [HARMONIZATION_VALIDATION.md](HARMONIZATION_VALIDATION.md). Coverage is not verified.
