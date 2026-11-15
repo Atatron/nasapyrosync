@@ -236,7 +236,7 @@ function RegimeSection({ qs }: { qs: string }) {
             ],
           }} />
           <details className="text-[12px]"><summary className="cursor-pointer text-muted">Season dates per year ({r.season_by_year.length} complete years)</summary>
-            <div className="mt-2 max-h-64 overflow-auto"><table className="data"><thead><tr><th>Year</th><th className="text-right">Detections</th><th>Start</th><th>Peak</th><th>End</th></tr></thead>
+            <div className="scroll-box mt-2"><table className="data"><thead><tr><th>Year</th><th className="text-right">Detections</th><th>Start</th><th>Peak</th><th>End</th></tr></thead>
               <tbody>{r.season_by_year.map((y) => <tr key={y.year}><td>{y.year}</td><td className="text-right">{fmtNum(y.total)}</td><td>{y.onset_date}</td><td>{y.peak_date}</td><td>{y.end_date}</td></tr>)}</tbody></table></div>
           </details>
         </div>

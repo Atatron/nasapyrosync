@@ -72,21 +72,72 @@ export class ApiError extends Error {
   constructor(status: number, msg: string) { super(msg); this.status = status }
 }
 
-export async function getJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
+// ---- loading progress: how many data requests of the current burst have finished ----
+type Progress = { total: number; done: number }
+let progress: Progress = { total: 0, done: 0 }
+const listeners = new Set<(p: Progress) => void>()
+function emit() { listeners.forEach((f) => f(progress)) }
+function begin() { progress = { total: progress.total + 1, done: progress.done }; emit() }
+function finish() {
+  progress = { total: progress.total, done: progress.done + 1 }
+  if (progress.done >= progress.total) progress = { total: 0, done: 0 } // burst complete: reset
+  emit()
+}
+/** Live request progress for the loading bar ({total: 0} when idle). */
+export function useLoadProgress(): Progress {
+  const [p, setP] = useState(progress)
+  useEffect(() => { listeners.add(setP); return () => { listeners.delete(setP) } }, [])
+  return p
+}
+
+// ---- persistent browser cache (Cache Storage), keyed by dataset revision ----
+// Answers for the same dataset revision never change, so a repeat visit reuses them without a network request.
+// Live or per-request endpoints are never stored.
+const NO_STORE = ['/api/health', '/api/firms', '/api/insights/now', '/api/imports', '/api/uploads', '/api/imagery', '/api/inventory', '/api/aoi', '/api/regions']
+let revisionKey: string | null = null
+const storable = (url: string) => revisionKey !== null && url.startsWith('/api/') && !NO_STORE.some((p) => url.startsWith(p)) && typeof caches !== 'undefined'
+/** Called once the dataset is known (revision, processing version, size, app version); drops stored answers of any other key. */
+export function setCacheRevision(rev: string) {
+  if (revisionKey === rev) return
+  revisionKey = rev
+  if (typeof caches === 'undefined') return
+  caches.keys().then((ks) => ks.filter((k) => k.startsWith('pyrosync-r') && k !== `pyrosync-r${rev}`).forEach((k) => { void caches.delete(k) })).catch(() => {})
+}
+async function fromStore<T>(url: string): Promise<T | undefined> {
+  if (!storable(url)) return undefined
+  try {
+    const c = await caches.open(`pyrosync-r${revisionKey}`)
+    const r = await c.match(url)
+    return r ? (await r.json()) as T : undefined
+  } catch { return undefined }
+}
+function toStore(url: string, body: string) {
+  if (!storable(url)) return
+  const key = `pyrosync-r${revisionKey}`
+  caches.open(key).then((c) => c.put(url, new Response(body, { headers: { 'content-type': 'application/json' } }))).catch(() => {})
+}
+
+export async function getJSON<T>(url: string, signal?: AbortSignal, quiet = false): Promise<T> {
   if (cache.has(url)) return cache.get(url) as T
   let p = inflight.get(url) as Promise<T> | undefined
   if (!p) {
-    p = fetch(url).then(async (r) => {
+    if (!quiet) begin()
+    p = (async () => {
+      const stored = await fromStore<T>(url)
+      if (stored !== undefined) return stored
+      const r = await fetch(url)
       if (!r.ok) {
         let msg = `${r.status} ${r.statusText}`
         try { const j = await r.json(); msg = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail) } catch { /* not JSON */ }
         throw new ApiError(r.status, msg)
       }
-      return r.json() as Promise<T>
-    })
+      const text = await r.text()
+      toStore(url, text)
+      return JSON.parse(text) as T
+    })()
     inflight.set(url, p)
     p.then((v) => { cache.set(url, v); if (cache.size > 300) cache.delete(cache.keys().next().value as string) })
-      .catch(() => {}).finally(() => inflight.delete(url))
+      .catch(() => {}).finally(() => { inflight.delete(url); if (!quiet) finish() })
   }
   if (!signal) return p
   return new Promise<T>((res, rej) => {
@@ -96,10 +147,10 @@ export async function getJSON<T>(url: string, signal?: AbortSignal): Promise<T> 
 }
 
 export function prefetch(url: string) {
-  getJSON(url).catch(() => {})
+  getJSON(url, undefined, true).catch(() => {}) // background: not shown on the loading bar
 }
 
-export function clearCache() { cache.clear() }
+export function clearCache() { cache.clear() } // memory only; stored answers are keyed by revision
 
 export interface Q<T> { data: T | null; loading: boolean; error: string | null; url: string | null }
 

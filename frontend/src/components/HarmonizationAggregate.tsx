@@ -75,7 +75,7 @@ function AggDetails({ r, ev }: { r: AggReport; ev: AggEval }) {
           <tr><td>Valid period (both sensors)</td><td className="num">{r.valid_period?.join(' → ') ?? '—'}</td></tr>
         </tbody></table>
         <h5 className="font-semibold">Held-out daily totals ({ev.quantity === 'detections' ? 'detections' : 'occupied cells'} per day)</h5>
-        <div className="overflow-x-auto"><table className="data" data-testid="hagg-heldout"><thead><tr><th>Estimate</th><th>Σ est / Σ MODIS</th><th>MAE</th><th>RMSE</th><th>MBE</th></tr></thead>
+        <div className="scroll-box"><table className="data" data-testid="hagg-heldout"><thead><tr><th>Estimate</th><th>Σ est / Σ MODIS</th><th>MAE</th><th>RMSE</th><th>MBE</th></tr></thead>
           <tbody>{keys.map((k) => <tr key={k} className={k === 'day_ratio' ? 'font-semibold' : ''}><td>{AGG_METHOD_LABEL[k] ?? k}</td><td className="num">{f(ho[k].ratio, 2)}×</td>
             <td className="num">{f(ho[k].mae)}</td><td className="num">{f(ho[k].rmse)}</td><td className="num">{f(ho[k].mbe)}</td></tr>)}</tbody></table></div>
         {ev.activity && <p className="text-[11px]">High-fire days (MODIS ≥ {f(ev.activity.threshold, 0)}): {ev.activity.high.day_ratio.n} days, ratio {f(ev.activity.high.day_ratio.ratio, 2)}× (raw VIIRS {f(ev.activity.high.raw_viirs.ratio, 2)}×).
@@ -88,7 +88,7 @@ function AggDetails({ r, ev }: { r: AggReport; ev: AggEval }) {
         <h5 className="font-semibold">Year by year: each year predicted from earlier years only</h5>
         {yrs.length ? <EChart ariaLabel="Rolling-origin ratio of estimated to observed MODIS totals by year" option={option} height={200} /> : <p className="text-muted">No year has enough earlier data.</p>}
         <details><summary className="cursor-pointer text-[11px]">Table</summary>
-          <div className="overflow-x-auto"><table className="data" data-testid="hagg-years"><thead><tr><th>Year</th><th>c (earlier years)</th><th>Test days</th><th>Σ est / Σ MODIS</th><th>Raw VIIRS / MODIS</th><th>MAE</th><th>Constant MAE</th></tr></thead>
+          <div className="scroll-box"><table className="data" data-testid="hagg-years"><thead><tr><th>Year</th><th>c (earlier years)</th><th>Test days</th><th>Σ est / Σ MODIS</th><th>Raw VIIRS / MODIS</th><th>MAE</th><th>Constant MAE</th></tr></thead>
             <tbody>{yrs.map((y) => <tr key={y.year} data-within={y.within_level ? 'yes' : 'no'}><td>{y.year}</td><td className="num">{f(y.c, 4)}</td><td className="num">{y.test_days}</td>
               <td className={'num ' + (y.within_level ? '' : 'text-amber-700')}>{f(y.ratio, 2)}×</td><td className="num">{f(y.raw_ratio, 2)}×</td><td className="num">{f(y.mae)}</td><td className="num">{f(y.constant_mae)}</td></tr>)}</tbody></table></div>
           <p className="text-[11px] text-muted">{ev.rolling_origin?.rule}</p></details>

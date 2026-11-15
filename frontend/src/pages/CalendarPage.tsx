@@ -4,7 +4,7 @@ import { useDaily, useElevated, useSeriesParams } from '../hooks'
 import { useApp } from '../state'
 import { MON3, MONTHS, METRIC_INFO, RAMP, SERIES_COLOR, SERIES_SHORT, STATUS_LABEL, addDays, cls, daysInMonth, fmtDate, fmtNum, isoWeekday, rampBins, rampColor } from '../util'
 import { Empty, ErrorNote, Icon, Loading, Panel, Seg, StatusSwatch } from '../components/ui'
-import Timeline from '../components/Timeline'
+import { DayControls } from '../components/Timeline'
 import { FusionBanner, FusionHistory } from '../components/FusionParts'
 
 type DayInfo = { date: string; inRange: boolean; value: number | null; status: string; i: number }
@@ -100,23 +100,27 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-4 p-4 lg:p-6">
       <FusionBanner />
-      <Timeline daily={daily.data} elevated={el.data} compact />
       {daily.error && <ErrorNote msg={daily.error} />}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <Panel className="min-w-0 lg:col-span-8" title={`Burning-activity calendar · ${SERIES_SHORT[s.series]}`} id="cal-title"
           info={<>Each day is one UTC calendar day. Color = {METRIC_INFO[s.metric].label} ({METRIC_INFO[s.metric].unit}). Hatched = unknown coverage (not zero). Grey = zero detections reported inside an imported interval. Dashed = outside the analysis/imported range. Clicking a day selects it on the shared timeline and map.</>}
-          actions={<>
-            <button className="btn px-2" aria-label="Previous month" onClick={() => goMonth(0, -1)}><Icon name="prev" /></button>
-            <select className="field" aria-label="Month" value={m} onChange={(e) => goMonth(0, Number(e.target.value) - m)}>{MONTHS.map((n, i) => <option key={n} value={i + 1}>{n}</option>)}</select>
-            <select className="field" aria-label="Year" value={y} onChange={(e) => goMonth(Number(e.target.value) - y, 0)}>{years.map((yy) => <option key={yy} value={yy}>{yy}</option>)}</select>
-            <button className="btn px-2" aria-label="Next month" onClick={() => goMonth(0, 1)}><Icon name="next" /></button>
-            <Seg label="Color scale" value={s.calendarScale} onChange={(v) => s.set({ calendarScale: v })} options={[{ value: 'range', label: 'Stable scale', title: 'Same color domain for the whole analysis range' }, { value: 'month', label: 'Rescale per month', title: 'Colors rescaled to this month only' }]} />
-          </>}>
+          actions={<Seg label="Color scale" value={s.calendarScale} onChange={(v) => s.set({ calendarScale: v })} options={[{ value: 'range', label: 'Stable scale', title: 'Same color domain for the whole analysis range' }, { value: 'month', label: 'Rescale per month', title: 'Colors rescaled to this month only' }]} />}>
+          <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-line pb-3" data-testid="calendar-nav" role="group" aria-label="Calendar navigation">
+            <div className="flex items-center gap-1">
+              <button className="btn px-2" aria-label="Previous month" onClick={() => goMonth(0, -1)}><Icon name="prev" /></button>
+              <select className="field" aria-label="Month" value={m} onChange={(e) => goMonth(0, Number(e.target.value) - m)}>{MONTHS.map((n, i) => <option key={n} value={i + 1}>{n}</option>)}</select>
+              <select className="field" aria-label="Year" value={y} onChange={(e) => goMonth(Number(e.target.value) - y, 0)}>{years.map((yy) => <option key={yy} value={yy}>{yy}</option>)}</select>
+              <button className="btn px-2" aria-label="Next month" onClick={() => goMonth(0, 1)}><Icon name="next" /></button>
+            </div>
+            <span className="h-6 w-px bg-line max-sm:hidden" aria-hidden />
+            <DayControls />
+            <span className="ml-auto text-xs text-muted" data-testid="active-window" aria-live="polite">Selected {fmtDate(s.date)} (UTC)</span>
+          </div>
           {!daily.data ? <Loading /> : !ser ? <Empty title="Sensor not selected">Enable the sensor in Filters or pick another sensor.</Empty> : (
             <>
               {s.calendarScale === 'month' && <p className="mb-2 rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-900 dark:bg-amber-950 dark:text-amber-100">Automatic rescaling is ON: colors are relative to this month's maximum ({fmtNum(monthMax, 1)}); similar colors in different months are not equal values.</p>}
-              <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-muted" aria-hidden>{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d}>{d}</div>)}</div>
-              <div ref={gridRef} role="grid" aria-labelledby="cal-title" className="mt-1 grid grid-cols-7 gap-1" data-testid="calendar-grid">
+              <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-semibold text-muted" aria-hidden>{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d}>{d}</div>)}</div>
+              <div ref={gridRef} role="grid" aria-labelledby="cal-title" className="mt-1.5 grid grid-cols-7 gap-2" data-testid="calendar-grid">
                 {cells.map((d, k) => {
                   if (!d) return <div key={`e${k}`} aria-hidden />
                   const di = info(d)
@@ -127,7 +131,7 @@ export default function CalendarPage() {
                     <button key={d} type="button" role="gridcell" data-date={d} data-testid={`day-${d}`} tabIndex={d === focus ? 0 : -1}
                       aria-selected={isSel} aria-label={`${fmtDate(d)}: ${di.value === null ? STATUS_LABEL[di.status] : `${fmtNum(di.value, 1)} ${METRIC_INFO[s.metric].unit}`}${fl ? '; elevated observed activity' : ''}`}
                       onClick={() => { s.setDate(d); setFocus(d) }} onFocus={() => setFocus(d)} onMouseEnter={() => setFocus(d)} onKeyDown={(e) => onKey(e, d)}
-                      className={cls('relative flex h-16 flex-col items-start justify-between rounded-md p-1.5 text-left text-xs sm:h-20', st.className, isSel && 'ring-2 ring-ink ring-offset-1 ring-offset-panel')}
+                      className={cls('relative flex h-14 flex-col items-start justify-between rounded-lg p-1.5 text-left text-xs sm:h-20 sm:p-2.5', st.className, isSel && 'ring-2 ring-ink ring-offset-1 ring-offset-panel')}
                       style={st.style}>
                       <span className="font-semibold">{Number(d.slice(8))}</span>
                       <span className="num text-[11px]">{di.inRange && di.value !== null ? fmtNum(di.value, s.metric.startsWith('frp') ? 0 : 0) : di.status === 'unknown' ? '?' : ''}</span>

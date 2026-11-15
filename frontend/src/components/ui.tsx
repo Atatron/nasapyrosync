@@ -1,34 +1,13 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import * as echarts from 'echarts/core'
-import { BarChart, LineChart, ScatterChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkAreaComponent, DataZoomComponent } from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
+import { Suspense, lazy, useId, useState, type ReactNode } from 'react'
+import type { EChartsCoreOption } from 'echarts/core'
 import { cls } from '../util'
 
-echarts.use([BarChart, LineChart, ScatterChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkAreaComponent, DataZoomComponent, CanvasRenderer])
-
-export function EChart({ option, height = 220, onClick, ariaLabel, className }: {
-  option: echarts.EChartsCoreOption; height?: number | string; onClick?: (p: { dataIndex: number; seriesName?: string; name?: string }) => void
+const EChartImpl = lazy(() => import('./EChartImpl'))
+export function EChart(props: {
+  option: EChartsCoreOption; height?: number | string; onClick?: (p: { dataIndex: number; seriesName?: string; name?: string }) => void
   ariaLabel: string; className?: string
 }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const inst = useRef<echarts.ECharts | null>(null)
-  const clickRef = useRef(onClick)
-  clickRef.current = onClick
-  useEffect(() => {
-    if (!ref.current) return
-    const c = echarts.init(ref.current, undefined, { renderer: 'canvas' })
-    inst.current = c
-    c.on('click', (p) => clickRef.current?.(p as never))
-    const ro = new ResizeObserver(() => c.resize())
-    ro.observe(ref.current)
-    return () => { ro.disconnect(); c.dispose(); inst.current = null }
-  }, [])
-  useEffect(() => {
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    inst.current?.setOption({ animation: !reduced, ...(option as object) }, true)
-  }, [option])
-  return <div ref={ref} role="img" aria-label={ariaLabel} className={className} style={{ height, width: '100%' }} />
+  return <Suspense fallback={<div role="img" aria-label={props.ariaLabel} className={props.className} style={{ height: props.height ?? 220, width: '100%' }} />}><EChartImpl {...props} /></Suspense>
 }
 
 export function Info({ children, label = 'More information' }: { children: ReactNode; label?: string }) {
@@ -40,7 +19,7 @@ export function Info({ children, label = 'More information' }: { children: React
         className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-line text-[10px] font-bold text-muted hover:text-ink"
         onClick={() => setOpen((o) => !o)} onBlur={() => setOpen(false)} onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}>i</button>
       {open && (
-        <span id={id} role="tooltip" className="absolute left-1/2 top-5 z-[1200] w-72 -tranzinc-x-1/2 rounded-lg border border-line bg-panel p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-ink shadow-lg">
+        <span id={id} role="tooltip" className="absolute left-1/2 top-5 z-[1200] w-72 -translate-x-1/2 rounded-lg border border-line bg-panel p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-ink shadow-lg">
           {children}
         </span>
       )}
@@ -138,6 +117,11 @@ export function Icon({ name, className = 'h-4 w-4' }: { name: string; className?
     layers: <><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65M22 12.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" /></>,
     database: <><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0" /></>,
     sidebar: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" /></>,
+    maximize: <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />,
+    minimize: <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />,
+    theater: <><rect x="2" y="6" width="20" height="12" rx="2" /></>,
+    sliders: <path d="M21 4h-7m-4 0H3m18 8h-9m-4 0H3m18 8h-5m-4 0H3M14 2v4M8 10v4m8 4v4" />,
+    panelRight: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M15 3v18" /></>,
     pin: <><path d="M20 10c0 5-5.5 10.2-7.4 11.8a1 1 0 0 1-1.2 0C9.5 20.2 4 15 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></>,
     link: <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
   }

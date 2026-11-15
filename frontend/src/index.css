@@ -68,7 +68,8 @@ textarea.field { height: auto; padding: .375rem .625rem; }
 .label { font-size: .6875rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
 .chip { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; padding: .1rem .5rem; font-size: .6875rem; font-weight: 600; }
 /* Bounded scroll area for long tables and lists; table headers stick to its top */
-.scroll-box { max-height: 360px; overflow: auto; }
+.scroll-box { max-height: 340px; overflow: auto; border: 1px solid var(--c-line); border-radius: 0.5rem; }
+.scroll-box table.data { margin: 0; }
 .scroll-box table.data th { position: sticky; top: 0; z-index: 1; background: var(--c-panel); }
 }
 
@@ -110,3 +111,10 @@ table.data th.text-right { text-align: right; }
 /* 1.5: Analyze Location mode */
 .analyze-mode.leaflet-container, .analyze-mode .leaflet-interactive { cursor: crosshair; }
 .hotspot-pop table.data th, .hotspot-pop table.data td { padding: 1px 4px; font-size: 11px; }
+
+/* compact tables (Explore drawer) */
+table.data.compact th, table.data.compact td { padding-left: .3rem; padding-right: .3rem; }
+table.data.compact th:first-child, table.data.compact td:first-child { padding-left: 0; }
+table.data.compact th:last-child, table.data.compact td:last-child { padding-right: 0; }
+/* phones: one-line map attribution */
+@media (max-width: 639px) { .leaflet-control-attribution { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 9px; } }

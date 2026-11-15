@@ -16,7 +16,7 @@ import { FusionPanel } from '../components/FusionParts'
 
 const VIIRS_PLATFORM: Record<string, string> = { VIIRS_SNPP: 'SNPP', VIIRS_N20: 'N20', VIIRS_N21: 'N21' }
 const STEPS = [
-  ['h-fusion', 'Multi-sensor fusion'], ['h-settings', 'Choose region'], ['h-compare', 'Compare sensors'], ['h-harmonize', 'Harmonize'],
+  ['h-fusion', 'Multi-sensor fusion'], ['h-settings', 'Run settings'], ['h-compare', 'Compare sensors'], ['h-harmonize', 'Harmonize'],
   ['h-validity', 'Evaluate errors'], ['h-aggregate', 'Validate daily totals'], ['h-map', 'View on map'], ['h-history', 'Historical patterns'],
 ] as const
 
@@ -89,15 +89,9 @@ export default function HarmonizationPage({ regions }: { regions: Region[] }) {
         <FusionPanel />
       </Panel>
 
-      <Panel id="h-settings" title="1 · Region, period and sensors" info="The AOI, dates and quality filters come from the top bar and apply to both sensors. The sensor pair and matching settings below are specific to harmonization.">
-        <div className="grid gap-2 text-xs md:grid-cols-3">
-          <div><div className="label">Region (top bar)</div><div className="font-semibold" data-testid="h-aoi">{aoiName(s.aoi)}</div></div>
-          <div><div className="label">Analysis period (top bar)</div><div className="font-semibold num">{s.start} → {s.end}</div>
-            {overlap && (overlap[0] !== s.start || overlap[1] !== s.end) && <button className="mt-0.5 text-accent underline" data-testid="h-use-overlap" onClick={() => s.set({ start: overlap[0], end: overlap[1], date: s.date < overlap[0] || s.date > overlap[1] ? overlap[1] : s.date })}>
-              Use all years with both sensors ({overlap[0]} → {overlap[1]})</button>}</div>
-          <div><div className="label">Quality filters (top bar)</div><div>MODIS confidence ≥ {s.modisMinConf}; VIIRS {s.viirsConf.join(', ')}; types {s.types.join(', ')}; {s.daynight.join(' + ')}</div></div>
-        </div>
-        <div className="mt-3 flex flex-wrap items-end gap-2 text-xs" data-testid="h-controls">
+      <Panel id="h-settings" title="Pairwise MODIS–VIIRS calibration run"
+        info="Region, period and quality filters come from the top bar. Only the sensor pair and matching settings below are specific to this run.">
+        <div className="flex flex-wrap items-end gap-2 text-xs" data-testid="h-controls">
           <Seg label="VIIRS sensor" value={h.viirs} onChange={(v) => h.set({ viirs: v })}
             options={(['VIIRS_SNPP', 'VIIRS_N20', 'VIIRS_N21'] as const).map((v) => ({ value: v, label: SERIES_SHORT[v].replace('VIIRS ', '') + (avail.length && !avail.includes(v) ? ' (not imported)' : '') }))} />
           <Seg label="MODIS platform" value={h.modis} onChange={(v) => h.set({ modis: v })} options={[{ value: 'Aqua', label: 'Aqua', title: 'Near-simultaneous with VIIRS' }, { value: 'Terra', label: 'Terra', title: 'Morning orbit: few or no matches expected' }, { value: 'Aqua,Terra', label: 'Both' }]} />
@@ -112,10 +106,12 @@ export default function HarmonizationPage({ regions }: { regions: Region[] }) {
         {missing.length > 0 && <p className="mt-1 text-[11px] text-amber-700">Not in the imported data: {missing.join(', ')}. Choose another sensor pair.</p>}
         {h.metric === 'frp_sum' && <p className="mt-1 text-[11px] text-amber-700">FRP sums can be evaluated but are never applied to the map or series: the log-log model did not reduce held-out FRP errors on the full archive.</p>}
         <p className="mt-1 text-[11px] text-muted">A run over many years and a large region can take up to a minute.{stale && <b className="ml-1 text-amber-700" data-testid="h-stale">Settings or filters changed since the last run: press Run again.</b>}</p>
+        {overlap && (overlap[0] !== s.start || overlap[1] !== s.end) && <button className="mt-1 text-[11px] text-accent underline" data-testid="h-use-overlap" onClick={() => s.set({ start: overlap[0], end: overlap[1], date: s.date < overlap[0] || s.date > overlap[1] ? overlap[1] : s.date })}>
+          Use all years with both sensors ({overlap[0]} → {overlap[1]})</button>}
       </Panel>
 
       {!h.run ? (
-        <section className="panel p-6 text-center text-sm text-muted" data-testid="h-notrun">Choose the region, period and sensors, then press <b>Run harmonization</b>. Nothing is estimated before a run.</section>
+        <section className="panel p-6 text-center text-sm text-muted" data-testid="h-notrun">Pick the sensor pair above, then press <b>Run harmonization</b>. The region, period and filters come from the top bar. Nothing is estimated before a run.</section>
       ) : q.error ? <ErrorNote msg={q.error} /> : !r ? <section className="panel p-6"><Loading label="Matching events and fitting the model…" /></section> : <>
         <Panel id="h-compare" title={`2 · Compare sensors: ${aoiName(runP.get('aoi') ?? 'none')}, ${runP.get('start')} → ${runP.get('end')}`}
           info="Stage 1 puts both sensors on one grid; stage 2 pairs MODIS and VIIRS observation events of the same cell and overpass.">

@@ -1,22 +1,20 @@
-import { useEffect, useState } from 'react'
-import { clearCache, useApi, type Region } from './api'
+import { Suspense, lazy, useEffect, useState } from 'react'
+import { clearCache, setCacheRevision, useApi, useLoadProgress, type Region } from './api'
+import pkg from '../package.json'
 import { useInventory } from './hooks'
 import { useApp } from './state'
 import { cls } from './util'
-import { Icon, Seg } from './components/ui'
+import { Icon, Loading, Seg } from './components/ui'
 import { WORKSPACES, useView, workspaceOf } from './workspace'
 import TopBar from './components/TopBar'
-import Explore from './pages/Explore'
-import CalendarPage from './pages/CalendarPage'
-import HistoryPage from './pages/HistoryPage'
-import Workbench from './pages/Workbench'
-import DataMethods from './pages/DataMethods'
-import HarmonizationPage from './pages/HarmonizationPage'
-import InsightsPage from './pages/InsightsPage'
-
-const SHORT: Record<string, [string, string]> = {
-  'region:indonesia': ['IDN', 'Indonesia National'], 'region:kalimantan': ['KAL', 'Kalimantan'], 'region:sumatra': ['SUM', 'Sumatra'],
-}
+// pages load on demand (smaller first download; the map library only loads with Explore)
+const Explore = lazy(() => import('./pages/Explore'))
+const CalendarPage = lazy(() => import('./pages/CalendarPage'))
+const HistoryPage = lazy(() => import('./pages/HistoryPage'))
+const Workbench = lazy(() => import('./pages/Workbench'))
+const DataMethods = lazy(() => import('./pages/DataMethods'))
+const HarmonizationPage = lazy(() => import('./pages/HarmonizationPage'))
+const InsightsPage = lazy(() => import('./pages/InsightsPage'))
 
 function NavItem({ w, onNavigate }: { w: (typeof WORKSPACES)[number]; onNavigate: () => void }) {
   const s = useApp()
@@ -36,40 +34,6 @@ function NavItem({ w, onNavigate }: { w: (typeof WORKSPACES)[number]; onNavigate
         <Icon name={w.icon} className="h-4 w-4 shrink-0" /><span className={cls('truncate', !s.navOpen && 'lg:sr-only')}>{w.label}</span>
       </button>
     </li>
-  )
-}
-
-function AoiQuick({ regions, onNavigate }: { regions: Region[]; onNavigate: () => void }) {
-  const s = useApp()
-  const main = ['region:indonesia', 'region:kalimantan', 'region:sumatra'].filter((id) => regions.some((r) => r.id === id))
-  const provinces = regions.filter((r) => !main.includes(r.id))
-  const pick = (v: string) => { s.set({ aoi: v, analyzeMode: 'region', clickAt: '', lastRegionAoi: v }); onNavigate() }
-  if (!regions.length) return null
-  return (
-    <div className="border-t border-line p-2" data-testid="aoi-quick">
-      <div className={cls('px-2.5 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted', !s.navOpen && 'lg:sr-only')}>Indonesia AOI</div>
-      <ul className="space-y-0.5">
-        {main.map((id) => {
-          const [code, name] = SHORT[id]
-          const on = s.aoi === id
-          return (
-            <li key={id}><button type="button" aria-pressed={on} onClick={() => pick(id)} title={regions.find((r) => r.id === id)?.name}
-              className={cls('flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-[13px]', on ? 'bg-soft font-semibold text-ink' : 'text-muted hover:bg-soft hover:text-ink')}>
-              <span className={cls('inline-flex h-5 w-9 shrink-0 items-center justify-center rounded font-mono text-[10px] font-semibold',
-                on ? 'bg-zinc-950 text-white dark:bg-zinc-50 dark:text-zinc-950' : 'border border-line')}>{code}</span>
-              <span className={cls('truncate', !s.navOpen && 'lg:sr-only')}>{name}</span>
-            </button></li>
-          )
-        })}
-      </ul>
-      {provinces.length > 0 && (
-        <select className={cls('field mt-1.5 w-full', !s.navOpen && 'lg:hidden')} aria-label="Province AOI" value={provinces.some((r) => r.id === s.aoi) ? s.aoi : ''}
-          onChange={(e) => e.target.value && pick(e.target.value)}>
-          <option value="">Province…</option>
-          {provinces.map((r) => <option key={r.id} value={r.id}>{r.name.replace(/ province$/, '')}</option>)}
-        </select>
-      )}
-    </div>
   )
 }
 
@@ -134,6 +98,7 @@ export default function App() {
   useEffect(() => {
     const d = inv.data
     if (!d) return
+    setCacheRevision(`${d.dataset_revision}-${d.processing_version}-${d.observations_total}-${d.date_range?.join('_') ?? ''}-${pkg.version}`)
     if (d.dataset_revision !== s.revision) { clearCache(); s.set({ revision: d.dataset_revision }) }
     if (d.date_range) {
       const [a, b] = d.date_range
@@ -185,7 +150,6 @@ export default function App() {
           <ul className="space-y-0.5 p-2 pt-1">
             {WORKSPACES.map((w) => <NavItem key={w.id} w={w} onNavigate={closeOnSmall} />)}
           </ul>
-          <AoiQuick regions={regions.data?.regions ?? []} onNavigate={closeOnSmall} />
         </div>
         <div className="space-y-2 border-t border-line p-2">
           {inv.data && <div className={cls('rounded-lg border border-line p-2.5 text-[11px] leading-snug', !s.navOpen && 'lg:hidden')} data-testid="sidebar-dataset">
@@ -205,6 +169,7 @@ export default function App() {
       </nav>
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar regions={regions.data?.regions ?? []} inventory={inv.data} />
+        <LoadBar />
         {health.data?.readonly && !view.demoHidden && <div className="flex items-start gap-2 border-b border-line bg-zinc-100 px-4 py-1 text-xs text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400" role="note" data-testid="demo-bar">
           <span className="min-w-0 flex-1">Read-only online demo: {health.data.demo_note ?? 'FIRMS sample data.'} Importing new data works in the local version only.</span>
           <button type="button" className="shrink-0 rounded p-0.5 hover:text-ink" aria-label="Dismiss demo notice"
@@ -213,6 +178,7 @@ export default function App() {
         <main id="main" className="min-h-0 flex-1 overflow-auto max-md:pb-16">
           {!empty && inv.data && <WorkspaceTabs />}
           {inv.error && <div className="p-6"><div role="alert" className="panel p-4 text-sm">Cannot reach the PyroSync backend ({inv.error}). Start it with the start script, then reload.</div></div>}
+          <Suspense fallback={<div className="p-6"><Loading label="Loading view…" /></div>}>
           {empty && s.page !== 'data' ? (
             <div className="mx-auto max-w-xl p-8">
               <div className="panel p-6">
@@ -221,9 +187,10 @@ export default function App() {
                 <button className="btn btn-primary mt-4" onClick={() => s.set({ page: 'data' })}>Go to Methods, Import</button>
               </div>
             </div>
-          ) : s.page === 'data' ? <DataMethods /> : !inv.data ? null : s.page === 'explore' ? <Explore regions={regions.data?.regions ?? []} />
+          ) : s.page === 'data' ? <DataMethods /> : !inv.data ? null : s.page === 'explore' ? <Explore />
             : s.page === 'calendar' ? <CalendarPage /> : s.page === 'history' ? <HistoryPage /> : s.page === 'harmonization' ? <HarmonizationPage regions={regions.data?.regions ?? []} />
             : s.page === 'insights' ? <InsightsPage regions={regions.data?.regions ?? []} view={view.insView} /> : <Workbench view={view.wbView} />}
+          </Suspense>
         </main>
         <BottomNav />
       </div>
@@ -249,5 +216,31 @@ function BottomNav() {
         )
       })}
     </nav>
+  )
+}
+
+/** Thin progress bar under the top bar: finished vs started data requests of the current loading burst. */
+function LoadBar() {
+  const p = useLoadProgress()
+  const [show, setShow] = useState<{ total: number; done: number } | null>(null)
+  useEffect(() => {
+    if (p.total > 0) { setShow(p); return }
+    // burst finished: show 100 % briefly, then hide
+    setShow((x) => (x ? { total: x.total, done: x.total } : null))
+    const t = window.setTimeout(() => setShow(null), 450)
+    return () => window.clearTimeout(t)
+  }, [p])
+  if (!show) return null
+  const pct = Math.round((show.done / Math.max(1, show.total)) * 100)
+  return (
+    <div className="relative z-[999] h-0" data-testid="load-bar">
+      <div className="absolute inset-x-0 top-0 h-[3px] bg-zinc-200 dark:bg-zinc-800" role="progressbar" aria-label="Loading data" aria-valuemin={0} aria-valuemax={show.total} aria-valuenow={show.done}
+        aria-valuetext={`${show.done} of ${show.total} data requests finished`}>
+        <div className="h-full bg-accent transition-[width] duration-300 ease-out" style={{ width: `${Math.max(6, pct)}%` }} />
+      </div>
+      <div className="absolute right-3 top-1.5 rounded-full border border-line bg-panel px-2 py-0.5 text-[10px] font-medium text-muted shadow-sm num" aria-hidden>
+        {show.done < show.total ? `Loading data · ${show.done} of ${show.total}` : 'Loaded'}
+      </div>
+    </div>
   )
 }

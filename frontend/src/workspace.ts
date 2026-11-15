@@ -25,6 +25,7 @@ interface ViewState {
   insView: 'tracker' | 'climate' // page=insights shows the season tracker or the climate (ENSO / IOD) view
   wbView: 'series' | 'records' // page=workbench shows the sensor workbench or the source records
   demoHidden: boolean
+  stage: 'default' | 'theater' | 'fullscreen' // Explore map stage size (UI only, not in the URL)
   set: (p: Partial<Omit<ViewState, 'set'>>) => void
 }
 
@@ -34,5 +35,6 @@ export const useView = create<ViewState>((set) => ({
   insView: 'tracker',
   wbView: 'series',
   demoHidden: readHidden(),
+  stage: 'default',
   set: (p) => set(p),
 }))

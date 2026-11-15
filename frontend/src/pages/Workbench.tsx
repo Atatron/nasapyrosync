@@ -91,7 +91,7 @@ function SourceRecords() {
       actions={<label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={all} onChange={(e) => { setAll(e.target.checked); setPage(0) }} />Include filtered-out records</label>}>
       {q.error ? <ErrorNote msg={q.error} /> : !q.data ? <Loading /> : (
         <>
-          <div className="scroll-box" style={{ maxHeight: 380 }}>
+          <div className="scroll-box">
             <table className="data" data-testid="records-table"><thead><tr><th>Date</th><th>Time (UTC)</th><th>Sensor</th><th>Lat</th><th>Lon</th><th>Conf.</th><th>FRP MW</th><th>D/N</th><th>Type</th><th>Thermal (K)</th><th>Scan×Track</th><th>Product · ver</th><th>Source</th></tr></thead>
               <tbody>{q.data.records.map((r) => (
                 <tr key={r.rid}><td>{r.acq_date}</td><td className="num">{r.acq_hhmm.slice(0, 2)}:{r.acq_hhmm.slice(2)}</td><td><span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: SERIES_COLOR[r.series] }} />{r.platform}</td>

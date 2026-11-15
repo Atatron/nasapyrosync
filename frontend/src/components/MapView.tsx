@@ -8,6 +8,7 @@ import { useDisplayQS, useFusionFrame } from '../hooks'
 import { GRID_CHOICES, circleId, circleKm, frameWindow, gridForZoom, useApp } from '../state'
 import { FUSION_STATUS_TEXT, PLATFORM_SHORT, fusionStatusClass } from '../fusion'
 import { PLATFORM_LABEL, RAMP, SERIES_COLOR, SERIES_SHORT, cls, fmtDate, fmtNum, rampColor } from '../util'
+import { Icon } from './ui'
 
 // Keyless static basemaps (Esri Canvas). CARTO's tiles now show an "API KEY REQUIRED" watermark without a key.
 const ESRI_ATTR = 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'
@@ -96,6 +97,8 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
   const [aoiErr, setAoiErr] = useState<string | null>(null)
   const [pts, setPts] = useState<Observations | null>(null)
   const [ptsErr, setPtsErr] = useState<string | null>(null)
+  const [tools, setTools] = useState(false)
+  const [legend, setLegend] = useState(() => typeof window === 'undefined' || window.innerWidth >= 640) // phones: folded by default
   const initialView = useRef(useApp.getState().view) // captured before the map writes its own view
 
   // Click-to-Analyze: centre a zoom-adaptive circle on a location (map click, a cell, or a hotspot's "Analyze around")
@@ -174,6 +177,14 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
     ro.observe(el.current!)
     return () => { dead = true; ro.disconnect(); cancelAnimationFrame(raf); m.off(); window.clearTimeout(t); m.stop(); m.remove(); map.current = null }
   }, [])
+
+  // close the map-tools popover on any click outside it
+  useEffect(() => {
+    if (!tools) return
+    const h = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest?.('[data-testid="map-controls"]')) setTools(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [tools])
 
   // crosshair cursor in Analyze Location mode
   useEffect(() => { el.current?.classList.toggle('analyze-mode', s.analyzeMode === 'click') }, [s.analyzeMode])
@@ -373,63 +384,63 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
   const layerErr = s.mapLayer === 'harmonized' ? fusion.error : s.mapLayer === 'cells' ? frame.error : ptsErr
 
   return (
-    <div className="relative h-full min-h-[320px] overflow-hidden rounded-xl border border-line">
+    <div className="relative h-full min-h-[320px] overflow-hidden">
       <div ref={el} className="absolute inset-0" aria-label="Fire map. Use the timeline below to change the date." role="region" tabIndex={0} data-testid="explore-map" />
-      {/* window labels */}
-      <div className="pointer-events-none absolute left-14 right-2 top-2 z-[500] flex flex-col items-start gap-1 text-[11px] sm:right-auto" data-testid="map-labels">
-        <div className="pointer-events-auto rounded-md bg-panel/95 px-2 py-1 shadow" data-testid="fire-window-label"><b>Fire observations:</b> {fireLabel}</div>
-        <div className="pointer-events-auto rounded-md bg-panel/95 px-2 py-1 shadow" data-testid="imagery-label"><b>Satellite imagery:</b> {imgLabel}</div>
-        {s.mapLayer !== 'points' && <div className="pointer-events-auto rounded-md bg-panel/95 px-2 py-1 shadow" data-testid="grid-label">
-          <b>Grid:</b> {dGrid}° {s.gridMode === 'auto' ? `(auto, zoom ${s.mapZoom})` : '(manual)'}</div>}
+      {/* window labels (one compact card) */}
+      <div className="pointer-events-none absolute left-14 right-14 top-2 z-[500] flex flex-col items-start gap-1 text-[11px] sm:right-auto" data-testid="map-labels">
+        <div className="pointer-events-auto max-w-full space-y-0.5 rounded-md bg-panel/95 px-2 py-1 leading-snug shadow">
+          <div className="truncate" data-testid="fire-window-label"><b>Fire observations:</b> {fireLabel}</div>
+          <div className="truncate text-muted" data-testid="imagery-label"><b className="text-ink">Imagery:</b> {imgLabel}</div>
+          {s.mapLayer !== 'points' && <div className="text-muted" data-testid="grid-label"><b className="text-ink">Grid:</b> {dGrid}° {s.gridMode === 'auto' ? `(auto, zoom ${s.mapZoom})` : '(manual)'}</div>}
+        </div>
         {s.analyzeMode === 'click' && <div className="pointer-events-auto rounded-md bg-panel/95 px-2 py-1 shadow" data-testid="analyze-label">
-          {km !== null ? <><b>Analysis circle:</b> radius <b className="num" data-testid="circle-km">{km}</b> km · follows the zoom (zoom out = larger area) · statistics below use this circle</>
+          {km !== null ? <><b>Analysis circle:</b> radius <b className="num" data-testid="circle-km">{km}</b> km · follows the zoom (zoom out = larger area) · statistics use this circle</>
             : <><b>Analyze Location:</b> click the map or a detection to analyse the area around it</>}</div>}
         {s.imagery !== 'off' && s.frameMode > 1 && <div className="rounded-md bg-amber-50 px-2 py-1 text-amber-900 shadow dark:bg-amber-950 dark:text-amber-100">Imagery shows one day; fire layer covers {s.frameMode} days — different temporal windows.</div>}
       </div>
-      {/* map controls */}
-      <div className="absolute right-2 top-2 z-[500] flex max-w-[60%] flex-col items-end gap-1 max-sm:top-[150px] max-sm:origin-top-right max-sm:scale-90" data-testid="map-controls">
-        <div className="seg shadow" role="group" aria-label="Analysis area mode">
-          <button aria-pressed={s.analyzeMode === 'region'} title="Fixed region, drawn polygon or uploaded GeoJSON: zooming never changes its statistics"
-            onClick={() => s.set({ analyzeMode: 'region', clickAt: '', ...(s.aoi.startsWith('circle:') ? { aoi: regionBack } : {}) })}>Region AOI</button>
-          <button aria-pressed={s.analyzeMode === 'click'} data-testid="analyze-toggle" title="Click anywhere: analyse a circle around it whose radius follows the zoom"
-            onClick={() => s.set({ analyzeMode: 'click', lastRegionAoi: s.aoi.startsWith('circle:') ? s.lastRegionAoi : s.aoi })}>Analyze Location</button>
-        </div>
-        <div className="seg shadow" role="group" aria-label="Map layer">
-          <button aria-pressed={s.mapLayer === 'points'} onClick={() => s.set({ mapLayer: 'points' })} title="Original NASA FIRMS detections (pixel centres); click one for its attributes">Detections</button>
-          <button aria-pressed={s.mapLayer === 'cells'} onClick={() => s.set({ mapLayer: 'cells' })} title="Original detections of the primary sensor per grid cell">{dGrid}° cells</button>
-          <button aria-pressed={s.mapLayer === 'harmonized'} data-testid="layer-harmonized" onClick={() => s.set({ mapLayer: 'harmonized' })} title="Multi-sensor harmonized activity index per grid cell (experimental)">Harmonized</button>
-        </div>
-        <select className="field max-w-[200px] shadow" aria-label="Grid resolution" data-testid="grid-mode" value={s.gridMode === 'auto' ? 'auto' : String(s.grid)}
-          onChange={(e) => { const v = e.target.value; if (v === 'auto') s.set({ gridMode: 'auto' }); else s.set({ gridMode: 'manual', grid: Number(v) }) }}>
-          <option value="auto">Grid: Auto (recommended)</option>
-          {GRID_CHOICES.map((g) => <option key={g} value={g}>Grid: {g}° (manual)</option>)}
-        </select>
-        <select className="field max-w-[200px] shadow sm:max-w-[300px]" aria-label="Imagery or basemap" value={s.imagery === 'off' ? `base:${s.basemap}` : s.imagery}
-          onChange={(e) => { const v = e.target.value; if (v.startsWith('base:')) s.set({ imagery: 'off', basemap: v.slice(5) as 'light' | 'dark' | 'none', imageryOverride: null }); else s.set({ imagery: v, imageryOverride: null }) }}>
-          <optgroup label="Dated NASA GIBS imagery">
-            {(imagery.data?.layers ?? []).map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
-          </optgroup>
-          <optgroup label="Static basemaps">
-            <option value="base:light">Light basemap (static)</option><option value="base:dark">Dark basemap (static)</option><option value="base:none">None (offline)</option>
-          </optgroup>
-        </select>
-        <div className="flex flex-wrap justify-end gap-1">
+      {/* map tools: one button, one popover (keeps the canvas clear) */}
+      <div className="absolute right-2 top-2 z-[700] flex flex-col items-end gap-1" data-testid="map-controls">
+        <div className="flex items-center gap-1">
           {s.analyzeMode === 'click' && s.aoi.startsWith('circle:') && <button className="btn shadow" data-testid="back-to-region"
             onClick={() => s.set({ analyzeMode: 'region', clickAt: '', aoi: regionBack })}>Back to region</button>}
-          <button className="btn shadow" onClick={onUploadRequest}>Upload GeoJSON</button>
-          {s.aoi !== 'none' && <button className="btn shadow" onClick={() => s.set({ aoi: 'none', clickAt: '', analyzeMode: 'region' })}>Clear AOI</button>}
-          <button className="btn shadow" onClick={() => s.set({ page: 'harmonization' })} title="Calibration, errors, regional validity and statistics">Diagnostics</button>
+          <button type="button" className="btn shadow" aria-expanded={tools} aria-controls="map-tools" data-testid="map-tools-toggle" onClick={() => setTools(!tools)}>
+            <Icon name="sliders" /><span className="max-sm:sr-only">Map tools</span></button>
         </div>
+        {tools && <div id="map-tools" role="dialog" aria-label="Map tools" onKeyDown={(e) => e.key === 'Escape' && setTools(false)}
+          className="w-64 space-y-3 rounded-xl border border-line bg-panel p-3 text-xs shadow-xl" data-testid="map-tools">
+          <div>
+            <div className="label mb-1">Analysis area</div>
+            <div className="seg w-full" role="group" aria-label="Analysis area mode">
+              <button className="flex-1" aria-pressed={s.analyzeMode === 'region'} title="Fixed region, drawn polygon or uploaded GeoJSON: zooming never changes its statistics"
+                onClick={() => s.set({ analyzeMode: 'region', clickAt: '', ...(s.aoi.startsWith('circle:') ? { aoi: regionBack } : {}) })}>Region AOI</button>
+              <button className="flex-1" aria-pressed={s.analyzeMode === 'click'} data-testid="analyze-toggle" title="Click anywhere: analyse a circle around it whose radius follows the zoom"
+                onClick={() => s.set({ analyzeMode: 'click', lastRegionAoi: s.aoi.startsWith('circle:') ? s.lastRegionAoi : s.aoi })}>Analyze Location</button>
+            </div>
+          </div>
+          <label className="block"><span className="label mb-1 block">Grid</span>
+            <select className="field w-full" aria-label="Grid resolution" data-testid="grid-mode" value={s.gridMode === 'auto' ? 'auto' : String(s.grid)}
+              onChange={(e) => { const v = e.target.value; if (v === 'auto') s.set({ gridMode: 'auto' }); else s.set({ gridMode: 'manual', grid: Number(v) }) }}>
+              <option value="auto">Auto (recommended)</option>
+              {GRID_CHOICES.map((g) => <option key={g} value={g}>{g}° (manual)</option>)}
+            </select>
+          </label>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button className="btn justify-center" onClick={() => { setTools(false); onUploadRequest() }}><Icon name="upload" />Upload GeoJSON</button>
+            <button className="btn justify-center" disabled={s.aoi === 'none'} onClick={() => s.set({ aoi: 'none', clickAt: '', analyzeMode: 'region' })}>Clear AOI</button>
+            <button className="btn col-span-2 justify-center" onClick={() => s.set({ page: 'harmonization' })} title="Calibration, errors, regional validity and statistics">Diagnostics (calibration audit)</button>
+          </div>
+          <p className="text-[11px] text-muted">Draw a rectangle or polygon with the tools on the left of the map.</p>
+        </div>}
       </div>
       {/* imagery status */}
       {s.imagery !== 'off' && imgState.key === imgKey && imgState.status === 'unavailable' && (
-        <div role="status" data-testid="imagery-unavailable" className="absolute left-1/2 top-24 z-[600] -tranzinc-x-1/2 rounded-lg border border-line bg-panel px-3 py-2 text-center text-xs shadow-lg">
+        <div role="status" data-testid="imagery-unavailable" className="absolute left-1/2 top-24 z-[600] -translate-x-1/2 rounded-lg border border-line bg-panel px-3 py-2 text-center text-xs shadow-lg">
           <b>Imagery unavailable for this date</b> ({imgDate}).<br />
           {(() => { const n = nearestImagery(imagery.data, s.imagery, s.date); return n && n !== imgDate ? <button className="mt-1 text-accent underline" onClick={() => s.set({ imageryOverride: n })}>Show nearest available date ({n}) — will be labeled as substituted</button> : null })()}
         </div>
       )}
       {s.imagery !== 'off' && imgState.key === imgKey && imgState.status === 'failed' && (
-        <div role="status" className="absolute left-1/2 top-24 z-[600] -tranzinc-x-1/2 rounded-lg border border-line bg-panel px-3 py-2 text-xs shadow-lg"><b>Imagery tiles failed to load</b> for {imgDate} (offline or service error). Fire analysis still works.</div>
+        <div role="status" className="absolute left-1/2 top-24 z-[600] -translate-x-1/2 rounded-lg border border-line bg-panel px-3 py-2 text-xs shadow-lg"><b>Imagery tiles failed to load</b> for {imgDate} (offline or service error). Fire analysis still works.</div>
       )}
       {(showLoading || (s.imagery !== 'off' && imgState.key === imgKey && imgState.status === 'loading')) && (
         <div role="status" data-testid="map-loading" className="absolute inset-x-0 bottom-3 z-[600] mx-auto flex w-fit items-center gap-2 rounded-full bg-panel px-3 py-1.5 text-xs shadow-lg">
@@ -438,7 +449,9 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
       )}
       {(layerErr || aoiErr) && <div role="alert" className="absolute bottom-14 left-2 z-[600] max-w-sm rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">{layerErr || aoiErr}</div>}
       {/* legend */}
-      <div className="absolute bottom-2 right-2 z-[500] max-w-[300px] rounded-lg bg-panel/95 px-2 py-1.5 text-[10px] shadow max-sm:bottom-12" aria-label="Map legend" data-testid="map-legend">
+      {!legend && <button type="button" className="btn absolute bottom-6 right-2 z-[500] shadow max-sm:bottom-auto max-sm:top-24" aria-expanded={false} onClick={() => setLegend(true)}>Legend</button>}
+      <div className={cls('absolute bottom-6 right-2 z-[500] max-w-[300px] rounded-lg bg-panel/95 px-2 py-1.5 text-[10px] shadow max-sm:bottom-auto max-sm:top-24 max-sm:max-w-[240px]', !legend && 'hidden')} aria-label="Map legend" data-testid="map-legend">
+        <button type="button" className="float-right ml-1 rounded p-0.5 text-muted hover:text-ink" aria-label="Hide legend" onClick={() => setLegend(false)}><Icon name="x" className="h-3 w-3" /></button>
         {s.mapLayer === 'cells' ? (
           <>
             <div className="mb-1 font-semibold">{cellSeries === 'UNION' ? `Selected sensors detecting each ${dGrid}° cell` : `${SERIES_SHORT[cellSeries] ?? cellSeries} detections per ${dGrid}° cell in window`}</div>
@@ -471,5 +484,35 @@ export default function MapView({ frame, onUploadRequest }: { frame: { data: Fra
         <div className="mt-0.5 text-muted">Auto grid: zoom 3–5 → 0.25°, 6–7 → 0.1°, 8–10 → 0.05°, 11+ → 0.01° (now {gridForZoom(s.mapZoom)}°).</div>
       </div>
     </div>
+  )
+}
+
+/** Map layer pills for the Explore control bar: original detections, grid cells, harmonized index. */
+export function MapLayerPills() {
+  const s = useApp()
+  const { grid: dGrid } = useDisplayQS()
+  return (
+    <div className="seg" role="group" aria-label="Map layer">
+      <button aria-pressed={s.mapLayer === 'points'} onClick={() => s.set({ mapLayer: 'points' })} title="Original NASA FIRMS detections (pixel centres); click one for its attributes">Detections</button>
+      <button aria-pressed={s.mapLayer === 'cells'} onClick={() => s.set({ mapLayer: 'cells' })} title="Original detections of the primary sensor per grid cell">{dGrid}° cells</button>
+      <button aria-pressed={s.mapLayer === 'harmonized'} data-testid="layer-harmonized" onClick={() => s.set({ mapLayer: 'harmonized' })} title="Multi-sensor harmonized activity index per grid cell (experimental)">Harmonized</button>
+    </div>
+  )
+}
+
+/** Dated NASA GIBS imagery or a static basemap, for the Explore control bar. */
+export function BasemapSelect() {
+  const s = useApp()
+  const imagery = useApi<Imagery>('/api/imagery/layers')
+  return (
+    <select className="field max-w-[200px]" aria-label="Imagery or basemap" value={s.imagery === 'off' ? `base:${s.basemap}` : s.imagery}
+      onChange={(e) => { const v = e.target.value; if (v.startsWith('base:')) s.set({ imagery: 'off', basemap: v.slice(5) as 'light' | 'dark' | 'none', imageryOverride: null }); else s.set({ imagery: v, imageryOverride: null }) }}>
+      <optgroup label="Dated NASA GIBS imagery">
+        {(imagery.data?.layers ?? []).map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+      </optgroup>
+      <optgroup label="Static basemaps">
+        <option value="base:light">Light basemap (static)</option><option value="base:dark">Dark basemap (static)</option><option value="base:none">None (offline)</option>
+      </optgroup>
+    </select>
   )
 }

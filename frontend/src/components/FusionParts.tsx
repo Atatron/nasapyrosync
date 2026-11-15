@@ -115,7 +115,7 @@ export function FusionPanel() {
       <p className="text-muted">{r.reference_doc}</p>
       <p><b>Formula.</b> {r.equation}. Eligible: {r.eligibility_rule}.</p>
       <div className="overflow-x-auto">
-        <table className="data" data-testid="fusion-pairs"><thead><tr><th>Platform</th><th>Record</th><th>c vs Aqua (95 %)</th><th>Overlap days</th><th>Held-out Σ/Σ</th><th>Rolling years in band</th><th>Pair gate</th><th>Used</th></tr></thead>
+        <div className="scroll-box"><table className="data" data-testid="fusion-pairs"><thead><tr><th>Platform</th><th>Record</th><th>c vs Aqua (95 %)</th><th>Overlap days</th><th>Held-out Σ/Σ</th><th>Rolling years in band</th><th>Pair gate</th><th>Used</th></tr></thead>
           <tbody>
             <tr><td>Aqua (MODIS) · reference</td><td className="num">{r.platform_records.Aqua?.join(' → ') ?? '—'}</td><td className="num">1 (by definition)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>yes</td></tr>
             {Object.values(r.pairs).map((p) => {
@@ -130,16 +130,16 @@ export function FusionPanel() {
                   <td>{r.effective.eligible.includes(p.platform) ? 'yes' : 'no'}</td>
                 </tr>)
             })}
-          </tbody></table>
+          </tbody></table></div>
       </div>
       <p className="text-muted">{v.design}</p>
       {v.status !== 'ok' ? <p className="text-amber-700" data-testid="fusion-insufficient">Not tested: {v.reason}</p> : <>
         <div className="grid gap-3 xl:grid-cols-2">
           <div>
             <h5 className="mb-1 font-semibold">Held-out daily totals ({fmtNum(v.held_out_days)} days, {v.held_out_period?.join(' → ')}; split {v.split})</h5>
-            <table className="data" data-testid="fusion-heldout"><thead><tr><th>Method</th><th>Σ est / Σ Aqua</th><th>MAE</th><th>RMSE</th><th>Bias</th></tr></thead>
+            <div className="scroll-box"><table className="data" data-testid="fusion-heldout"><thead><tr><th>Method</th><th>Σ est / Σ Aqua</th><th>MAE</th><th>RMSE</th><th>Bias</th></tr></thead>
               <tbody>{ho && ([['fusion_leave_reference_out', 'Fusion without Aqua (calibrated average)'], ['raw_unadjusted_mean', 'Uncalibrated mean of raw counts'], ['constant_train_mean', 'Constant (training mean)']] as const).map(([k, l]) => (
-                <tr key={k}><td>{l}</td><td className="num">{f2(ho[k].ratio)}</td><td className="num">{f2(ho[k].mae, 1)}</td><td className="num">{f2(ho[k].rmse, 1)}</td><td className="num">{f2(ho[k].mbe, 1)}</td></tr>))}</tbody></table>
+                <tr key={k}><td>{l}</td><td className="num">{f2(ho[k].ratio)}</td><td className="num">{f2(ho[k].mae, 1)}</td><td className="num">{f2(ho[k].rmse, 1)}</td><td className="num">{f2(ho[k].mbe, 1)}</td></tr>))}</tbody></table></div>
             {v.single_sensor_comparison && Object.keys(v.single_sensor_comparison).length > 0 && <table className="data mt-2"><thead><tr><th>Same days</th><th>Single-sensor ratio (1.4) Σ/Σ · MAE</th><th>Fusion Σ/Σ · MAE</th></tr></thead>
               <tbody>{Object.entries(v.single_sensor_comparison).map(([p, c]) => <tr key={p}><td>{PLATFORM_SHORT[p]} ({c.days} d)</td><td className="num">{f2(c.single_ratio.ratio)} · {f2(c.single_ratio.mae, 1)}</td><td className="num">{f2(c.fusion.ratio)} · {f2(c.fusion.mae, 1)}</td></tr>)}</tbody></table>}
             <p className="mt-1 text-muted">High-fire days (Aqua ≥ {f2(v.activity?.threshold, 0)}): {v.activity?.high.fusion_leave_reference_out.n} days, {f2(v.activity?.high.fusion_leave_reference_out.ratio)}×.

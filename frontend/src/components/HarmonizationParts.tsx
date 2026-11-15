@@ -9,13 +9,13 @@ function f3(v: number | null | undefined, d = 3) { return v === null || v === un
 
 export function ValidityChecks({ checks, testid }: { checks: Check[]; testid?: string }) {
   return (
-    <table className="data" data-testid={testid}><thead><tr><th>Check</th><th>Result</th><th>Value</th></tr></thead>
+    <div className="scroll-box"><table className="data" data-testid={testid}><thead><tr><th>Check</th><th>Result</th><th>Value</th></tr></thead>
       <tbody>{checks.map((c) => (
         <tr key={c.id} title={c.rule} data-check={c.id} data-passed={c.passed ? 'yes' : 'no'}>
           <td>{c.label}<div className="text-[10px] text-muted">{c.rule}</div></td>
           <td className={cls('whitespace-nowrap font-semibold', c.passed ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400')}>{c.passed ? '✓ passed' : '✗ not met'}</td>
           <td className="text-[11px]">{c.value}</td>
-        </tr>))}</tbody></table>
+        </tr>))}</tbody></table></div>
   )
 }
 

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Inventory, Region } from '../api'
-import { useFilterQS } from '../hooks'
+import { useFilterQS, useFrame } from '../hooks'
 import { frameWindow, serializeState, useApp, viewConfig, type Metric } from '../state'
 import { PLATFORM_LABEL, SERIES_SHORT, cls, downloadBlob } from '../util'
-import { Icon, Info } from './ui'
+import { Icon, Info, Warnings } from './ui'
 
 export function AoiSelect({ regions, id = 'aoi-select' }: { regions: Region[]; id?: string }) {
   const { aoi, set } = useApp()
@@ -59,7 +59,7 @@ function FilterPanel({ inventory, onClose }: { inventory?: Inventory | null; onC
   useEffect(() => { ref.current?.querySelector<HTMLElement>('input,button')?.focus() }, [])
   return (
     <div ref={ref} role="dialog" aria-label="Filters" onKeyDown={(e) => e.key === 'Escape' && onClose()}
-      className="absolute right-0 top-11 z-[1300] w-[340px] max-w-[calc(100vw-1rem)] space-y-4 rounded-xl border border-line bg-panel p-4 text-sm shadow-xl">
+      className="absolute right-0 top-11 z-[1300] max-h-[calc(100dvh-5rem)] w-[340px] max-w-[calc(100vw-1rem)] space-y-4 overflow-y-auto rounded-xl border border-line bg-panel p-4 text-sm shadow-xl">
       <div>
         <div className="label mb-1">Sensors / platforms</div>
         {['Terra', 'Aqua', 'N20', 'N21', 'SNPP'].map((p) => {
@@ -103,7 +103,27 @@ function FilterPanel({ inventory, onClose }: { inventory?: Inventory | null; onC
           </select>
         </div>
       </div>
+      <AppliedNote />
       <div className="flex justify-end"><button className="btn" onClick={onClose}>Close</button></div>
+    </div>
+  )
+}
+
+/** What the server actually applied to the current map frame (filter disclosure and data warnings). */
+function AppliedNote() {
+  const f = useFrame().data
+  if (!f) return null
+  const d = f.filter_disclosure
+  return (
+    <div className="border-t border-line pt-3" data-testid="filters-applied">
+      <div className="label mb-1">Applied to the current results</div>
+      <ul className="space-y-0.5 text-[11px] text-muted">
+        <li>{String(d.modis_quality)}; {String(d.viirs_quality)}</li>
+        <li>Types included: {d.types_included.join(', ')}</li>
+        <li>Types excluded: {d.types_excluded.join(', ') || 'none'}</li>
+        <li>Revision {f.dataset_revision} · {f.processing_version}</li>
+      </ul>
+      <div className="mt-2"><Warnings items={f.warnings} /></div>
     </div>
   )
 }
@@ -148,7 +168,7 @@ export default function TopBar({ regions, inventory }: { regions: Region[]; inve
   const nf = (s.modisMinConf !== 30 ? 1 : 0) + (s.viirsConf.join() !== 'nominal,high' ? 1 : 0) + (s.types.join() !== '0' ? 1 : 0) + (s.daynight.length !== 2 ? 1 : 0) + (s.gridMode === 'manual' ? 1 : 0)
   return (
     <header className="sticky top-0 z-[1000] flex min-h-14 flex-wrap items-center gap-2 border-b border-line bg-panel px-3 py-2 lg:px-4">
-      <button className="btn px-2" aria-label={s.navOpen ? 'Collapse navigation' : 'Expand navigation'} aria-expanded={s.navOpen} onClick={() => s.set({ navOpen: !s.navOpen })}><Icon name="menu" /></button>
+      <button className="btn px-2 lg:hidden" aria-label="Open navigation" aria-expanded={s.navOpen} onClick={() => s.set({ navOpen: true })}><Icon name="menu" /></button>
       <AoiSelect regions={regions} />
       <button type="button" className="btn md:hidden" aria-expanded={more} aria-controls="topbar-more" onClick={() => setMore(!more)}>{s.start.slice(0, 4) === s.end.slice(0, 4) ? s.start.slice(0, 4) : `${s.start.slice(0, 4)}–${s.end.slice(0, 4)}`} · {SERIES_SHORT[s.series] ?? s.series}</button>
       <div id="topbar-more" className={cls('flex flex-wrap items-center gap-2 max-md:order-last max-md:w-full', !more && 'max-md:hidden')}>
@@ -172,7 +192,6 @@ export default function TopBar({ regions, inventory }: { regions: Region[]; inve
       <div ref={wrap} className="relative ml-auto flex items-center gap-2">
         <button className="btn" aria-expanded={open === 'filters'} onClick={() => setOpen(open === 'filters' ? null : 'filters')}><Icon name="filter" />Filters{nf > 0 && <span className="chip bg-accent text-white">{nf}</span>}</button>
         <button className="btn" aria-expanded={open === 'export'} onClick={() => setOpen(open === 'export' ? null : 'export')}><Icon name="download" />Export</button>
-        {s.page === 'explore' && <button className="btn px-2" aria-label={s.detailsOpen ? 'Hide details panel' : 'Show details panel'} aria-expanded={s.detailsOpen} onClick={() => s.set({ detailsOpen: !s.detailsOpen })}><Icon name="panel" /></button>}
         {open === 'filters' && <FilterPanel inventory={inventory} onClose={() => setOpen(null)} />}
         {open === 'export' && <ExportMenu onClose={() => setOpen(null)} />}
       </div>

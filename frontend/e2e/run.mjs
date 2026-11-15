@@ -184,11 +184,11 @@ try {
     const h = (r) => { const u = r.url(); if (u.includes('/api/elevated?')) reqs.push(new URL(u).searchParams.get('series')) }
     page.on('request', h)
     await page.locator('#series-select').selectOption('MODIS')
-    await page.getByTestId('card-elevated').getByText('MODIS').first().waitFor({ timeout: 15000 })
+    await page.getByTestId('elevated-summary').getByText('MODIS').first().waitFor({ timeout: 15000 })
     await sleep(500)
     page.off('request', h)
     assert(reqs.includes('MODIS'), `elevated requests: ${reqs.join(',')}`)
-    return 'elevated-period request and summary card switched to MODIS'
+    return 'elevated-period request and the elevated-activity summary switched to MODIS'
   })
 
   await check('7. Imagery tile requests include the selected date', async () => {
@@ -520,6 +520,7 @@ try {
     // old bookmark with a grid but no gridMode keeps that grid as a manual choice
     await open(page, `page=explore&aoi=region:kalimantan&date=2023-09-15&frameMode=1&grid=0.05&view=-1.5,113.5,5`)
     await page.getByTestId('grid-label').getByText('0.05° (manual)').waitFor({ timeout: 15000 })
+    await page.getByTestId('map-tools-toggle').click()
     assert(await page.getByTestId('grid-mode').inputValue() === '0.05', 'old bookmarked grid not preserved')
     // auto grid: 0.25° at zoom 5, finer when zooming in; the region statistics stay the same
     const obs = await api(`/api/observations?${qs0}&aoi=region:kalimantan&platforms=N20&window_start=2023-09-15&window_end=2023-09-15&limit=20`)
@@ -558,6 +559,7 @@ try {
     await page.getByTestId('harm-legend').getByText('Experimental Harmonized Activity Index').first().waitFor()
     // Analyze Location: click → circle AOI; zoom in → smaller radius; statistics follow the circle
     await page.getByRole('button', { name: /cells$/ }).click()
+    await page.getByTestId('map-tools-toggle').click()
     await page.getByTestId('analyze-toggle').click()
     const mb = await page.locator('.leaflet-container').first().boundingBox()
     await page.mouse.click(mb.x + mb.width / 2, mb.y + mb.height / 2)
@@ -636,6 +638,65 @@ try {
     const zr = await fetch(`${BASE}/api/export/fusion.zip?start=2023-01-01&end=2024-12-31&aoi=region:kalimantan`)
     assert(zr.ok && (await zr.arrayBuffer()).byteLength > 200, 'fusion.zip missing')
     return `sample: fusion status ${fr.effective.status} (${fr.effective.status_label}); eligible ${fr.eligible.join(', ') || 'none'}; calendar and Insights banners = API (${insReq.length} Insights requests for FUSED); fusion.zip OK`
+  })
+
+  await check('21. UI 1.7: one control per job, map stage sizes, unified calendar header, compact harmonization, loading bar', async () => {
+    await open(page, 'page=explore&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31&date=2023-09-15&frameMode=1&series=VIIRS_N20')
+    await waitMapIdle(page)
+    // shell: no AOI block in the sidebar, no top-bar hamburger on desktop, the sidebar keeps its own Collapse button
+    assert(await page.getByTestId('aoi-quick').count() === 0, 'sidebar AOI quick-selector still present')
+    assert(!(await page.getByRole('button', { name: 'Open navigation' }).isVisible()), 'top-bar hamburger visible on desktop')
+    await page.getByTestId('sidebar-toggle').waitFor()
+    // Explore: no KPI strip, no Filters-applied card; counters live in the map control bar and equal the API
+    assert(await page.getByTestId('summary-cards').count() === 0, 'KPI strip still present')
+    assert(await page.getByText('Filters applied', { exact: true }).count() === 0, 'Filters applied card still present')
+    const det = num(await page.getByTestId('hud-counters').getByTestId('det-VIIRS_N20').innerText())
+    const apiK = await api('/api/frame?start=2023-01-01&end=2024-12-31&aoi=region:kalimantan&date=2023-09-15&mode=1')
+    assert(det === apiK.summary.VIIRS_N20.detections, `HUD ${det} vs API ${apiK.summary.VIIRS_N20.detections}`)
+    // the filter disclosure moved into the Filters popover
+    await page.getByRole('button', { name: /^Filters/ }).click()
+    await page.getByTestId('filters-applied').getByText('Types included', { exact: false }).waitFor({ timeout: 15000 })
+    await page.getByRole('button', { name: 'Close' }).click()
+    // map stage: default → theater collapses the drawer → default restores it → full screen → Esc returns
+    await page.getByTestId('details-drawer').waitFor()
+    const h0 = (await page.getByTestId('map-stage').boundingBox()).height
+    await page.getByTestId('stage-theater').click()
+    await page.waitForFunction(() => document.querySelector('[data-testid="map-stage"]')?.getAttribute('data-stage') === 'theater')
+    assert(await page.getByTestId('details-drawer').count() === 0, 'drawer not collapsed in theater mode')
+    await page.getByTestId('stage-theater').click()
+    await page.getByTestId('details-drawer').waitFor({ timeout: 5000 })
+    await page.getByTestId('stage-fullscreen').click()
+    await page.waitForFunction(() => document.querySelector('[data-testid="map-stage"]')?.getAttribute('data-stage') === 'fullscreen')
+    const vp = page.viewportSize()
+    const fb = await page.getByTestId('map-stage').boundingBox()
+    assert(fb.width >= vp.width - 2 && fb.height >= vp.height - 2, `fullscreen stage ${fb.width}x${fb.height} vs viewport ${vp.width}x${vp.height}`)
+    await page.keyboard.press('Escape')
+    await page.waitForFunction(() => document.querySelector('[data-testid="map-stage"]')?.getAttribute('data-stage') === 'default', null, { timeout: 5000 })
+    await page.getByTestId('details-drawer').waitFor({ timeout: 5000 })
+    // map tools popover holds the area mode, grid, upload, clear and diagnostics controls
+    await page.getByTestId('map-tools-toggle').click()
+    for (const n of ['Region AOI', 'Analyze Location', 'Upload GeoJSON', 'Clear AOI']) await page.getByTestId('map-tools').getByRole('button', { name: n }).waitFor()
+    await page.getByTestId('map-tools-toggle').click()
+    // calendar: one navigation header (month and day controls together), no separate playback bar, spaced cells
+    await page.getByTestId('nav-calendar').click()
+    await page.getByTestId('calendar-nav').waitFor({ timeout: 15000 })
+    assert(await page.getByTestId('timeline').count() === 0, 'separate playback bar still on the calendar')
+    for (const n of ['Previous month', 'Next month', 'Previous day', 'Next day']) assert(await page.getByTestId('calendar-nav').getByLabel(n).count() === 1, `${n} missing from the calendar header`)
+    const gap = await page.getByTestId('calendar-grid').evaluate((e) => getComputedStyle(e).columnGap)
+    assert(gap === '8px', `calendar gap ${gap}`)
+    await page.getByTestId('calendar-nav').getByLabel('Next day').click()
+    await page.waitForFunction(() => location.hash.includes('date=2023-09-16'), null, { timeout: 10000 })
+    // harmonization: the region/period/filters block is gone; the run controls remain
+    await open(page, 'page=harmonization&aoi=region:kalimantan&start=2023-01-01&end=2024-12-31')
+    await page.getByTestId('h-controls').waitFor({ timeout: 15000 })
+    assert(await page.getByText('Region (top bar)').count() === 0, 'redundant region block still present')
+    // loading bar: shows request progress while a new query loads, then disappears
+    await open(page, 'page=explore&aoi=region:sumatra&start=2023-01-01&end=2024-12-31&date=2023-08-02&frameMode=1')
+    await page.getByTestId('load-bar').waitFor({ state: 'attached', timeout: 10000 })
+    const vt = await page.getByRole('progressbar', { name: 'Loading data' }).getAttribute('aria-valuetext')
+    assert(/\d+ of \d+ data requests finished/.test(vt), `progress text ${vt}`)
+    await page.getByTestId('load-bar').waitFor({ state: 'detached', timeout: 60000 })
+    return `HUD N20 ${det} = API; filters disclosure in popover; theater/fullscreen/default with drawer collapse and restore; calendar gap ${gap}; loading bar "${vt}"`
   })
 
 } finally {
