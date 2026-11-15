@@ -313,3 +313,22 @@ def app_():
     return app
 
 
+
+
+def test_unexpected_error_is_json_and_redacted(env, monkeypatch, caplog):
+    """An unexpected server error returns a generic JSON 500; the log line never contains the FIRMS key."""
+    from pyrosync import api as API
+    from pyrosync.config import get_settings
+    get_settings().firms_map_key = "SYNTHETICKEY0123456789"
+
+    def boom(*a, **k):
+        raise RuntimeError("failed with key SYNTHETICKEY0123456789")
+    monkeypatch.setattr(FU, "report", boom)
+    c = TestClient(app_(), raise_server_exceptions=False)
+    with caplog.at_level("ERROR", logger="pyrosync"):
+        r = c.get("/api/fusion?start=2023-01-01&end=2023-01-02")
+    assert r.status_code == 500 and r.json()["ref"]
+    assert "SYNTHETICKEY" not in r.text
+    line = " ".join(rec.getMessage() for rec in caplog.records if "pyrosync 500" in rec.getMessage())
+    assert "RuntimeError" in line and "[redacted]" in line and "SYNTHETICKEY" not in line
+    assert API._redact("x SYNTHETICKEY0123456789 y") == "x [redacted] y"

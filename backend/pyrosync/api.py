@@ -43,6 +43,29 @@ async def _val_err(_: Request, e: ValueError):
     return JSONResponse(status_code=422, content={"detail": str(e)})
 
 
+def _redact(text: str) -> str:
+    """Never let a credential reach a log line or a response."""
+    import os
+    s = get_settings()
+    for secret in (s.firms_map_key, os.environ.get("BLOB_READ_WRITE_TOKEN", ""), os.environ.get("FIRMS_MAP_KEY", "")):
+        if secret and len(secret) >= 6:
+            text = text.replace(secret, "[redacted]")
+    return text
+
+
+@app.exception_handler(Exception)
+async def _server_err(request: Request, e: Exception):
+    """Unexpected errors: one compact, redacted log line (type, message, last frames) and a generic JSON 500."""
+    import logging
+    import traceback
+    import uuid
+    ref = uuid.uuid4().hex[:10]
+    frames = traceback.extract_tb(e.__traceback__)[-4:]
+    where = " <- ".join(f"{fr.filename.rsplit('/', 2)[-1]}:{fr.lineno} {fr.name}" for fr in reversed(frames))
+    logging.getLogger("pyrosync").error(_redact(f"pyrosync 500 ref={ref} {request.url.path} {type(e).__name__}: {str(e)[:400]} at {where}"))
+    return JSONResponse(status_code=500, content={"detail": f"Internal error (reference {ref}). The server log has the details.", "ref": ref})
+
+
 def _csv(v: str | None) -> list[str] | None:
     if v is None:
         return None
